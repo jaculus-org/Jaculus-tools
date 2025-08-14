@@ -1,0 +1,1 @@
+{"version":3,"file":"esp32.d.ts","sourceRoot":"","sources":["../../../../../src/distribution/esp32/esp32.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,MAAM,eAAe,CAAC;AAkFxC,wBAAsB,KAAK,CAAC,OAAO,EAAE,OAAO,EAAE,IAAI,EAAE,MAAM,EAAE,OAAO,EAAE,OAAO,GAAG,OAAO,CAAC,IAAI,CAAC,CAwG3F;AAED,wBAAgB,IAAI,CAAC,OAAO,EAAE,OAAO,GAAG,MAAM,CAwC7C"}

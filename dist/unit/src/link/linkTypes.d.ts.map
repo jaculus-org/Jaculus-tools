@@ -1,0 +1,1 @@
+{"version":3,"file":"linkTypes.d.ts","sourceRoot":"","sources":["../../../../src/link/linkTypes.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,QAAQ;IACrB,aAAa,CAAC,IAAI,EAAE,MAAM,GAAG,IAAI,CAAC;CACrC;AAED,MAAM,WAAW,MAAM;IACnB,GAAG,CAAC,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC;IACxB,KAAK,IAAI,MAAM,CAAC;IAChB,IAAI,IAAI,IAAI,CAAC;CAChB"}
