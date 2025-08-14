@@ -4,7 +4,7 @@
     "description": "Companion application/library for Jaculus",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/cubicap/Jaculus-tools.git"
+        "url": "git+https://github.com/jaculus-org/Jaculus-tools.git"
     },
     "author": {
         "name": "Petr Kubica (cubicap)",
