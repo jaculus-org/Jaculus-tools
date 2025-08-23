@@ -14,8 +14,7 @@
     "build": "tsc -b",
     "dev": "tsc -b --watch",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "lint": "eslint --ext .ts src",
-    "test": "vitest run"
+    "lint": "eslint --ext .ts src"
   },
   "dependencies": {
     "@jaculus/commands": "workspace:*",
@@ -28,7 +27,6 @@
     "@types/node": "^24.0.7",
     "eslint": "^9.30.0",
     "rimraf": "^6.0.1",
-    "typescript-eslint": "^8.35.0",
-    "vitest": "^3.2.4"
+    "typescript-eslint": "^8.35.0"
   }
 }

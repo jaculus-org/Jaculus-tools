@@ -1,6 +1,6 @@
 import * as chai from "chai";
 import chaiBytes from "chai-bytes";
-import { CobsEncoder } from "../../src/link/encoders/cobs.js";
+import { CobsEncoder } from "@jaculus/link/encoders/cobs.js";
 
 chai.use(chaiBytes);
 const expect = chai.expect;

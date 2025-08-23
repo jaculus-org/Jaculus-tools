@@ -7,10 +7,17 @@
     "build": "pnpm -r run build",
     "clean": "pnpm -r run clean",
     "lint": "pnpm -r run lint",
-    "test": "pnpm -r run test",
+    "test": "vitest run",
     "dev:tools": "pnpm --filter jaculus-tools run dev",
     "jac": "pnpm --filter jaculus-tools exec jac",
     "release:dry": "pnpm -r publish --dry-run",
     "release": "pnpm -r publish --access public"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4",
+    "chai": "^5.1.2",
+    "chai-bytes": "^0.1.2",
+    "queue-fifo": "^0.2.5",
+    "@types/chai": "^4.3.20"
   }
 }

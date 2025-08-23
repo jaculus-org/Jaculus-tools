@@ -6,7 +6,23 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@types/chai':
+        specifier: ^4.3.20
+        version: 4.3.20
+      chai:
+        specifier: ^5.1.2
+        version: 5.3.3
+      chai-bytes:
+        specifier: ^0.1.2
+        version: 0.1.2(chai@5.3.3)
+      queue-fifo:
+        specifier: ^0.2.5
+        version: 0.2.6
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.3.0)
 
   apps/jaculus-tools:
     dependencies:
@@ -38,9 +54,6 @@ importers:
       typescript-eslint:
         specifier: ^8.35.0
         version: 8.40.0(eslint@9.34.0)(typescript@5.9.2)
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.4(@types/node@24.3.0)
 
   packages/code:
     dependencies:
@@ -109,9 +122,6 @@ importers:
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.4(@types/node@24.3.0)
 
   packages/device:
     dependencies:
@@ -627,6 +637,9 @@ packages:
     resolution: {integrity: sha512-F7xLJKsjGo2WuEWMSEO1SimRcOA+WtWICsY13r0ahx8s2SecPQH06338g28OT7cW7uRXI7oEQAk62qh5gHJW3g==}
     engines: {node: '>=20.0.0'}
 
+  '@types/chai@4.3.20':
+    resolution: {integrity: sha512-/pC9HAB5I/xMlc5FP77qjCnI16ChlJfW0tGa0IUcFn38VJrTV6DeZ60NU5KZBtaOZqjdpwTWohz5HU1RrhiYxQ==}
+
   '@types/chai@5.2.2':
     resolution: {integrity: sha512-8kB30R7Hwqf40JPiKhVzodJs2Qc1ZJ5zuT3uzw5Hq/dhNCl3G3l83jfpdI1e20BP348+fV7VIL/+FxaXkqBmWg==}
 
@@ -809,6 +822,12 @@ packages:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
     engines: {node: '>=6'}
 
+  chai-bytes@0.1.2:
+    resolution: {integrity: sha512-0ol6oJS0y1ozj6AZK8n1pyv1/G+l44nqUJygAkK1UrYl+IOGie5vcrEdrAlwmLYGIA9NVvtHWosPYwWWIXf/XA==}
+    engines: {node: '>=4'}
+    peerDependencies:
+      chai: '>=2 <5'
+
   chai@5.3.3:
     resolution: {integrity: sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw==}
     engines: {node: '>=18'}
@@ -870,6 +889,9 @@ packages:
   data-uri-to-buffer@6.0.2:
     resolution: {integrity: sha512-7hvf7/GW8e86rW0ptuwS3OcBGDjIi6SZva7hCyWC0yYry2cOPmLIjXAUHI6DK2HsnwJd9ifmt57i8eV2n4YNpw==}
     engines: {node: '>= 14'}
+
+  dbly-linked-list@0.3.4:
+    resolution: {integrity: sha512-327vOlwspi9i1T3Kc9yZhRUR8qDdgMQ4HmXsFDDCQ/HTc3sNe7gnF5b0UrsnaOJ0rvmG7yBZpK0NoOux9rKYKw==}
 
   debug@4.4.0:
     resolution: {integrity: sha512-6WTZ/IxCY/T6BALoZHaE4ctp9xm+Z5kY/pzYaCHRFeyVhojxlrm+46y68HA6hr0TcwEssoxNiDEUJQjfPZ/RYA==}
@@ -1138,6 +1160,10 @@ packages:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
 
+  lodash.isequal@4.5.0:
+    resolution: {integrity: sha512-pDo3lu8Jhfjqls6GkMgpahsF9kCyayhgykjyLMNFTKWrpVdAQtYyB4muAMWozBB4ig/dtWAmsMxLEI8wuz+DYQ==}
+    deprecated: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
 
@@ -1263,6 +1289,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
+
+  queue-fifo@0.2.6:
+    resolution: {integrity: sha512-rwlnZHAaTmWEGKC7ziasK8u4QnZW/uN6kSiG+tHNf/1GA+R32FArZi18s3SYUpKcA0Y6jJoUDn5GT3Anoc2mWw==}
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
@@ -1849,6 +1878,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@types/chai@4.3.20': {}
+
   '@types/chai@5.2.2':
     dependencies:
       '@types/deep-eql': 4.0.2
@@ -2063,6 +2094,10 @@ snapshots:
 
   callsites@3.1.0: {}
 
+  chai-bytes@0.1.2(chai@5.3.3):
+    dependencies:
+      chai: 5.3.3
+
   chai@5.3.3:
     dependencies:
       assertion-error: 2.0.1
@@ -2122,6 +2157,10 @@ snapshots:
       which: 2.0.2
 
   data-uri-to-buffer@6.0.2: {}
+
+  dbly-linked-list@0.3.4:
+    dependencies:
+      lodash.isequal: 4.5.0
 
   debug@4.4.0:
     dependencies:
@@ -2396,6 +2435,8 @@ snapshots:
     dependencies:
       p-locate: 5.0.0
 
+  lodash.isequal@4.5.0: {}
+
   lodash.merge@4.6.2: {}
 
   logform@2.7.0:
@@ -2503,6 +2544,10 @@ snapshots:
   prelude-ls@1.2.1: {}
 
   punycode@2.3.1: {}
+
+  queue-fifo@0.2.6:
+    dependencies:
+      dbly-linked-list: 0.3.4
 
   queue-microtask@1.2.3: {}
 

@@ -16,8 +16,7 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "lint": "eslint --ext .ts src",
-    "test": "vitest run"
+    "lint": "eslint --ext .ts src"
   },
   "dependencies": {
     "@jaculus/code": "workspace:*",
@@ -37,7 +36,6 @@
   "devDependencies": {
     "@types/node": "^24.0.7",
     "@types/tar-stream": "^3.1.4",
-    "rimraf": "^6.0.1",
-    "vitest": "^3.2.4"
+    "rimraf": "^6.0.1"
   }
 }
