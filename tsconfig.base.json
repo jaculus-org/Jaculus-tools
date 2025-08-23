@@ -1,17 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2021",
-    "module": "ES2020",
-    "moduleResolution": "Node",
-    "baseUrl": ".",
-    "paths": {
-      "@jaculus/util/*": ["packages/util/src/*"],
-      "@jaculus/link/*": ["packages/link/src/*"],
-      "@jaculus/package/*": ["packages/package/src/*"],
-      "@jaculus/code/*": ["packages/code/src/*"],
-      "@jaculus/commands/*": ["packages/commands/src/*"],
-      "@jaculus/device/*": ["packages/device/src/*"]
-    },
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -20,6 +11,21 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@jaculus/util": ["./packages/util/dist"],
+      "@jaculus/util/*": ["./packages/util/dist/*"],
+      "@jaculus/code": ["./packages/code/dist"],
+      "@jaculus/code/*": ["./packages/code/dist/*"],
+      "@jaculus/commands": ["./packages/commands/dist"],
+      "@jaculus/commands/*": ["./packages/commands/dist/*"],
+      "@jaculus/device": ["./packages/device/dist"],
+      "@jaculus/device/*": ["./packages/device/dist/*"],
+      "@jaculus/link": ["./packages/link/dist"],
+      "@jaculus/link/*": ["./packages/link/dist/*"],
+      "@jaculus/package": ["./packages/package/dist"],
+      "@jaculus/package/*": ["./packages/package/dist/*"]
+    }
   }
 }

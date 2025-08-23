@@ -1,4 +1,4 @@
-import { Serializer, Packetizer, Encoder } from "./interface";
+import { Serializer, Packetizer, Encoder } from "./interface.js";
 import crc16 from "crc/crc16";
 
 

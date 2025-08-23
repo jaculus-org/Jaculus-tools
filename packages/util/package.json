@@ -3,13 +3,14 @@
   "version": "0.0.1",
   "type": "module",
   "private": false,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "files": ["dist"],
   "exports": {
-    "./logger.js": "./dist/logger.js",
-    "./encoding.js": "./dist/encoding.js",
-    "./timeoutPromise.js": "./dist/timeoutPromise.js"
+    ".": { "types": "./dist/src/index.d.ts", "default": "./dist/src/index.js" },
+    "./logger.js": "./dist/src/logger.js",
+    "./encoding.js": "./dist/src/encoding.js",
+    "./timeoutPromise.js": "./dist/src/timeoutPromise.js"
   },
   "scripts": {
     "build": "tsc -b",
