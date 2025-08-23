@@ -1,0 +1,21 @@
+{
+  "name": "@jaculus/util",
+  "version": "0.0.1",
+  "type": "module",
+  "private": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "exports": {
+    "./logger.js": "./dist/logger.js",
+    "./encoding.js": "./dist/encoding.js",
+    "./timeoutPromise.js": "./dist/timeoutPromise.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lint": "eslint --ext .ts src"
+  },
+  "dependencies": { "winston": "^3.17.0", "typescript": "^5.8.3" },
+  "devDependencies": { "@types/node": "^24.0.7", "rimraf": "^6.0.1" }
+}

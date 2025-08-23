@@ -4,3 +4,4 @@ node_modules
 jac.log
 download
 src/project/version.ts
+tsconfig.tsbuildinfo

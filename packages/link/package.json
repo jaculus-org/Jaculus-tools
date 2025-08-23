@@ -1,0 +1,32 @@
+{
+  "name": "@jaculus/link",
+  "version": "0.0.1",
+  "type": "module",
+  "private": false,
+  "files": ["dist"],
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    "./communicator.js": "./dist/src/communicator.js",
+    "./linkTypes.js": "./dist/src/linkTypes.js",
+    "./mux.js": "./dist/src/mux.js",
+    "./muxCommunicator.js": "./dist/src/muxCommunicator.js",
+    "./stream.js": "./dist/src/stream.js",
+    "./streams/serialStream.js": "./dist/src/streams/serialStream.js",
+    "./streams/socketStream.js": "./dist/src/streams/socketStream.js",
+    "./encoders/cobs.js": "./dist/src/encoders/cobs.js",
+    "./encoders/interface.js": "./dist/src/encoders/interface.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lint": "eslint --ext .ts src"
+  },
+  "dependencies": {
+    "@jaculus/util": "workspace:*",
+    "crc": "^4.3.2",
+    "serialport": "^13.0.0",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": { "@types/node": "^24.0.7", "rimraf": "^6.0.1" }
+}

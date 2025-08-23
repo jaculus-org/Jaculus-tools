@@ -1,62 +1,16 @@
 {
-    "name": "jaculus-tools",
-    "version": "0.0.23",
-    "description": "Companion application/library for Jaculus",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/cubicap/Jaculus-tools.git"
-    },
-    "author": {
-        "name": "Petr Kubica (cubicap)",
-        "email": "cubicap@email.cz"
-    },
-    "license": "GPL-3.0-only",
-    "type": "module",
-    "scripts": {
-        "prebuild": "node -p \"'export const version = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/project/version.ts",
-        "build": "tsc --build",
-        "clean": "tsc --build --clean",
-        "lint": "eslint --ext .ts src unit",
-        "test": "vitest run",
-        "prepack": "npm run lint && npm run clean && npm run build && npm run test",
-        "command": "node ./dist/src/commands/index.js"
-    },
-    "bin": {
-        "jac": "dist/src/commands/index.js"
-    },
-    "main": "./dist/src/index.js",
-    "module": "./dist/src/index.js",
-    "types": "./dist/src/index.d.ts",
-    "files": [
-        "dist"
-    ],
-    "dependencies": {
-        "@cubicap/esptool-js": "^0.3.2",
-        "chalk": "^5.4.1",
-        "cli-progress": "^3.12.0",
-        "crc": "^4.3.2",
-        "get-uri": "^6.0.4",
-        "node-stream-zip": "^1.15.0",
-        "serialport": "^13.0.0",
-        "tar-stream": "^3.1.7",
-        "typescript": "^5.8.3",
-        "winston": "^3.17.0"
-    },
-    "devDependencies": {
-        "@tsconfig/node16": "^16.1.4",
-        "@types/chai": "^5.2.2",
-        "@types/cli-progress": "^3.11.6",
-        "@types/node": "^24.0.7",
-        "@types/tar-stream": "^3.1.4",
-        "@typescript-eslint/eslint-plugin": "^8.35.0",
-        "@typescript-eslint/parser": "^8.35.0",
-        "@vitest/coverage-v8": "^3.2.4",
-        "chai": "^4.3.10",
-        "chai-bytes": "^0.1.2",
-        "eslint": "^9.30.0",
-        "npm-check-updates": "^18.0.1",
-        "queue-fifo": "^0.2.6",
-        "typescript-eslint": "^8.35.0",
-        "vitest": "^3.2.4"
-    }
+  "name": "jaculus-org-jaculus-tools-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.6.0",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "clean": "pnpm -r run clean",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "dev:tools": "pnpm --filter jaculus-tools run dev",
+    "jac": "pnpm --filter jaculus-tools exec jac",
+    "release:dry": "pnpm -r publish --dry-run",
+    "release": "pnpm -r publish --access public"
+  }
 }

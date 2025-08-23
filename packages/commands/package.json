@@ -1,0 +1,43 @@
+{
+  "name": "@jaculus/commands",
+  "version": "0.0.1",
+  "type": "module",
+  "private": false,
+  "files": [
+    "dist"
+  ],
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./lib/command.js": "./dist/src/lib/command.js",
+    "./util.js": "./dist/src/util.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lint": "eslint --ext .ts src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jaculus/code": "workspace:*",
+    "@jaculus/device": "workspace:*",
+    "@jaculus/link": "workspace:*",
+    "@jaculus/package": "workspace:*",
+    "@jaculus/util": "workspace:*",
+    "chalk": "^5.4.1",
+    "cli-progress": "^3.12.0",
+    "get-uri": "^6.0.4",
+    "serialport": "^13.0.0",
+    "tar-stream": "^3.1.7",
+    "typescript": "^5.8.3",
+    "winston": "^3.17.0",
+    "zlib": "^1.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.7",
+    "@types/tar-stream": "^3.1.4",
+    "rimraf": "^6.0.1",
+    "vitest": "^3.2.4"
+  }
+}

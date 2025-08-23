@@ -1,0 +1,36 @@
+{
+  "name": "@jaculus/package",
+  "version": "0.0.1",
+  "type": "module",
+  "private": false,
+  "files": [
+    "dist"
+  ],
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": "./dist/src/package.js",
+    "./esp32": "./dist/src/esp32/esp32.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lint": "eslint --ext .ts src"
+  },
+  "dependencies": {
+    "@cubicap/esptool-js": "^0.3.2",
+    "@jaculus/util": "workspace:*",
+    "cli-progress": "^3.12.0",
+    "get-uri": "^6.0.4",
+    "serialport": "^13.0.0",
+    "tar-stream": "^3.1.7",
+    "typescript": "^5.8.3",
+    "zlib": "^1.0.5"
+  },
+  "devDependencies": {
+    "@types/cli-progress": "^3.11.6",
+    "@types/node": "^24.0.7",
+    "@types/tar-stream": "^3.1.4",
+    "rimraf": "^6.0.1"
+  }
+}

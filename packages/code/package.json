@@ -1,0 +1,20 @@
+{
+  "name": "@jaculus/code",
+  "version": "0.0.1",
+  "type": "module",
+  "private": false,
+  "files": ["dist"],
+  "main": "dist/src/compiler.js",
+  "types": "dist/src/compiler.d.ts",
+  "exports": { "./compiler.js": "./dist/src/compiler.js" },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "lint": "eslint --ext .ts src"
+  },
+  "dependencies": {
+    "@jaculus/util": "workspace:*",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": { "@types/node": "^24.0.7", "rimraf": "^6.0.1" }
+}

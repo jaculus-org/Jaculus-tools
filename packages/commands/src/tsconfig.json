@@ -1,0 +1,48 @@
+{
+    "extends": "../../tsconfig-base.json",
+    "include": [
+        "util.ts",
+        "list-ports.ts",
+        "serial-socket.ts",
+        "monitor.ts",
+        "ls.ts",
+        "read.ts",
+        "write.ts",
+        "mkdir.ts",
+        "rm.ts",
+        "rmdir.ts",
+        "upload.ts",
+        "flash.ts",
+        "start.ts",
+        "stop.ts",
+        "status.ts",
+        "version.ts",
+        "build.ts",
+        "install.ts",
+        "pull.ts",
+        "format.ts",
+        "resources-ls.ts",
+        "resources-read.ts",
+        "get-examples.ts",
+        "wifi.ts",
+        "../../apps/jaculus-tools/src/cli.ts",
+        "lib/command.ts",
+    ],
+    "references": [
+        {
+            "path": "../device"
+        },
+        {
+            "path": "../link"
+        },
+        {
+            "path": "../code"
+        },
+        {
+            "path": "../project"
+        },
+        {
+            "path": "../distribution"
+        }
+    ]
+}
