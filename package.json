@@ -11,7 +11,9 @@
     "dev:tools": "pnpm --filter jaculus-tools run dev",
     "jac": "pnpm --filter jaculus-tools exec jac",
     "release:dry": "pnpm -r publish --dry-run",
-    "release": "pnpm -r publish --access public"
+    "release": "pnpm -r publish --access public",
+    "publish:manual": "pnpm -r publish --access public --no-git-checks",
+    "publish:check": "pnpm -r publish --dry-run --access public"
   },
   "devDependencies": {
     "vitest": "^3.2.4",
