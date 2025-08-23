@@ -1,25 +1,43 @@
 {
-  "name": "jaculus-org-jaculus-tools-monorepo",
-  "private": true,
-  "packageManager": "pnpm@9.6.0",
-  "type": "module",
-  "scripts": {
-    "build": "pnpm -r run build",
-    "clean": "pnpm -r run clean",
-    "lint": "pnpm -r run lint",
-    "test": "vitest run",
-    "dev:tools": "pnpm --filter jaculus-tools run dev",
-    "jac": "pnpm --filter jaculus-tools exec jac",
-    "release:dry": "pnpm -r publish --dry-run",
-    "release": "pnpm -r publish --access public",
-    "publish:manual": "pnpm -r publish --access public --no-git-checks",
-    "publish:check": "pnpm -r publish --dry-run --access public"
-  },
-  "devDependencies": {
-    "vitest": "^3.2.4",
-    "chai": "^5.1.2",
-    "chai-bytes": "^0.1.2",
-    "queue-fifo": "^0.2.5",
-    "@types/chai": "^4.3.20"
-  }
+    "name": "jaculus-org-jaculus-tools-monorepo",
+    "private": true,
+    "packageManager": "pnpm@9.6.0",
+    "type": "module",
+    "scripts": {
+        "build": "pnpm -r run build",
+        "clean": "pnpm -r run clean",
+        "lint": "pnpm -r run lint",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "typecheck": "tsc -b --noEmit",
+        "test": "vitest run",
+        "dev:tools": "pnpm --filter jaculus-tools run dev",
+        "jac": "pnpm --filter jaculus-tools exec jac",
+        "release:dry": "pnpm -r publish --dry-run",
+        "release": "pnpm -r publish --access public",
+        "publish:manual": "pnpm -r publish --access public --no-git-checks",
+        "publish:check": "pnpm -r publish --dry-run --access public",
+        "prepare": "husky"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.3.20",
+        "chai": "^5.1.2",
+        "chai-bytes": "^0.1.2",
+        "eslint-config-prettier": "^10.1.8",
+        "husky": "^9.1.7",
+        "lint-staged": "^16.1.5",
+        "prettier": "^3.6.2",
+        "queue-fifo": "^0.2.5",
+        "vitest": "^3.2.4"
+    },
+    "lint-staged": {
+        "*.{ts,tsx,js,jsx,mjs,cjs}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,md,yml,yaml}": [
+            "prettier --write"
+        ]
+    }
 }
