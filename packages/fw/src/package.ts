@@ -104,8 +104,6 @@ export class Package {
             default:
                 throw new Error("Unsupported platform");
         }
-
-        return;
     }
 
     public info(): string {

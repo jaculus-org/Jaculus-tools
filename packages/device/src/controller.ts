@@ -1,7 +1,7 @@
 import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link/communicator.js";
-import { logger } from "@jaculus/util/logger.js";
-import { TimeoutPromise } from "@jaculus/util/timeoutPromise.js";
-import { encodePath } from "@jaculus/util/encoding.js";
+import { Logger } from "@jaculus/util/index.js";
+import { TimeoutPromise } from "./timeoutPromise.js";
+import { encodePath } from "./encoding.js";
 
 const TIMEOUT_MS = 5000;
 const LOCK_TIMEOUT = 100;
@@ -48,6 +48,7 @@ enum KeyValueDataType {
 export class Controller {
     private _in: InputPacketCommunicator;
     private _out: OutputPacketCommunicator;
+    private _logger?: Logger;
 
     private _onPacket?: (cmd: ControllerCommand, data: Buffer) => boolean;
 
@@ -55,9 +56,14 @@ export class Controller {
         this._onPacket = undefined;
     }
 
-    public constructor(in_: InputPacketCommunicator, out: OutputPacketCommunicator) {
+    public constructor(
+        in_: InputPacketCommunicator,
+        out: OutputPacketCommunicator,
+        logger?: Logger
+    ) {
         this._in = in_;
         this._out = out;
+        this._logger = logger;
         this._in.onData((data: Buffer) => {
             this.processPacket(data);
         });
@@ -78,7 +84,7 @@ export class Controller {
     }
 
     public start(path: string): Promise<void> {
-        logger.verbose("Starting program: " + path);
+        this._logger?.verbose("Starting program: " + path);
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -105,7 +111,7 @@ export class Controller {
     }
 
     public stop(): Promise<void> {
-        logger.verbose("Stopping program");
+        this._logger?.verbose("Stopping program");
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -129,7 +135,7 @@ export class Controller {
     }
 
     public status(): Promise<{ running: boolean; exitCode?: number; status: string }> {
-        logger.verbose("Getting status");
+        this._logger?.verbose("Getting status");
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -157,7 +163,7 @@ export class Controller {
     }
 
     public version(): Promise<string[]> {
-        logger.verbose("Getting version");
+        this._logger?.verbose("Getting version");
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -189,7 +195,7 @@ export class Controller {
     }
 
     public async lock(): Promise<void> {
-        logger.verbose("Locking controller");
+        this._logger?.verbose("Locking controller");
 
         let retries = LOCK_RETRIES;
         while (retries > 0) {
@@ -217,7 +223,7 @@ export class Controller {
 
                 return;
             } catch {
-                logger.verbose("Failed to lock controller, retries: " + retries);
+                this._logger?.verbose("Failed to lock controller, retries: " + retries);
             }
 
             retries--;
@@ -225,7 +231,7 @@ export class Controller {
     }
 
     public unlock(): Promise<void> {
-        logger.verbose("Unlocking controller");
+        this._logger?.verbose("Unlocking controller");
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -249,7 +255,7 @@ export class Controller {
     }
 
     public forceUnlock(): Promise<void> {
-        logger.verbose("Force unlocking controller");
+        this._logger?.verbose("Force unlocking controller");
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -273,7 +279,7 @@ export class Controller {
     }
 
     public configErase(namespace: string, name: string): Promise<void> {
-        logger.verbose(`Erasing config ${namespace}/${name}`);
+        this._logger?.verbose(`Erasing config ${namespace}/${name}`);
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -305,7 +311,7 @@ export class Controller {
     }
 
     public configSetString(namespace: string, name: string, value: string): Promise<void> {
-        logger.verbose(`Setting config ${namespace}/${name} = ${value}`);
+        this._logger?.verbose(`Setting config ${namespace}/${name} = ${value}`);
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -340,7 +346,7 @@ export class Controller {
     }
 
     public configSetInt(namespace: string, name: string, value: number): Promise<void> {
-        logger.verbose(`Setting config ${namespace}/${name} = ${value}`);
+        this._logger?.verbose(`Setting config ${namespace}/${name} = ${value}`);
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -380,7 +386,7 @@ export class Controller {
     }
 
     public configGetString(namespace: string, name: string): Promise<string> {
-        logger.verbose(`Getting config ${namespace}/${name}`);
+        this._logger?.verbose(`Getting config ${namespace}/${name}`);
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -412,7 +418,7 @@ export class Controller {
     }
 
     public configGetInt(namespace: string, name: string): Promise<number> {
-        logger.verbose(`Getting config ${namespace}/${name}`);
+        this._logger?.verbose(`Getting config ${namespace}/${name}`);
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {

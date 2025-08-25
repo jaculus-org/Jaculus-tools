@@ -36,105 +36,6 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@24.3.0)(yaml@2.8.1)
 
-  apps/jaculus-tools:
-    dependencies:
-      '@jaculus/commands':
-        specifier: workspace:*
-        version: link:../../packages/commands
-      '@jaculus/device':
-        specifier: workspace:*
-        version: link:../../packages/device
-      '@jaculus/util':
-        specifier: workspace:*
-        version: link:../../packages/util
-      chalk:
-        specifier: ^5.4.1
-        version: 5.6.0
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.7
-        version: 24.3.0
-      eslint:
-        specifier: ^9.30.0
-        version: 9.34.0
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.0.1
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.2
-      typescript-eslint:
-        specifier: ^8.35.0
-        version: 8.40.0(eslint@9.34.0)(typescript@5.9.2)
-
-  packages/code:
-    dependencies:
-      '@jaculus/util':
-        specifier: workspace:*
-        version: link:../util
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.7
-        version: 24.3.0
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.0.1
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.2
-
-  packages/commands:
-    dependencies:
-      '@jaculus/code':
-        specifier: workspace:*
-        version: link:../code
-      '@jaculus/device':
-        specifier: workspace:*
-        version: link:../device
-      '@jaculus/link':
-        specifier: workspace:*
-        version: link:../link
-      '@jaculus/package':
-        specifier: workspace:*
-        version: link:../package
-      '@jaculus/util':
-        specifier: workspace:*
-        version: link:../util
-      chalk:
-        specifier: ^5.4.1
-        version: 5.6.0
-      cli-progress:
-        specifier: ^3.12.0
-        version: 3.12.0
-      get-uri:
-        specifier: ^6.0.4
-        version: 6.0.5
-      serialport:
-        specifier: ^13.0.0
-        version: 13.0.0
-      tar-stream:
-        specifier: ^3.1.7
-        version: 3.1.7
-      winston:
-        specifier: ^3.17.0
-        version: 3.17.0
-      zlib:
-        specifier: ^1.0.5
-        version: 1.0.5
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.7
-        version: 24.3.0
-      '@types/tar-stream':
-        specifier: ^3.1.4
-        version: 3.1.4
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.0.1
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.2
-
   packages/device:
     dependencies:
       '@jaculus/link':
@@ -154,29 +55,7 @@ importers:
         specifier: ^5.8.3
         version: 5.9.2
 
-  packages/link:
-    dependencies:
-      '@jaculus/util':
-        specifier: workspace:*
-        version: link:../util
-      crc:
-        specifier: ^4.3.2
-        version: 4.3.2
-      serialport:
-        specifier: ^13.0.0
-        version: 13.0.0
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.7
-        version: 24.3.0
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.0.1
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.2
-
-  packages/package:
+  packages/fw:
     dependencies:
       '@cubicap/esptool-js':
         specifier: ^0.3.2
@@ -216,14 +95,107 @@ importers:
         specifier: ^5.8.3
         version: 5.9.2
 
+  packages/link:
+    dependencies:
+      '@jaculus/util':
+        specifier: workspace:*
+        version: link:../util
+      crc:
+        specifier: ^4.3.2
+        version: 4.3.2
+      serialport:
+        specifier: ^13.0.0
+        version: 13.0.0
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.7
+        version: 24.3.0
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.0.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.2
+
+  packages/project:
+    dependencies:
+      '@jaculus/util':
+        specifier: workspace:*
+        version: link:../util
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.7
+        version: 24.3.0
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.0.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.2
+
+  packages/tools:
+    dependencies:
+      '@jaculus/device':
+        specifier: workspace:*
+        version: link:../device
+      '@jaculus/link':
+        specifier: workspace:*
+        version: link:../link
+      '@jaculus/package':
+        specifier: workspace:*
+        version: link:../fw
+      '@jaculus/project':
+        specifier: workspace:*
+        version: link:../project
+      '@jaculus/util':
+        specifier: workspace:*
+        version: link:../util
+      chalk:
+        specifier: ^5.4.1
+        version: 5.6.0
+      cli-progress:
+        specifier: ^3.12.0
+        version: 3.12.0
+      get-uri:
+        specifier: ^6.0.4
+        version: 6.0.5
+      serialport:
+        specifier: ^13.0.0
+        version: 13.0.0
+      tar-stream:
+        specifier: ^3.1.7
+        version: 3.1.7
+      winston:
+        specifier: ^3.17.0
+        version: 3.17.0
+      zlib:
+        specifier: ^1.0.5
+        version: 1.0.5
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.7
+        version: 24.3.0
+      '@types/tar-stream':
+        specifier: ^3.1.4
+        version: 3.1.4
+      eslint:
+        specifier: ^9.30.0
+        version: 9.34.0
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.0.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.2
+      typescript-eslint:
+        specifier: ^8.35.0
+        version: 8.40.0(eslint@9.34.0)(typescript@5.9.2)
+
   packages/util:
     dependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.9.2
-      winston:
-        specifier: ^3.17.0
-        version: 3.17.0
     devDependencies:
       '@types/node':
         specifier: ^24.0.7

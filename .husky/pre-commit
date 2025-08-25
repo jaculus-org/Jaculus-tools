@@ -1,2 +1,2 @@
-pnpm lint
-pnpm format:check
+npx pnpm lint
+npx pnpm format:check

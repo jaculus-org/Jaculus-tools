@@ -1,6 +1,6 @@
 import { Command, Opt } from "./lib/command.js";
 
-import { loadPackage } from "@jaculus/package/package.js";
+import { loadPackage } from "@jaculus/fw/package.js";
 import { stderr, stdout } from "process";
 
 const cmd = new Command("Install Jaculus to device", {

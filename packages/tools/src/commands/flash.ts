@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { Command, Env, Opt } from "./lib/command.js";
 import { stderr } from "process";
 import { getDevice } from "./util.js";
-import { logger } from "@jaculus/util/logger.js";
+import { logger } from "../logger.js";
 import { Uploader } from "@jaculus/device/uploader.js";
 
 enum SyncAction {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { Program, Command, Opt } from "@jaculus/commands/lib/command.js";
-import { registerJaculusCommands } from "@jaculus/commands/index.js";
-import { logger } from "@jaculus/util/logger.js";
+import { Program, Command, Opt } from "./commands/lib/command.js";
+import { registerJaculusCommands } from "./commands/index.js";
+import { logger } from "./logger.js";
 import { stdout, stderr } from "process";
 import versionCommand from "./commands/version.js";
 

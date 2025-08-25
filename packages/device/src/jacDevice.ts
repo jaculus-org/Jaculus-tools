@@ -9,6 +9,7 @@ import {
 import { Uploader } from "./uploader.js";
 import { Controller } from "./controller.js";
 import { CobsEncoder } from "@jaculus/link/encoders/cobs.js";
+import { Logger } from "@jaculus/util/index.js";
 
 export class JacDevice {
     private _mux: Mux;
@@ -24,8 +25,8 @@ export class JacDevice {
     public controller: Controller;
     public uploader: Uploader;
 
-    public constructor(connection: Duplex) {
-        this._mux = new Mux(CobsEncoder, connection);
+    public constructor(connection: Duplex, logger?: Logger) {
+        this._mux = new Mux(CobsEncoder, connection, logger);
 
         this.programOutput = new MuxInputStreamCommunicator(this._mux, 16);
         this.programInput = new MuxOutputStreamCommunicator(this._mux, 16);
@@ -37,12 +38,14 @@ export class JacDevice {
 
         this.controller = new Controller(
             new MuxInputPacketCommunicator(this._mux, 0),
-            new MuxOutputPacketCommunicator(this._mux, 0)
+            new MuxOutputPacketCommunicator(this._mux, 0),
+            logger
         );
 
         this.uploader = new Uploader(
             new MuxInputPacketCommunicator(this._mux, 1),
-            new MuxOutputPacketCommunicator(this._mux, 1)
+            new MuxOutputPacketCommunicator(this._mux, 1),
+            logger
         );
 
         this._mux.start();

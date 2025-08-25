@@ -6,11 +6,10 @@
         "composite": true
     },
     "references": [
-        { "path": "../code" },
         { "path": "../device" },
-        { "path": "../link" },
-        { "path": "../package" },
-        { "path": "../util" }
+        { "path": "../util" },
+        { "path": "../project" },
+        { "path": "../fw" }
     ],
     "include": ["src"]
 }

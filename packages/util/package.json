@@ -12,10 +12,7 @@
         ".": {
             "types": "./dist/src/index.d.ts",
             "default": "./dist/src/index.js"
-        },
-        "./logger.js": "./dist/src/logger.js",
-        "./encoding.js": "./dist/src/encoding.js",
-        "./timeoutPromise.js": "./dist/src/timeoutPromise.js"
+        }
     },
     "scripts": {
         "build": "tsc -b",
@@ -23,7 +20,6 @@
         "lint": "eslint --ext .ts src"
     },
     "dependencies": {
-        "winston": "^3.17.0",
         "typescript": "^5.8.3"
     },
     "devDependencies": {

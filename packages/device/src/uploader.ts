@@ -1,8 +1,8 @@
 import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link/communicator.js";
 import { Packet } from "@jaculus/link/linkTypes.js";
+import { Logger } from "@jaculus/util/index.js";
 import * as fs from "fs";
-import { encodePath } from "@jaculus/util/encoding.js";
-import { logger } from "@jaculus/util/logger.js";
+import { encodePath } from "./encoding.js";
 import path from "path";
 
 export enum UploaderCommand {
@@ -48,6 +48,7 @@ export const UploaderCommandStrings: Record<UploaderCommand, string> = {
 export class Uploader {
     private _in: InputPacketCommunicator;
     private _out: OutputPacketCommunicator;
+    private _logger?: Logger;
 
     private _onData?: (data: Buffer) => boolean;
     private _onDataComplete?: () => boolean;
@@ -55,9 +56,14 @@ export class Uploader {
     private _onError?: (cmd: UploaderCommand) => boolean;
     private _onContinue?: () => void;
 
-    public constructor(in_: InputPacketCommunicator, out: OutputPacketCommunicator) {
+    public constructor(
+        in_: InputPacketCommunicator,
+        out: OutputPacketCommunicator,
+        logger?: Logger
+    ) {
         this._in = in_;
         this._out = out;
+        this._logger = logger;
         this._in.onData((data: Buffer) => {
             this.processPacket(data);
         });
@@ -140,7 +146,7 @@ export class Uploader {
     }
 
     public readFile(path_: string): Promise<Buffer> {
-        logger.verbose("Reading file: " + path_);
+        this._logger?.verbose("Reading file: " + path_);
         return new Promise((resolve, reject) => {
             let data: Buffer = Buffer.alloc(0);
             this._onData = (d: Buffer) => {
@@ -168,7 +174,7 @@ export class Uploader {
     }
 
     public writeFile(path_: string, data: Buffer): Promise<UploaderCommand> {
-        logger.verbose("Writing file: " + path_ + " - " + data.length);
+        this._logger?.verbose("Writing file: " + path_ + " - " + data.length);
         return new Promise((resolve, reject) => {
             this._onOk = () => {
                 resolve(UploaderCommand.OK);
@@ -222,7 +228,7 @@ export class Uploader {
     }
 
     public deleteFile(path_: string): Promise<UploaderCommand> {
-        logger.verbose("Deleting file: " + path_);
+        this._logger?.verbose("Deleting file: " + path_);
         return new Promise((resolve, reject) => {
             this._onOk = () => {
                 resolve(UploaderCommand.OK);
@@ -244,7 +250,7 @@ export class Uploader {
     }
 
     public listDirectory(path_: string, flags = ""): Promise<[string, boolean, number][]> {
-        logger.verbose("Listing directory: " + path_ + " - '" + flags + "'");
+        this._logger?.verbose("Listing directory: " + path_ + " - '" + flags + "'");
         return new Promise((resolve, reject) => {
             let data: Buffer = Buffer.alloc(0);
             this._onData = (d: Buffer) => {
@@ -266,7 +272,7 @@ export class Uploader {
                         name = name.slice(1);
                         let size = 0;
                         for (let off = 0; off < 4; off++) {
-                            logger.debug("size: " + size + " + " + data[i + off + 1]);
+                            this._logger?.debug("size: " + size + " + " + data[i + off + 1]);
                             size <<= 8;
                             size |= data[i + off + 1];
                         }
@@ -298,7 +304,7 @@ export class Uploader {
     }
 
     public createDirectory(path_: string): Promise<UploaderCommand> {
-        logger.verbose("Creating directory: " + path_);
+        this._logger?.verbose("Creating directory: " + path_);
         return new Promise((resolve, reject) => {
             this._onOk = () => {
                 resolve(UploaderCommand.OK);
@@ -320,7 +326,7 @@ export class Uploader {
     }
 
     public deleteDirectory(path_: string): Promise<UploaderCommand> {
-        logger.verbose("Deleting directory: " + path_);
+        this._logger?.verbose("Deleting directory: " + path_);
         return new Promise((resolve, reject) => {
             this._onOk = () => {
                 resolve(UploaderCommand.OK);
@@ -342,7 +348,7 @@ export class Uploader {
     }
 
     public async upload(from: string, to: string): Promise<UploaderCommand> {
-        logger.info("Uploading " + from + " to " + to);
+        this._logger?.info("Uploading " + from + " to " + to);
         if (fs.lstatSync(from).isDirectory()) {
             const files = fs.readdirSync(from);
 
@@ -366,7 +372,7 @@ export class Uploader {
     }
 
     public async push(from: string, to: string): Promise<UploaderCommand> {
-        logger.verbose("Pushing " + from + " to " + to);
+        this._logger?.verbose("Pushing " + from + " to " + to);
         if (!fs.lstatSync(from).isDirectory()) {
             throw "Source must be a directory";
         }
@@ -381,7 +387,7 @@ export class Uploader {
     }
 
     private async pullFile(from: string, to: string): Promise<UploaderCommand> {
-        logger.info("Pulling " + from + " to " + to);
+        this._logger?.info("Pulling " + from + " to " + to);
 
         const data = await this.readFile(from).catch((cmd: UploaderCommand) => {
             throw "Failed to read file: " + UploaderCommandStrings[cmd];
@@ -393,7 +399,7 @@ export class Uploader {
     }
 
     private async pullDir(from: string, to: string): Promise<UploaderCommand> {
-        logger.info("Pulling " + from + " to " + to);
+        this._logger?.info("Pulling " + from + " to " + to);
 
         const files = await this.listDirectory(from).catch((cmd: UploaderCommand) => {
             throw "Failed to list directory: " + UploaderCommandStrings[cmd];
@@ -426,7 +432,7 @@ export class Uploader {
     }
 
     public async pull(from: string, to: string): Promise<UploaderCommand> {
-        logger.verbose("Pulling " + from + " to " + to);
+        this._logger?.verbose("Pulling " + from + " to " + to);
 
         const [, isDir] = await this.listDirectory(from).catch((err) => {
             throw "Failed to get file type: " + err;
@@ -440,7 +446,7 @@ export class Uploader {
     }
 
     public formatStorage(): Promise<UploaderCommand> {
-        logger.verbose("Formatting storage");
+        this._logger?.verbose("Formatting storage");
         return new Promise((resolve, reject) => {
             this._onOk = () => {
                 resolve(UploaderCommand.OK);
@@ -460,7 +466,7 @@ export class Uploader {
     }
 
     public getDirHashes(path_: string): Promise<[string, string][]> {
-        logger.verbose("Getting hashes of directory: " + path_);
+        this._logger?.verbose("Getting hashes of directory: " + path_);
         return new Promise((resolve, reject) => {
             let data: Buffer = Buffer.alloc(0);
             this._onData = (d: Buffer) => {
@@ -480,7 +486,7 @@ export class Uploader {
                         const name = buffer.toString("utf8", 0, buffer.indexOf(0));
                         const sha1 = data.toString("hex", i + 1, i + 21);
                         i += 20;
-                        logger.verbose(`${name} ${sha1}`);
+                        this._logger?.verbose(`${name} ${sha1}`);
                         result.push([name, sha1]);
                         buffer.fill(0);
                         bufferIn = 0;
@@ -505,7 +511,7 @@ export class Uploader {
     }
 
     public listResources(): Promise<[string, number][]> {
-        logger.verbose("Listing resources");
+        this._logger?.verbose("Listing resources");
         return new Promise((resolve, reject) => {
             let data: Buffer = Buffer.alloc(0);
             this._onData = (d: Buffer) => {
@@ -526,7 +532,7 @@ export class Uploader {
                         const name = buffer.toString("utf8", 0, buffer.indexOf(0));
                         let size = 0;
                         for (let off = 0; off < 4; off++) {
-                            logger.debug("size: " + size + " + " + data[i + off + 1]);
+                            this._logger?.debug("size: " + size + " + " + data[i + off + 1]);
                             size <<= 8;
                             size |= data[i + off + 1];
                         }
@@ -553,7 +559,7 @@ export class Uploader {
     }
 
     public readResource(name: string): Promise<Buffer> {
-        logger.verbose("Reading resource: " + name);
+        this._logger?.verbose("Reading resource: " + name);
         return new Promise((resolve, reject) => {
             let data: Buffer = Buffer.alloc(0);
             this._onData = (d: Buffer) => {

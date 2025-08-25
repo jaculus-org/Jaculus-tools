@@ -3,7 +3,7 @@ import { SerialStream } from "@jaculus/link/streams/serialStream.js";
 import { SocketStream } from "@jaculus/link/streams/socketStream.js";
 import { SerialPort } from "serialport";
 import { stderr, stdout } from "process";
-import { logger } from "@jaculus/util/logger.js";
+import { logger } from "../logger.js";
 import { Env } from "./lib/command.js";
 import * as readline from "readline";
 
@@ -97,7 +97,8 @@ export async function getDevice(
                     open: () => {
                         resolve(null);
                     },
-                })
+                }),
+                logger
             );
         });
     } else if (where.type === "socket") {
@@ -114,7 +115,8 @@ export async function getDevice(
                     open: () => {
                         resolve(null);
                     },
-                })
+                }),
+                logger
             );
         });
     }

@@ -1,7 +1,7 @@
-import { Command, Env } from "@jaculus/commands/lib/command.js";
+import { Command, Env } from "./lib/command.js";
 import { stdout, stderr } from "process";
-import { getDevice } from "@jaculus/commands/util.js";
-import { version } from "../../src-appmeta/version.js";
+import { getDevice } from "./util.js";
+import { version } from "../meta/version.js";
 
 const cmd = new Command("Get version of device firmware", {
     action: async (

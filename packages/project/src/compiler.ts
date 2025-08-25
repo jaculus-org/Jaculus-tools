@@ -1,7 +1,7 @@
+import { Logger } from "@jaculus/util/index.js";
 import { stderr } from "process";
 import { Writable } from "stream";
 import ts from "typescript";
-import { logger } from "@jaculus/util/logger.js";
 
 function printMessage(
     message: string | ts.DiagnosticMessageChain,
@@ -20,7 +20,12 @@ function printMessage(
     }
 }
 
-export function compile(input: string, outDir: string, err: Writable = stderr): boolean {
+export function compile(
+    input: string,
+    outDir: string,
+    logger?: Logger,
+    err: Writable = stderr
+): boolean {
     const tsconfig = ts.findConfigFile(input, ts.sys.fileExists, "tsconfig.json");
     if (!tsconfig) {
         throw new Error("Could not find tsconfig.json");
@@ -60,7 +65,7 @@ export function compile(input: string, outDir: string, err: Writable = stderr): 
         }
     }
 
-    logger.verbose("Compiling files:" + fileNames.join(", "));
+    logger?.verbose("Compiling files:" + fileNames.join(", "));
 
     const program = ts.createProgram(fileNames, options);
     const emitResult = program.emit();

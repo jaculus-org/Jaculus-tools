@@ -1,3 +1,10 @@
-export * from "./logger.js";
-export * from "./encoding.js";
-export * from "./timeoutPromise.js";
+type LogMethod = (message?: string) => void;
+
+export interface Logger {
+    error: LogMethod;
+    warn: LogMethod;
+    info: LogMethod;
+    verbose: LogMethod;
+    debug: LogMethod;
+    silly: LogMethod;
+}

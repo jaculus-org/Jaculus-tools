@@ -14,18 +14,16 @@
         "skipLibCheck": true,
         "baseUrl": ".",
         "paths": {
-            "@jaculus/util": ["./packages/util/dist"],
-            "@jaculus/util/*": ["./packages/util/dist/*"],
-            "@jaculus/code": ["./packages/code/dist"],
-            "@jaculus/code/*": ["./packages/code/dist/*"],
-            "@jaculus/commands": ["./packages/commands/dist"],
-            "@jaculus/commands/*": ["./packages/commands/dist/*"],
             "@jaculus/device": ["./packages/device/dist"],
             "@jaculus/device/*": ["./packages/device/dist/*"],
+            "@jaculus/fw": ["./packages/fw/dist"],
+            "@jaculus/fw/*": ["./packages/fw/dist/*"],
             "@jaculus/link": ["./packages/link/dist"],
             "@jaculus/link/*": ["./packages/link/dist/*"],
-            "@jaculus/package": ["./packages/package/dist"],
-            "@jaculus/package/*": ["./packages/package/dist/*"]
+            "@jaculus/project": ["./packages/project/dist"],
+            "@jaculus/project/*": ["./packages/project/dist/*"],
+            "@jaculus/util": ["./packages/util/dist"],
+            "@jaculus/util/*": ["./packages/util/dist/*"]
         }
     }
 }

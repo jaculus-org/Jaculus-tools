@@ -1,7 +1,7 @@
+import { Logger } from "@jaculus/util/index.js";
 import { Encoder, Packetizer, Serializer } from "./encoders/interface.js";
 import { Consumer, Packet } from "./linkTypes.js";
 import { Duplex, OutputStream } from "./stream.js";
-import { logger } from "@jaculus/util/logger.js";
 
 class MuxPacket implements Packet {
     private _stream: OutputStream;
@@ -28,9 +28,9 @@ class MuxPacket implements Packet {
 }
 
 export class Mux {
-    private encoder: Encoder;
-
+    private _encoder: Encoder;
     private _stream: Duplex;
+    private _logger?: Logger;
 
     private _channels: Record<number, Consumer>;
     private _globalCallback?: (channel: number, data: Buffer) => void;
@@ -40,13 +40,15 @@ export class Mux {
 
     public closed = false;
 
-    public constructor(encoder: Encoder, stream: Duplex) {
+    public constructor(encoder: Encoder, stream: Duplex, logger?: Logger) {
         this._stream = stream;
+        this._logger = logger;
+        this._encoder = encoder;
+
         this._channels = {};
 
-        this.encoder = encoder;
-        this._packetizer = new this.encoder.packetizer();
-        this._serializerCapacity = new this.encoder.serializer().capacity();
+        this._packetizer = new this._encoder.packetizer();
+        this._serializerCapacity = new this._encoder.serializer().capacity();
     }
 
     public start(): void {
@@ -57,7 +59,9 @@ export class Mux {
         if (this.closed) {
             throw new Error("Mux is closed");
         }
-        logger.silly("receive『" + data.reduce((a, b) => a + String.fromCharCode(b), "") + "』");
+        this._logger?.silly(
+            "receive『" + data.reduce((a, b) => a + String.fromCharCode(b), "") + "』"
+        );
         for (const c of data) {
             if (this._packetizer.put(c)) {
                 const result = this._packetizer.decode();
@@ -81,7 +85,7 @@ export class Mux {
         if (this.closed) {
             throw new Error("Mux is closed");
         }
-        return new MuxPacket(this._stream, channel, new this.encoder.serializer());
+        return new MuxPacket(this._stream, channel, new this._encoder.serializer());
     }
 
     public maxPacketSize(): number {

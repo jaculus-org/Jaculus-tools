@@ -1,7 +1,6 @@
 import { Package } from "../package.js";
 import { ESPLoader, NodeTransport } from "@cubicap/esptool-js";
 import { SerialPort } from "serialport";
-import { logger } from "@jaculus/util/logger.js";
 import cliProgress from "cli-progress";
 import { stdout } from "process";
 
@@ -112,12 +111,8 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
         romBaudrate: 115200,
         terminal: {
             clean: () => {},
-            writeLine: (data: any) => {
-                logger.debug(data);
-            },
-            write: (data: any) => {
-                logger.debug(data);
-            },
+            writeLine: () => {},
+            write: () => {},
         },
     };
     const esploader = new ESPLoader(loaderOptions);
