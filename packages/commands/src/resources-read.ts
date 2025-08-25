@@ -4,7 +4,11 @@ import { getDevice } from "./util.js";
 import fs from "fs";
 
 const cmd = new Command("Read a resource from device", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -30,18 +34,15 @@ const cmd = new Command("Read a resource from device", {
 
         if (outfile) {
             fs.writeFileSync(outfile, data);
-        }
-        else {
+        } else {
             stdout.write(data);
         }
     },
     options: {
-        "outfile": new Opt("file to save the data into")
+        outfile: new Opt("file to save the data into"),
     },
-    args: [
-        new Arg("name", "Name of the resource", { required: true }),
-    ],
-    chainable: true
+    args: [new Arg("name", "Name of the resource", { required: true })],
+    chainable: true,
 });
 
 export default cmd;

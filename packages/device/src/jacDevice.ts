@@ -1,13 +1,14 @@
 import { Mux } from "@jaculus/link/mux.js";
 import { Duplex } from "@jaculus/link/stream.js";
 import {
-    MuxOutputPacketCommunicator, MuxInputPacketCommunicator,
-    MuxOutputStreamCommunicator, MuxInputStreamCommunicator
+    MuxOutputPacketCommunicator,
+    MuxInputPacketCommunicator,
+    MuxOutputStreamCommunicator,
+    MuxInputStreamCommunicator,
 } from "@jaculus/link/muxCommunicator.js";
 import { Uploader } from "./uploader.js";
 import { Controller } from "./controller.js";
 import { CobsEncoder } from "@jaculus/link/encoders/cobs.js";
-
 
 export class JacDevice {
     private _mux: Mux;

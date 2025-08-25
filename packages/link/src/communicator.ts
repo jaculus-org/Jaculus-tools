@@ -9,10 +9,9 @@ export interface InputStreamCommunicator {
     onData(callback: (data: Buffer) => void): void;
 }
 
-
 export interface OutputPacketCommunicator {
     buildPacket(): Packet;
-    maxPacketSize(): number
+    maxPacketSize(): number;
 }
 
 export interface InputPacketCommunicator {

@@ -3,7 +3,6 @@ import { Consumer, Packet } from "./linkTypes.js";
 import { Duplex, OutputStream } from "./stream.js";
 import { logger } from "@jaculus/util/logger.js";
 
-
 class MuxPacket implements Packet {
     private _stream: OutputStream;
     private _channel: number;
@@ -27,7 +26,6 @@ class MuxPacket implements Packet {
         this._stream.write(this._serializer.finalize(this._channel));
     }
 }
-
 
 export class Mux {
     private encoder: Encoder;
@@ -71,8 +69,7 @@ export class Mux {
                     if (this._globalCallback) {
                         this._globalCallback(result.channel, result.data);
                     }
-                }
-                else {
+                } else {
                     // XXX: handle invalid packet
                     // ignored, UART seems stable enough, errors are only caused by garbage data (after reset...)
                 }

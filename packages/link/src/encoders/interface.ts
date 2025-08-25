@@ -10,7 +10,7 @@ export interface Serializer {
 export interface Packetizer {
     reset(): void;
     put(c: number): boolean;
-    decode(): { channel: number, data: Buffer } | null;
+    decode(): { channel: number; data: Buffer } | null;
 }
 
 export interface Encoder {

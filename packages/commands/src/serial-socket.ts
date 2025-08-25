@@ -4,7 +4,6 @@ import { defaultPort, defaultSocket } from "./util.js";
 import * as net from "net";
 import { SerialPort } from "serialport";
 
-
 const cmd = new Command("Tunnel a serial port over a TCP socket", {
     action: async (options: Record<string, string | boolean>) => {
         const baudrate = options["baudrate"] as string;
@@ -18,13 +17,12 @@ const cmd = new Command("Tunnel a serial port over a TCP socket", {
 
             stderr.write("Tunneling " + portPath + " at " + baudrate + " bauds\n");
 
-
             const sockets: Set<net.Socket> = new Set();
 
             const port = new SerialPort({
                 path: portPath,
                 baudRate: parseInt(baudrate),
-                autoOpen: false
+                autoOpen: false,
             });
 
             port.open((err) => {
@@ -35,13 +33,13 @@ const cmd = new Command("Tunnel a serial port over a TCP socket", {
 
                 port.set({
                     rts: false,
-                    dtr: false
+                    dtr: false,
                 });
 
                 setTimeout(() => {
                     port.set({
                         rts: true,
-                        dtr: true
+                        dtr: true,
                     });
                 }, 10);
             });
@@ -62,7 +60,6 @@ const cmd = new Command("Tunnel a serial port over a TCP socket", {
                 }
                 stdout.write("Port >> 『" + data + "』\n");
             });
-
 
             const server = net.createServer((socket) => {
                 sockets.add(socket);
@@ -102,7 +99,7 @@ const cmd = new Command("Tunnel a serial port over a TCP socket", {
                 server.close();
             });
         });
-    }
+    },
 });
 
 export default cmd;

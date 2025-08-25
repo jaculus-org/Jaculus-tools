@@ -4,7 +4,11 @@ import { getDevice } from "@jaculus/commands/util.js";
 import { version } from "../../src-appmeta/version.js";
 
 const cmd = new Command("Get version of device firmware", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -20,7 +24,7 @@ const cmd = new Command("Get version of device firmware", {
 
         stdout.write("Firmware version:\n  " + status.join("\n  ") + "\n");
     },
-    chainable: true
+    chainable: true,
 });
 
 export default cmd;

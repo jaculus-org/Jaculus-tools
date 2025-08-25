@@ -10,6 +10,7 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
+        "format:all": "pnpm lint:fix && pnpm format",
         "typecheck": "tsc -b --noEmit",
         "test": "vitest run",
         "dev:tools": "pnpm --filter jaculus-tools run dev",
@@ -30,14 +31,5 @@
         "prettier": "^3.6.2",
         "queue-fifo": "^0.2.5",
         "vitest": "^3.2.4"
-    },
-    "lint-staged": {
-        "*.{ts,tsx,js,jsx,mjs,cjs}": [
-            "eslint --fix",
-            "prettier --write"
-        ],
-        "*.{json,md,yml,yaml}": [
-            "prettier --write"
-        ]
     }
 }

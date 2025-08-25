@@ -2,9 +2,12 @@ import { Arg, Command, Env } from "./lib/command.js";
 import { stdout, stderr } from "process";
 import { getDevice } from "./util.js";
 
-
 const cmd = new Command("Download a file/directory from device", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -34,7 +37,7 @@ const cmd = new Command("Download a file/directory from device", {
         new Arg("remote", "Remote file to download", { required: true }),
         new Arg("local", "File to download to", { required: true }),
     ],
-    chainable: true
+    chainable: true,
 });
 
 export default cmd;

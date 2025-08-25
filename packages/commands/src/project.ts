@@ -8,7 +8,6 @@ import path from "path";
 import { getUri } from "get-uri";
 import { JacDevice } from "@jaculus/device/jacDevice.js";
 
-
 interface Package {
     dirs: string[];
     files: Record<string, Buffer>;
@@ -46,7 +45,7 @@ async function loadPackage(options: Record<string, string | boolean>, env: Env):
         throw 1;
     }
 
-    let source: { uri?: string, device?: JacDevice };
+    let source: { uri?: string; device?: JacDevice };
 
     if (fromDevice) {
         const port = options["port"] as string;
@@ -55,8 +54,7 @@ async function loadPackage(options: Record<string, string | boolean>, env: Env):
 
         const device = await getDevice(port, baudrate, socket, env);
         source = { device };
-    }
-    else {
+    } else {
         source = { uri: pkgUri };
     }
 
@@ -68,16 +66,14 @@ async function loadPackage(options: Record<string, string | boolean>, env: Env):
     if (source.uri) {
         const stream = await getUri(source.uri);
         stream.pipe(zlib.createGunzip()).pipe(extract);
-    }
-    else if (source.device) {
+    } else if (source.device) {
         const buffer = await loadFromDevice(source.device);
 
         const gunzip = zlib.createGunzip();
         gunzip.pipe(extract);
         gunzip.write(buffer);
         gunzip.end();
-    }
-    else {
+    } else {
         stderr.write("Invalid source for package");
         throw 1;
     }
@@ -119,8 +115,12 @@ async function loadPackage(options: Record<string, string | boolean>, env: Env):
     return { dirs, files };
 }
 
-
-function unpackPackage(pkg: Package, outPath: string, filter: (fileName: string) => boolean, dryRun: boolean = false): void {
+function unpackPackage(
+    pkg: Package,
+    outPath: string,
+    filter: (fileName: string) => boolean,
+    dryRun: boolean = false
+): void {
     for (const dir of pkg.dirs) {
         const source = dir;
         const fullPath = path.join(outPath, source);
@@ -150,9 +150,12 @@ function unpackPackage(pkg: Package, outPath: string, filter: (fileName: string)
     }
 }
 
-
 export const projectCreate = new Command("Create project from package", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
 
@@ -173,19 +176,20 @@ export const projectCreate = new Command("Create project from package", {
         unpackPackage(pkg, outPath, filter, dryRun);
     },
     options: {
-        "package": new Opt("Uri pointing to the package file"),
+        package: new Opt("Uri pointing to the package file"),
         "from-device": new Opt("Get package from device", { isFlag: true }),
         "dry-run": new Opt("Do not write files, just show what would be done", { isFlag: true }),
     },
-    args: [
-        new Arg("path", "Name of project directory", { required: true }),
-    ],
-    chainable: true
+    args: [new Arg("path", "Name of project directory", { required: true })],
+    chainable: true,
 });
 
-
 export const projectUpdate = new Command("Update existing project from package skeleton", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
 
@@ -208,16 +212,14 @@ export const projectUpdate = new Command("Update existing project from package s
 
         let skeleton: string[];
         if (!manifest || !manifest["skeletonFiles"]) {
-            skeleton = [ "@types/*", "tsconfig.json" ];
-        }
-        else {
+            skeleton = ["@types/*", "tsconfig.json"];
+        } else {
             const input = manifest["skeletonFiles"];
             skeleton = [];
             for (const entry of input) {
                 if (typeof entry === "string") {
                     skeleton.push(entry);
-                }
-                else {
+                } else {
                     stderr.write(`Invalid skeleton entry: ${JSON.stringify(entry)}\n`);
                     throw 1;
                 }
@@ -239,12 +241,10 @@ export const projectUpdate = new Command("Update existing project from package s
         unpackPackage(pkg, outPath, filter, dryRun);
     },
     options: {
-        "package": new Opt("Uri pointing to the package file"),
+        package: new Opt("Uri pointing to the package file"),
         "from-device": new Opt("Get package from device", { isFlag: true }),
         "dry-run": new Opt("Do not write files, just show what would be done", { isFlag: true }),
     },
-    args: [
-        new Arg("path", "Name of project directory", { required: true }),
-    ],
-    chainable: true
+    args: [new Arg("path", "Name of project directory", { required: true })],
+    chainable: true,
 });

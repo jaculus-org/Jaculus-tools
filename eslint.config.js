@@ -6,10 +6,27 @@ export default tseslint.config(
     eslint.configs.recommended,
     tseslint.configs.recommended,
     {
+        ignores: [
+            "**/dist/**",
+            "**/node_modules/**",
+            "**/src-appmeta/**",
+            "**/*.d.ts",
+            "**/coverage/**",
+            "src/**",
+        ],
+    },
+    {
         files: ["**/*.ts"],
         languageOptions: {
             parser: tseslint.parser,
-            parserOptions: { project: ["./apps/*/tsconfig.json", "./packages/*/tsconfig.json"] },
+            parserOptions: {
+                project: [
+                    "./tsconfig.json",
+                    "./apps/*/tsconfig.json",
+                    "./packages/*/tsconfig.json",
+                    "./unit/tsconfig.json",
+                ],
+            },
         },
         plugins: { "@typescript-eslint": tseslint.plugin },
         rules: {
@@ -18,6 +35,12 @@ export default tseslint.config(
             quotes: ["error", "double"],
             semi: ["error", "always"],
             "@typescript-eslint/no-explicit-any": "off",
+        },
+    },
+    {
+        files: ["**/*.test.ts", "**/*.spec.ts"],
+        rules: {
+            "@typescript-eslint/no-unused-expressions": "off",
         },
     },
     eslintConfigPrettier

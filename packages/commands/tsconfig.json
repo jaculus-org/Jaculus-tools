@@ -1,16 +1,16 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "composite": true
-  },
-  "references": [
-    { "path": "../code" },
-    { "path": "../device" },
-    { "path": "../link" },
-    { "path": "../package" },
-    { "path": "../util" }
-  ],
-  "include": ["src"]
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "outDir": "dist",
+        "rootDir": "src",
+        "composite": true
+    },
+    "references": [
+        { "path": "../code" },
+        { "path": "../device" },
+        { "path": "../link" },
+        { "path": "../package" },
+        { "path": "../util" }
+    ],
+    "include": ["src"]
 }

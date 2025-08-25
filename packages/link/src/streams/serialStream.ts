@@ -1,52 +1,56 @@
 import { SerialPort } from "serialport";
 import { Duplex } from "../stream.js";
 
-
 export class SerialStream implements Duplex {
     private path: string;
     private baudRate: number;
     private callbacks: {
-        "data"?: (data: Buffer) => void,
-        "error"?: (err: any) => void,
-        "end"?: () => void
+        data?: (data: Buffer) => void;
+        error?: (err: any) => void;
+        end?: () => void;
     } = {};
     private port: SerialPort;
 
-    constructor(path: string, baudRate: number, openCallbacks: {
-        "open"?: () => void,
-        "error"?: (err: any) => void,
-    } = {}) {
+    constructor(
+        path: string,
+        baudRate: number,
+        openCallbacks: {
+            open?: () => void;
+            error?: (err: any) => void;
+        } = {}
+    ) {
         this.path = path;
         this.baudRate = baudRate;
 
-
-        this.port = new SerialPort({
-            path: this.path,
-            baudRate: this.baudRate
-        }, (err) => {
-            if (err) {
-                if (openCallbacks["error"]) {
-                    openCallbacks["error"](err);
+        this.port = new SerialPort(
+            {
+                path: this.path,
+                baudRate: this.baudRate,
+            },
+            (err) => {
+                if (err) {
+                    if (openCallbacks["error"]) {
+                        openCallbacks["error"](err);
+                    }
+                    return;
                 }
-                return;
-            }
 
-            this.port.set({
-                rts: false,
-                dtr: false
-            });
-
-            setTimeout(() => {
                 this.port.set({
-                    rts: true,
-                    dtr: true
+                    rts: false,
+                    dtr: false,
                 });
 
-                if (openCallbacks["open"]) {
-                    openCallbacks["open"]();
-                }
-            }, 10);
-        }
+                setTimeout(() => {
+                    this.port.set({
+                        rts: true,
+                        dtr: true,
+                    });
+
+                    if (openCallbacks["open"]) {
+                        openCallbacks["open"]();
+                    }
+                }, 10);
+            }
         );
         this.port.on("data", (data) => {
             if (this.callbacks["data"]) {
@@ -103,8 +107,7 @@ export class SerialStream implements Duplex {
                         this.callbacks["end"]();
                     }
                     reject(err);
-                }
-                else {
+                } else {
                     if (this.callbacks["end"]) {
                         this.callbacks["end"]();
                     }

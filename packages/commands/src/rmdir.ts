@@ -2,9 +2,12 @@ import { Arg, Command, Env } from "./lib/command.js";
 import { stdout, stderr } from "process";
 import { getDevice } from "./util.js";
 
-
 const cmd = new Command("Delete a directory on device", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -29,10 +32,8 @@ const cmd = new Command("Delete a directory on device", {
 
         stdout.write(cmd.toString() + "\n");
     },
-    args: [
-        new Arg("path", "Directory to delete", { required: true }),
-    ],
-    chainable: true
+    args: [new Arg("path", "Directory to delete", { required: true })],
+    chainable: true,
 });
 
 export default cmd;

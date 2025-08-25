@@ -1,11 +1,10 @@
 {
-  "extends": "../tsconfig.base.json",
-  "include": [
-    "./**/*.test.ts"
-  ],
-  "compilerOptions": {
-    "types": ["vitest/globals", "chai"],
-    "noEmit": false,
-    "outDir": "../dist/unit"
-  }
+    "extends": "../tsconfig.base.json",
+    "include": ["./**/*.test.ts", "./**/*.ts"],
+    "compilerOptions": {
+        "types": ["vitest/globals", "chai"],
+        "noEmit": false,
+        "outDir": "../dist/unit",
+        "rootDir": "."
+    }
 }

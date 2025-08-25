@@ -1,7 +1,6 @@
 import { Serializer, Packetizer, Encoder } from "./interface.js";
 import crc16 from "crc/crc16";
 
-
 class PacketStructure {
     protected DELIMITER = 0x00;
     protected SIZE_CHECKSUM = 2;
@@ -17,9 +16,7 @@ class PacketStructure {
     protected SIZE_DATA_MAX = 254 - this.SIZE_CHANNEL - this.SIZE_CHECKSUM;
 
     protected buffer = Buffer.alloc(this.OFFSET_DATA + this.SIZE_DATA_MAX + this.SIZE_CHECKSUM);
-
 }
-
 
 class CobsSerializer extends PacketStructure implements Serializer {
     private _dataSize = 0;
@@ -58,8 +55,8 @@ class CobsSerializer extends PacketStructure implements Serializer {
         this.buffer[this.OFFSET_CHANNEL] = channel;
 
         const crc = crc16(this.buffer.subarray(this.OFFSET_CHANNEL, crcOffset));
-        this.buffer[crcOffset] = crc & 0xFF;
-        this.buffer[crcOffset + 1] = (crc >> 8) & 0xFF;
+        this.buffer[crcOffset] = crc & 0xff;
+        this.buffer[crcOffset + 1] = (crc >> 8) & 0xff;
 
         let prevDelim = 2;
 
@@ -76,7 +73,6 @@ class CobsSerializer extends PacketStructure implements Serializer {
         return Buffer.from(this.buffer.subarray(0, length));
     }
 }
-
 
 class CobsPacketizer extends PacketStructure implements Packetizer {
     private length = 0;
@@ -111,7 +107,7 @@ class CobsPacketizer extends PacketStructure implements Packetizer {
         return this.length == this.expectedLength();
     }
 
-    decode(): { channel: number, data: Buffer } | null {
+    decode(): { channel: number; data: Buffer } | null {
         const frameLength = this.expectedLength();
 
         if (this.length < frameLength) {
@@ -138,13 +134,12 @@ class CobsPacketizer extends PacketStructure implements Packetizer {
 
         return {
             channel: this.buffer[this.OFFSET_CHANNEL],
-            data: Buffer.from(this.buffer.subarray(this.OFFSET_DATA, crcOffset))
+            data: Buffer.from(this.buffer.subarray(this.OFFSET_DATA, crcOffset)),
         };
     }
 }
 
-
 export const CobsEncoder: Encoder = {
     serializer: CobsSerializer,
-    packetizer: CobsPacketizer
+    packetizer: CobsPacketizer,
 };

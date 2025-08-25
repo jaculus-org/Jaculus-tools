@@ -1,20 +1,23 @@
 import { Duplex } from "../stream.js";
 import * as net from "net";
 
-
 export class SocketStream implements Duplex {
     private callbacks: {
-        "data"?: (data: Buffer) => void,
-        "error"?: (err: any) => void,
-        "end"?: () => void
+        data?: (data: Buffer) => void;
+        error?: (err: any) => void;
+        end?: () => void;
     } = {};
 
     private socket: net.Socket;
 
-    constructor(host: string, port: number, openCallbacks: {
-        "open"?: () => void,
-        "error"?: (err: any) => void,
-    } = {}) {
+    constructor(
+        host: string,
+        port: number,
+        openCallbacks: {
+            open?: () => void;
+            error?: (err: any) => void;
+        } = {}
+    ) {
         this.socket = new net.Socket();
         this.socket.setTimeout(1000);
 
@@ -56,7 +59,6 @@ export class SocketStream implements Duplex {
         this.socket.connect(port, host);
     }
 
-
     public put(c: number): void {
         this.socket.write(Buffer.from([c]));
     }
@@ -90,8 +92,7 @@ export class SocketStream implements Duplex {
                     end();
                     resolve();
                 };
-            }
-            else {
+            } else {
                 this.callbacks["end"] = () => {
                     resolve();
                 };
@@ -102,8 +103,7 @@ export class SocketStream implements Duplex {
                     error(err);
                     reject(err);
                 };
-            }
-            else {
+            } else {
                 this.callbacks["error"] = (err: any) => {
                     reject(err);
                 };

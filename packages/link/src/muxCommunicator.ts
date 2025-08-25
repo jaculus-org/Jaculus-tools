@@ -1,7 +1,11 @@
 import { Packet, Consumer } from "./linkTypes.js";
 import { Mux } from "./mux.js";
-import { InputStreamCommunicator, InputPacketCommunicator, OutputStreamCommunicator, OutputPacketCommunicator } from "./communicator.js";
-
+import {
+    InputStreamCommunicator,
+    InputPacketCommunicator,
+    OutputStreamCommunicator,
+    OutputPacketCommunicator,
+} from "./communicator.js";
 
 export class MuxOutputStreamCommunicator implements OutputStreamCommunicator {
     private mux: Mux;
@@ -48,7 +52,6 @@ export class MuxInputStreamCommunicator implements InputStreamCommunicator, Cons
     }
 }
 
-
 export class MuxOutputPacketCommunicator implements OutputPacketCommunicator {
     private mux: Mux;
     private channel: number;
@@ -66,7 +69,6 @@ export class MuxOutputPacketCommunicator implements OutputPacketCommunicator {
         return this.mux.maxPacketSize();
     }
 }
-
 
 export class MuxInputPacketCommunicator implements InputPacketCommunicator, Consumer {
     private _onData?: (data: Buffer) => void;

@@ -1,4 +1,7 @@
-function tableToString(table: string[][], options: { padding?: number, indent?: number, minWidths?: [number] } = {}): string {
+function tableToString(
+    table: string[][],
+    options: { padding?: number; indent?: number; minWidths?: [number] } = {}
+): string {
     const padding = options.padding ?? 2;
     const indent = options.indent ?? 0;
     const minWidths = options.minWidths ?? [];
@@ -50,7 +53,7 @@ function parseArgs(
     base: Record<string, string | boolean> = {},
     expOpts: Record<string, Opt>,
     expArgs: Arg[]
-): { options: Record<string, string | boolean>, args: Record<string, string>, unknown: string[] } {
+): { options: Record<string, string | boolean>; args: Record<string, string>; unknown: string[] } {
     const unknown: string[] = [];
 
     const options: Record<string, string | boolean> = { ...base };
@@ -62,8 +65,7 @@ function parseArgs(
         if (optName === null) {
             if (argsList.length < expArgs.length) {
                 argsList.push(argv[i]);
-            }
-            else {
+            } else {
                 unknown.push(argv[i]);
             }
             continue;
@@ -103,8 +105,7 @@ function parseArgs(
             options[optName] = argv[i + 1];
             i++;
             continue;
-        }
-        else if (argsList.length < expArgs.length) {
+        } else if (argsList.length < expArgs.length) {
             throw new Error(`Unknown option ${optName}`);
         }
 
@@ -159,7 +160,7 @@ function parseArgs(
     return { options, args, unknown };
 }
 
-export type Env = Record<string, { value: any, onEnd: (value: any) => void }>;
+export type Env = Record<string, { value: any; onEnd: (value: any) => void }>;
 
 export class Opt {
     public description: string;
@@ -168,7 +169,15 @@ export class Opt {
     public defaultValue?: string;
     public validator?: (value: string) => boolean;
 
-    constructor(description: string, options: { required?: boolean, isFlag?: boolean, defaultValue?: string, validator?: (value: string) => boolean } = {}) {
+    constructor(
+        description: string,
+        options: {
+            required?: boolean;
+            isFlag?: boolean;
+            defaultValue?: string;
+            validator?: (value: string) => boolean;
+        } = {}
+    ) {
         this.description = description;
         this.required = options.required ?? false;
         this.isFlag = options.isFlag ?? false;
@@ -177,7 +186,6 @@ export class Opt {
     }
 }
 
-
 export class Arg {
     public name: string;
     public description: string;
@@ -185,7 +193,15 @@ export class Arg {
     public defaultValue?: string;
     public validator?: (value: string) => boolean;
 
-    constructor(name: string, description: string, options: { required?: boolean, defaultValue?: string, validator?: (value: string) => boolean } = {}) {
+    constructor(
+        name: string,
+        description: string,
+        options: {
+            required?: boolean;
+            defaultValue?: string;
+            validator?: (value: string) => boolean;
+        } = {}
+    ) {
         this.name = name;
         this.description = description;
         this.required = options.required ?? false;
@@ -194,24 +210,31 @@ export class Arg {
     }
 }
 
-
 export class Command {
     private options: Record<string, Opt> = {};
     public brief: string;
     public description?: string;
     readonly chainable: boolean = false;
     private args: Arg[] = [];
-    private action?: (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => Promise<void>;
+    private action?: (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => Promise<void>;
 
     constructor(
         brief: string,
         options: {
-                options?: Record<string, Opt>,
-                args?: Arg[],
-                action?: (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => Promise<void>,
-                description?: string,
-                chainable?: boolean
-            } = {}
+            options?: Record<string, Opt>;
+            args?: Arg[];
+            action?: (
+                options: Record<string, string | boolean>,
+                args: Record<string, string>,
+                env: Env
+            ) => Promise<void>;
+            description?: string;
+            chainable?: boolean;
+        } = {}
     ) {
         this.options = options.options ?? {};
         this.args = options.args ?? [];
@@ -227,8 +250,7 @@ export class Command {
         for (const arg of this.args) {
             if (arg.required) {
                 args += ` <${arg.name}>`;
-            }
-            else {
+            } else {
                 args += ` [${arg.name}]`;
             }
         }
@@ -241,7 +263,8 @@ export class Command {
 
         let table = [];
         for (const [name, opt] of Object.entries(this.options)) {
-            const desc = opt.description + (opt.defaultValue ? ` (default: ${opt.defaultValue})` : "");
+            const desc =
+                opt.description + (opt.defaultValue ? ` (default: ${opt.defaultValue})` : "");
             table.push([`--${name}`, desc]);
         }
         if (table.length > 0) {
@@ -251,7 +274,8 @@ export class Command {
 
         table = [];
         for (const arg of this.args) {
-            const desc = arg.description + (arg.defaultValue ? ` (default: ${arg.defaultValue})` : "");
+            const desc =
+                arg.description + (arg.defaultValue ? ` (default: ${arg.defaultValue})` : "");
             table.push([arg.name, desc]);
         }
         if (table.length > 0) {
@@ -262,8 +286,11 @@ export class Command {
         return help;
     }
 
-
-    public async run(argv: string[], globals: Record<string, string | boolean>, env: Env): Promise<string[]> {
+    public async run(
+        argv: string[],
+        globals: Record<string, string | boolean>,
+        env: Env
+    ): Promise<string[]> {
         const { options, args, unknown } = parseArgs(argv, globals, this.options, this.args);
 
         if (this.action) {
@@ -280,7 +307,6 @@ export class Command {
     }
 }
 
-
 export class Program {
     private commands: Record<string, Command> = {};
     private name: string;
@@ -289,7 +315,14 @@ export class Program {
     private action?: (options: Record<string, string | boolean>) => Promise<void>;
     public env: Env = {};
 
-    constructor(name: string, description: string, options: { globalOptions?: Record<string, Opt>, action?: (options: Record<string, string | boolean>) => Promise<void> } = {}) {
+    constructor(
+        name: string,
+        description: string,
+        options: {
+            globalOptions?: Record<string, Opt>;
+            action?: (options: Record<string, string | boolean>) => Promise<void>;
+        } = {}
+    ) {
         this.name = name;
         this.description = description;
         this.globalOptions = options.globalOptions ?? {};
@@ -318,7 +351,8 @@ export class Program {
         out += "\nGlobal options:\n";
         table = [];
         for (const [name, opt] of Object.entries(this.globalOptions)) {
-            const desc = opt.description + (opt.defaultValue ? ` (default: ${opt.defaultValue})` : "");
+            const desc =
+                opt.description + (opt.defaultValue ? ` (default: ${opt.defaultValue})` : "");
             table.push([`--${name}`, desc]);
         }
         out += tableToString(table, { padding: 2, indent: 2, minWidths: [12] });
@@ -326,7 +360,10 @@ export class Program {
         return out;
     }
 
-    private async runInternal(argv: string[], globals: Record<string, string | boolean> = {}): Promise<string[]> {
+    private async runInternal(
+        argv: string[],
+        globals: Record<string, string | boolean> = {}
+    ): Promise<string[]> {
         if (argv.length === 0) {
             throw new Error("No command specified");
         }
@@ -341,7 +378,10 @@ export class Program {
         return command.run(argv.slice(1), globals, this.env);
     }
 
-    private async runSingle(argv: string[], globals: Record<string, string | boolean> = {}): Promise<string[]> {
+    private async runSingle(
+        argv: string[],
+        globals: Record<string, string | boolean> = {}
+    ): Promise<string[]> {
         this.validateSingle(argv, globals);
 
         if (this.action) {
@@ -372,7 +412,10 @@ export class Program {
         }
     }
 
-    private async runChain(argv: string[], globals: Record<string, string | boolean> = {}): Promise<void> {
+    private async runChain(
+        argv: string[],
+        globals: Record<string, string | boolean> = {}
+    ): Promise<void> {
         const res = parseArgs(argv, globals, this.globalOptions, []);
         let unknown = res.unknown;
         const options = res.options;
@@ -404,8 +447,7 @@ export class Program {
             if (command === undefined) {
                 if (commandName.startsWith("-")) {
                     throw new Error(`Unknown option ${commandName}`);
-                }
-                else {
+                } else {
                     throw new Error(`Unknown command ${commandName}`);
                 }
             }
@@ -418,7 +460,10 @@ export class Program {
         }
     }
 
-    public async run(argv: string[], globals: Record<string, string | boolean> = {}): Promise<void> {
+    public async run(
+        argv: string[],
+        globals: Record<string, string | boolean> = {}
+    ): Promise<void> {
         const { options, unknown } = parseArgs(argv, globals, this.globalOptions, []);
 
         if (unknown.length === 0) {

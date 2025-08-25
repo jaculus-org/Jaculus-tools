@@ -2,9 +2,12 @@ import { Arg, Command, Env } from "./lib/command.js";
 import { stdout, stderr } from "process";
 import { getDevice } from "./util.js";
 
-
 const cmd = new Command("Read a file from device", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -29,10 +32,8 @@ const cmd = new Command("Read a file from device", {
 
         stdout.write(data);
     },
-    args: [
-        new Arg("path", "File to read", { required: true }),
-    ],
-    chainable: true
+    args: [new Arg("path", "File to read", { required: true })],
+    chainable: true,
 });
 
 export default cmd;

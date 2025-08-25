@@ -18,7 +18,6 @@ import * as zlib from "zlib";
  * Example manifest.json can be found in the flasher module.
  */
 
-
 export class Manifest {
     private board: string;
     private version: string;
@@ -99,11 +98,11 @@ export class Package {
 
     public async flash(port: string, noErase: boolean): Promise<void> {
         switch (this.manifest.getPlatform()) {
-        case "esp32":
-            await espPlatform.flash(this, port, noErase);
-            break;
-        default:
-            throw new Error("Unsupported platform");
+            case "esp32":
+                await espPlatform.flash(this, port, noErase);
+                break;
+            default:
+                throw new Error("Unsupported platform");
         }
 
         return;
@@ -111,10 +110,10 @@ export class Package {
 
     public info(): string {
         switch (this.manifest.getPlatform()) {
-        case "esp32":
-            return espPlatform.info(this);
-        default:
-            throw new Error("Unsupported platform");
+            case "esp32":
+                return espPlatform.info(this);
+            default:
+                throw new Error("Unsupported platform");
         }
     }
 }
@@ -127,7 +126,6 @@ export class Package {
 export async function loadPackage(uri: string): Promise<Package> {
     const stream = await getUri(uri);
     const extract = tar.extract();
-
 
     return new Promise((resolve, reject) => {
         let manifest: Manifest = new Manifest("", "", "", {});
@@ -146,8 +144,7 @@ export async function loadPackage(uri: string): Promise<Package> {
                 stream.on("error", (err) => {
                     reject(err);
                 });
-            }
-            else {
+            } else {
                 const chunks: Buffer[] = [];
                 stream.on("data", (chunk) => {
                     chunks.push(chunk);

@@ -26,7 +26,7 @@
         "get-examples.ts",
         "wifi.ts",
         "../../apps/jaculus-tools/src/cli.ts",
-        "lib/command.ts",
+        "lib/command.ts"
     ],
     "references": [
         {

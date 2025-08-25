@@ -3,10 +3,11 @@ export class TimeoutPromise<T> implements Promise<T> {
     private onTimeout: (() => void) | undefined;
     private timeout: NodeJS.Timeout | undefined;
 
-    constructor(ms: number, functor: (
-        resolver: (value?: any) => void,
-        rejector: (reason?: any) => void
-    ) => void, onTimeout?: () => void) {
+    constructor(
+        ms: number,
+        functor: (resolver: (value?: any) => void, rejector: (reason?: any) => void) => void,
+        onTimeout?: () => void
+    ) {
         this.promise = new Promise((resolve, reject) => {
             this.onTimeout = () => {
                 if (onTimeout) {
@@ -18,8 +19,7 @@ export class TimeoutPromise<T> implements Promise<T> {
             this.timeout = setTimeout(() => {
                 if (this.onTimeout) {
                     this.onTimeout();
-                }
-                else {
+                } else {
                     throw new Error("Timeout callback not set");
                 }
             }, ms);
@@ -59,13 +59,11 @@ export class TimeoutPromise<T> implements Promise<T> {
         this.timeout = setTimeout(() => {
             if (this.onTimeout) {
                 this.onTimeout();
-            }
-            else {
+            } else {
                 throw new Error("Timeout callback not set");
             }
         }, ms);
     }
-
 
     [Symbol.toStringTag] = "TimeoutPromise";
 }

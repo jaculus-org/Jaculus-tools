@@ -4,9 +4,12 @@ import { getDevice } from "./util.js";
 import chalk from "chalk";
 import readline from "readline";
 
-
 const cmd = new Command("Monitor program output", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const echo = !(options["no-echo"] as boolean);
 
         const rl = readline.createInterface({ input: process.stdin });
@@ -34,13 +37,11 @@ const cmd = new Command("Monitor program output", {
                     process.stdin.setRawMode(false);
                     rl.close();
                     resolve(null);
-                }
-                else {
+                } else {
                     if (echo) {
                         if (key.sequence === "\r") {
                             stdout.write("\r\n");
-                        }
-                        else if (str) {
+                        } else if (str) {
                             stdout.write(str);
                         }
                     }
@@ -56,7 +57,7 @@ const cmd = new Command("Monitor program output", {
     options: {
         "no-echo": new Opt("Echo input", { isFlag: true }),
     },
-    chainable: true
+    chainable: true,
 });
 
 export default cmd;

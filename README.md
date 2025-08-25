@@ -43,7 +43,6 @@ Verify that the runtime is installed correctly by running:
 
     jac version
 
-
 ### Connecting to the device
 
 All commands interacting with the device require specifying the device connection using either `--port` or `--socket` option.
@@ -64,7 +63,6 @@ To tunnel serial port over TCP, use:
 
     jac serial-socket --port <port> --socket <port>
 
-
 ### Creating and running TypeScript programs
 
 Create a new TypeScript project. A template project for ESP32 with examples is available on [GitHub](https://github.com/cubicap/Jaculus-esp32/tree/master/ts-examples).
@@ -83,7 +81,6 @@ After flashing, the program will be immediately executed on the device.
 
 The entry point of the program is the `index.ts` file at the root of the project.
 
-
 ### Creating and running JavaScript programs
 
 Create a directory for your source files.
@@ -96,7 +93,6 @@ After flashing, the program will be immediately executed on the device.
 
 The entry point of the program is the `index.js` file in the source directory.
 
-
 ### Controlling the device and monitoring its output
 
 To control the device, use the following commands:
@@ -106,13 +102,11 @@ To control the device, use the following commands:
     jac status
     jac monitor
 
-
 ## Updating the firmware
 
 To update the firmware, just install the new runtime package using the `install` command.
 
 Note that this will erase all data stored on the device. It may be also necessary to update the type definitions for the runtime. They can be found in the example project on [GitHub](https://github.com/cubicap/Jaculus-esp32/tree/master/ts-examples).
-
 
 # License
 

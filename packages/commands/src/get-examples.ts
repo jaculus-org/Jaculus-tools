@@ -6,9 +6,12 @@ import * as tar from "tar-stream";
 import * as zlib from "zlib";
 import path from "path";
 
-
 const cmd = new Command("Get example project from device", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -34,7 +37,6 @@ const cmd = new Command("Get example project from device", {
 
         const extract = tar.extract();
         await new Promise((resolve, reject) => {
-
             extract.on("entry", (header, stream, next) => {
                 if (header.type !== "file") {
                     next();
@@ -75,10 +77,8 @@ const cmd = new Command("Get example project from device", {
             gunzip.end();
         });
     },
-    args: [
-        new Arg("path", "Name of the resource", { required: true }),
-    ],
-    chainable: true
+    args: [new Arg("path", "Name of the resource", { required: true })],
+    chainable: true,
 });
 
 export default cmd;

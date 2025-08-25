@@ -5,7 +5,6 @@ import { encodePath } from "@jaculus/util/encoding.js";
 import { logger } from "@jaculus/util/logger.js";
 import path from "path";
 
-
 export enum UploaderCommand {
     READ_FILE = 0x01,
     WRITE_FILE = 0x02,
@@ -83,60 +82,60 @@ export class Uploader {
         const cmd: UploaderCommand = data[0];
 
         switch (cmd) {
-        case UploaderCommand.HAS_MORE_DATA:
-            if (this._onData) {
-                const success = this._onData(data.slice(1));
-                if (!success) {
+            case UploaderCommand.HAS_MORE_DATA:
+                if (this._onData) {
+                    const success = this._onData(data.slice(1));
+                    if (!success) {
+                        this._onData = undefined;
+                        this._onDataComplete = undefined;
+                        return false;
+                    }
+                }
+                return true;
+            case UploaderCommand.LAST_DATA:
+                if (this._onData) {
+                    let success = this._onData(data.slice(1));
+                    if (!success) {
+                        this._onData = undefined;
+                        this._onDataComplete = undefined;
+                        return false;
+                    }
+                    if (this._onDataComplete) {
+                        success = this._onDataComplete();
+                    }
                     this._onData = undefined;
                     this._onDataComplete = undefined;
-                    return false;
+                    return success;
                 }
-            }
-            return true;
-        case UploaderCommand.LAST_DATA:
-            if (this._onData) {
-                let success = this._onData(data.slice(1));
-                if (!success) {
-                    this._onData = undefined;
-                    this._onDataComplete = undefined;
-                    return false;
+                return true;
+            case UploaderCommand.OK:
+                if (this._onOk) {
+                    const success = this._onOk();
+                    this._onOk = undefined;
+                    return success;
                 }
-                if (this._onDataComplete) {
-                    success = this._onDataComplete();
+                return true;
+            case UploaderCommand.CONTINUE:
+                if (this._onContinue) {
+                    this._onContinue();
                 }
-                this._onData = undefined;
-                this._onDataComplete = undefined;
-                return success;
-            }
-            return true;
-        case UploaderCommand.OK:
-            if (this._onOk) {
-                const success = this._onOk();
-                this._onOk = undefined;
-                return success;
-            }
-            return true;
-        case UploaderCommand.CONTINUE:
-            if (this._onContinue) {
-                this._onContinue();
-            }
-            return true;
-        case UploaderCommand.ERROR:
-        case UploaderCommand.NOT_FOUND:
-        case UploaderCommand.LOCK_NOT_OWNED:
-            if (this._onError) {
-                const success = this._onError(cmd);
-                this._onError = undefined;
-                return success;
-            }
-            return true;
-        default:
-            if (this._onError) {
-                const success = this._onError(cmd);
-                this._onError = undefined;
-                return success;
-            }
-            return false;
+                return true;
+            case UploaderCommand.ERROR:
+            case UploaderCommand.NOT_FOUND:
+            case UploaderCommand.LOCK_NOT_OWNED:
+                if (this._onError) {
+                    const success = this._onError(cmd);
+                    this._onError = undefined;
+                    return success;
+                }
+                return true;
+            default:
+                if (this._onError) {
+                    const success = this._onError(cmd);
+                    this._onError = undefined;
+                    return success;
+                }
+                return false;
         }
     }
 
@@ -195,8 +194,7 @@ export class Uploader {
                     let chunkSize = Math.min(data.length - offset, this._out.maxPacketSize() - 1);
                     if (packet != null) {
                         chunkSize = Math.min(chunkSize, packet.space() - 1);
-                    }
-                    else {
+                    } else {
                         packet = this._out.buildPacket();
                     }
 
@@ -211,9 +209,10 @@ export class Uploader {
                     }
 
                     if (!last) {
-                        await this.waitContinue(() => { (packet as Packet).send(); });
-                    }
-                    else {
+                        await this.waitContinue(() => {
+                            (packet as Packet).send();
+                        });
+                    } else {
                         packet.send();
                     }
                     packet = null;
@@ -275,8 +274,7 @@ export class Uploader {
                         result.push([name, isDir, size]);
                         buffer.fill(0);
                         bufferIn = 0;
-                    }
-                    else {
+                    } else {
                         buffer[bufferIn++] = b;
                     }
                 }
@@ -357,8 +355,7 @@ export class Uploader {
                 });
             }
             return UploaderCommand.OK;
-        }
-        else {
+        } else {
             const data = fs.readFileSync(from);
 
             await this.writeFile(to, data).catch((cmd: UploaderCommand) => {
@@ -419,8 +416,7 @@ export class Uploader {
                 await this.pullDir(from + "/" + name, to + "/" + name).catch((err) => {
                     throw err;
                 });
-            }
-            else {
+            } else {
                 await this.pullFile(from + "/" + name, to + "/" + name).catch((err) => {
                     throw err;
                 });
@@ -432,7 +428,7 @@ export class Uploader {
     public async pull(from: string, to: string): Promise<UploaderCommand> {
         logger.verbose("Pulling " + from + " to " + to);
 
-        const [, isDir, ] = await this.listDirectory(from).catch((err) => {
+        const [, isDir] = await this.listDirectory(from).catch((err) => {
             throw "Failed to get file type: " + err;
         });
 
@@ -488,8 +484,7 @@ export class Uploader {
                         result.push([name, sha1]);
                         buffer.fill(0);
                         bufferIn = 0;
-                    }
-                    else {
+                    } else {
                         buffer[bufferIn++] = b;
                     }
                 }
@@ -539,8 +534,7 @@ export class Uploader {
                         result.push([name, size]);
                         buffer.fill(0);
                         bufferIn = 0;
-                    }
-                    else {
+                    } else {
                         buffer[bufferIn++] = b;
                     }
                 }
@@ -557,7 +551,6 @@ export class Uploader {
             packet.send();
         });
     }
-
 
     public readResource(name: string): Promise<Buffer> {
         logger.verbose("Reading resource: " + name);

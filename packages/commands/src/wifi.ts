@@ -2,7 +2,6 @@ import { Arg, Opt, Command, Env } from "./lib/command.js";
 import { stdout, stderr } from "process";
 import { getDevice, readPassword } from "./util.js";
 
-
 enum WifiKvNs {
     Ssids = "wifi_net",
     Main = "wifi_cfg",
@@ -32,7 +31,11 @@ enum StaMode {
 }
 
 export const wifiAdd = new Command("Add a WiFi network", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -56,15 +59,16 @@ export const wifiAdd = new Command("Add a WiFi network", {
 
         stdout.write("Network added\n");
     },
-    args: [
-        new Arg("ssid", "SSID (name) of the network", { required: true }),
-    ],
-    chainable: true
+    args: [new Arg("ssid", "SSID (name) of the network", { required: true })],
+    chainable: true,
 });
 
-
 export const wifiRemove = new Command("Remove a WiFi network", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -86,15 +90,16 @@ export const wifiRemove = new Command("Remove a WiFi network", {
 
         stdout.write("Network removed\n");
     },
-    args: [
-        new Arg("ssid", "SSID (name) of the network", { required: true }),
-    ],
-    chainable: true
+    args: [new Arg("ssid", "SSID (name) of the network", { required: true })],
+    chainable: true,
 });
 
-
 export const wifiGet = new Command("Display current WiFi config", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -118,9 +123,15 @@ export const wifiGet = new Command("Display current WiFi config", {
 
             const mode = await device.controller.configGetInt(WifiKvNs.Main, WifiKeys.Mode);
             const staMode = await device.controller.configGetInt(WifiKvNs.Main, WifiKeys.StaMode);
-            const staSpecific = await device.controller.configGetString(WifiKvNs.Main, WifiKeys.StaSpecific);
+            const staSpecific = await device.controller.configGetString(
+                WifiKvNs.Main,
+                WifiKeys.StaSpecific
+            );
             const apSsid = await device.controller.configGetString(WifiKvNs.Main, WifiKeys.ApSsid);
-            const currentIp = await device.controller.configGetString(WifiKvNs.Main, WifiKeys.CurrentIp);
+            const currentIp = await device.controller.configGetString(
+                WifiKvNs.Main,
+                WifiKeys.CurrentIp
+            );
 
             stdout.write(`Current IP: ${currentIp}
 
@@ -136,18 +147,20 @@ AP SSID: ${apSsid}
                 stderr.write("Error unlocking device: " + err + "\n");
                 throw 1;
             });
-
         } while (watch);
     },
     options: {
-        "watch": new Opt("Watch for changes", { isFlag: true }),
+        watch: new Opt("Watch for changes", { isFlag: true }),
     },
-    chainable: true
+    chainable: true,
 });
 
-
 export const wifiDisable = new Command("Disable WiFi", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -167,12 +180,15 @@ export const wifiDisable = new Command("Disable WiFi", {
 
         stdout.write("Wifi config changed.\n");
     },
-    chainable: true
+    chainable: true,
 });
 
-
 export const wifiSetAp = new Command("Set WiFi to AP mode (create a hotspot)", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -212,15 +228,16 @@ export const wifiSetAp = new Command("Set WiFi to AP mode (create a hotspot)", {
 
         stdout.write("Wifi config changed.\n");
     },
-    args: [
-        new Arg("ssid", "SSID (name) of the network", { required: true }),
-    ],
-    chainable: true
+    args: [new Arg("ssid", "SSID (name) of the network", { required: true })],
+    chainable: true,
 });
 
-
 export const wifiSetSta = new Command("Set WiFi to Station mode (connect to a wifi)", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -242,14 +259,29 @@ export const wifiSetSta = new Command("Set WiFi to Station mode (connect to a wi
         await device.controller.configSetInt(WifiKvNs.Main, WifiKeys.Mode, WifiMode.STATION);
 
         if (!specificSsid) {
-            await device.controller.configSetInt(WifiKvNs.Main, WifiKeys.StaMode, StaMode.BEST_SIGNAL);
-        }
-        else {
-            await device.controller.configSetInt(WifiKvNs.Main, WifiKeys.StaMode, specificSsid ? StaMode.SPECIFIC_SSID : StaMode.BEST_SIGNAL);
-            await device.controller.configSetString(WifiKvNs.Main, WifiKeys.StaSpecific, specificSsid);
+            await device.controller.configSetInt(
+                WifiKvNs.Main,
+                WifiKeys.StaMode,
+                StaMode.BEST_SIGNAL
+            );
+        } else {
+            await device.controller.configSetInt(
+                WifiKvNs.Main,
+                WifiKeys.StaMode,
+                specificSsid ? StaMode.SPECIFIC_SSID : StaMode.BEST_SIGNAL
+            );
+            await device.controller.configSetString(
+                WifiKvNs.Main,
+                WifiKeys.StaSpecific,
+                specificSsid
+            );
         }
 
-        await device.controller.configSetInt(WifiKvNs.Main, WifiKeys.StaApFallback, !noApFallback ? 1 : 0);
+        await device.controller.configSetInt(
+            WifiKvNs.Main,
+            WifiKeys.StaApFallback,
+            !noApFallback ? 1 : 0
+        );
 
         await device.controller.unlock().catch((err) => {
             stderr.write("Error unlocking device: " + err + "\n");
@@ -259,9 +291,13 @@ export const wifiSetSta = new Command("Set WiFi to Station mode (connect to a wi
         stdout.write("Wifi config changed.\n");
     },
     options: {
-        "specific": new Opt("SSID (name) of a wifi network to connect to. It must be added using wifi-add first. If specified, this network will be used exclusively, without scanning."),
-        "no-ap-fallback": new Opt("Disable AP fallback when no known network is found.", { isFlag: true })
+        specific: new Opt(
+            "SSID (name) of a wifi network to connect to. It must be added using wifi-add first. If specified, this network will be used exclusively, without scanning."
+        ),
+        "no-ap-fallback": new Opt("Disable AP fallback when no known network is found.", {
+            isFlag: true,
+        }),
     },
     args: [],
-    chainable: true
+    chainable: true,
 });

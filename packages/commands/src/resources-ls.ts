@@ -2,9 +2,12 @@ import { Command, Env } from "./lib/command.js";
 import { stdout, stderr } from "process";
 import { getDevice } from "./util.js";
 
-
 const cmd = new Command("List available resources", {
-    action: async (options: Record<string, string | boolean>, args: Record<string, string>, env: Env) => {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -31,7 +34,7 @@ const cmd = new Command("List available resources", {
             throw 1;
         });
     },
-    chainable: true
+    chainable: true,
 });
 
 export default cmd;

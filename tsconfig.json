@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.base.json",
+    "include": ["vitest.config.ts", "eslint.config.js"],
+    "compilerOptions": {
+        "allowJs": true,
+        "noEmit": true,
+        "rootDir": ".",
+        "outDir": "./dist/root"
+    }
+}

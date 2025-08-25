@@ -6,11 +6,11 @@ chai.use(chaiBytes);
 const expect = chai.expect;
 
 function rangeArray(start: number, count: number): number[] {
-    return Array.from(Array(count).keys()).map(i => i + start);
+    return Array.from(Array(count).keys()).map((i) => i + start);
 }
 
-function toBuffer(data: Array<number|string>): Buffer {
-    return Buffer.from(data.map(d => typeof d == "string" ? d.charCodeAt(0) : d));
+function toBuffer(data: Array<number | string>): Buffer {
+    return Buffer.from(data.map((d) => (typeof d == "string" ? d.charCodeAt(0) : d)));
 }
 
 const CobsSerializer = CobsEncoder.serializer;
@@ -20,6 +20,7 @@ describe("Cobs", () => {
     describe("Serialize", () => {
         const capacity = new CobsSerializer().capacity();
         // [comment, channel, original, numTrue, encoded]
+        // prettier-ignore
         const testData: [string, number, number[], number, Array<number|string>][] = [
             [ "Empty packet", 0, [], 0, [ 0, 4, 1, 1, 1, 1 ] ],
             [ "Single byte", 0, [ 0x01 ], 0, [ 0, 5, 1, 4, 1, 0xC1, 0xC0 ] ],
@@ -46,7 +47,9 @@ describe("Cobs", () => {
                     expect(serializer.put(original[i])).to.be.true;
                 }
 
-                expect(serializer.size()).to.equal(Math.min(original.length, serializer.capacity()));
+                expect(serializer.size()).to.equal(
+                    Math.min(original.length, serializer.capacity())
+                );
                 const packet = serializer.finalize(channel);
                 expect(packet).to.equalBytes(toBuffer(encoded));
                 expect(serializer.is_empty()).to.be.true;
@@ -55,10 +58,10 @@ describe("Cobs", () => {
     });
 
     describe("Packetizer", () => {
-
         const capacity = new CobsSerializer().capacity();
 
         // [comment, channel, original, encoded]
+        // prettier-ignore
         const testData: [string, number, number[], Array<number|string>][] = [
             [ "Empty packet", 0, [], [ 0, 4, 1, 1, 1, 1 ] ],
             [ "Single byte", 0, [ 0x01 ], [ 0, 5, 1, 4, 1, 0xC1, 0xC0 ] ],
@@ -97,42 +100,37 @@ describe("Cobs", () => {
     });
 
     describe("Serialize-packetize", () => {
-
         const capacity = new CobsSerializer().capacity();
 
         // [comment, channel, original]
         const testData: [string, number, number[]][] = [
-            [ "Empty packet", 0, [] ],
-            [ "Single byte", 0, [ 0x01 ] ],
-            [ "Two bytes", 0, [ 0x01, 0x02 ] ],
-            [ "Three bytes", 0, [ 0x01, 0x02, 0x03 ] ],
-            [ "One to full packet", 0, rangeArray(0, capacity - 1) ],
-            [ "Full packet", 0, rangeArray(0, capacity) ],
-            [ "Full packet, ch1", 1, rangeArray(0, capacity) ],
-            [ "Full packet, ch255", 255, rangeArray(0, capacity) ]
+            ["Empty packet", 0, []],
+            ["Single byte", 0, [0x01]],
+            ["Two bytes", 0, [0x01, 0x02]],
+            ["Three bytes", 0, [0x01, 0x02, 0x03]],
+            ["One to full packet", 0, rangeArray(0, capacity - 1)],
+            ["Full packet", 0, rangeArray(0, capacity)],
+            ["Full packet, ch1", 1, rangeArray(0, capacity)],
+            ["Full packet, ch255", 255, rangeArray(0, capacity)],
         ];
 
         testData.forEach(([comment, channel, original]) => {
-
             const serializer = new CobsSerializer();
             const packetizer = new CobsPacketizer();
             it(comment, () => {
                 for (let i = 0; i < original.length; i++) {
                     if (i < capacity - 1) {
                         expect(serializer.put(original[i])).to.be.false;
-                    }
-                    else {
+                    } else {
                         expect(serializer.put(original[i])).to.be.true;
                     }
-
                 }
                 const data = serializer.finalize(channel);
 
                 for (let i = 0; i < data.length; i++) {
                     if (i < data.length - 1) {
                         expect(packetizer.put(data[i])).to.be.false;
-                    }
-                    else {
+                    } else {
                         expect(packetizer.put(data[i])).to.be.true;
                     }
                 }

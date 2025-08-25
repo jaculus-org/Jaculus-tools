@@ -3,7 +3,6 @@ import { Command, Opt } from "./lib/command.js";
 import { loadPackage } from "@jaculus/package/package.js";
 import { stderr, stdout } from "process";
 
-
 const cmd = new Command("Install Jaculus to device", {
     action: async (options: Record<string, string | boolean>) => {
         const pkgPath = options["package"] as string;
@@ -27,18 +26,17 @@ const cmd = new Command("Install Jaculus to device", {
 
         if (info) {
             stdout.write(pkg.info());
-        }
-        else {
+        } else {
             await pkg.flash(port, noErase);
         }
     },
     args: [],
     options: {
-        "package": new Opt("Uri pointing to the package file", { required: true }),
-        "info": new Opt("Show package info", { isFlag: true }),
+        package: new Opt("Uri pointing to the package file", { required: true }),
+        info: new Opt("Show package info", { isFlag: true }),
         "no-erase": new Opt("Do not erase storage partitions", { isFlag: true }),
     },
-    chainable: false
+    chainable: false,
 });
 
 export default cmd;

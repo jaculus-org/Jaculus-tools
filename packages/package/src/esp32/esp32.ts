@@ -38,12 +38,11 @@ import { stdout } from "process";
  * }
  */
 
-
 class UploadReporter {
     private bar: cliProgress.SingleBar;
     private fileIndex: number;
 
-    constructor(private files: { size: number, name: string }[]) {
+    constructor(private files: { size: number; name: string }[]) {
         this.fileIndex = 0;
         this.bar = this.createBar(this.fileIndex);
     }
@@ -51,10 +50,13 @@ class UploadReporter {
     private createBar(fileIndex: number) {
         const fileName = this.files[fileIndex].name;
 
-        return new cliProgress.SingleBar({
-            format: `${fileIndex + 1}/${this.files.length} | {bar} {percentage}% | ${fileName} | {value} / {total}`,
-            hideCursor: true
-        }, cliProgress.Presets.rect);
+        return new cliProgress.SingleBar(
+            {
+                format: `${fileIndex + 1}/${this.files.length} | {bar} {percentage}% | ${fileName} | {value} / {total}`,
+                hideCursor: true,
+            },
+            cliProgress.Presets.rect
+        );
     }
 
     public update(fileIndex: number, written: number) {
@@ -69,7 +71,7 @@ class UploadReporter {
         this.bar.update(written);
     }
 
-    public start () {
+    public start() {
         this.bar.start(this.files[this.fileIndex].size, 0);
     }
 
@@ -78,7 +80,6 @@ class UploadReporter {
         this.bar.stop();
     }
 }
-
 
 export async function flash(Package: Package, path: string, noErase: boolean): Promise<void> {
     const config = Package.getManifest().getConfig();
@@ -101,7 +102,7 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
     const port = new SerialPort({
         path: info.path,
         baudRate: 115200,
-        autoOpen: false
+        autoOpen: false,
     });
 
     const loaderOptions: any = {
@@ -110,14 +111,18 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
         baudrate: flashBaud,
         romBaudrate: 115200,
         terminal: {
-            clean: () => { },
-            writeLine: (data: any) => { logger.debug(data); },
-            write: (data: any) => { logger.debug(data); }
-        }
+            clean: () => {},
+            writeLine: (data: any) => {
+                logger.debug(data);
+            },
+            write: (data: any) => {
+                logger.debug(data);
+            },
+        },
     };
     const esploader = new ESPLoader(loaderOptions);
 
-    const fileArray: { data: string, address: number, fileName: string }[] = [];
+    const fileArray: { data: string; address: number; fileName: string }[] = [];
     const skipped: string[] = [];
     for (const partition of partitions) {
         const file = partition["file"];
@@ -141,23 +146,31 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
         fileArray.push({ data: esploader.ui8ToBstr(dataBuffer), address: address, fileName: file });
     }
 
-    const reporter = new UploadReporter(fileArray.map((file) => {
-        return {
-            size: file.data.length,
-            name: file.fileName
-        };
-    }));
+    const reporter = new UploadReporter(
+        fileArray.map((file) => {
+            return {
+                size: file.data.length,
+                name: file.fileName,
+            };
+        })
+    );
 
     try {
         await esploader.main_fn();
 
         stdout.write("Detected chip type: " + esploader.chip.CHIP_NAME + "\n");
-        stdout.write("Flash size: " + await esploader.get_flash_size() + "K\n");
+        stdout.write("Flash size: " + (await esploader.get_flash_size()) + "K\n");
 
         stdout.write("\n");
 
         if (esploader.chip.CHIP_NAME !== config["chip"]) {
-            throw new Error("Chip type mismatch (expected " + config["chip"] + ", got " + esploader.chip.CHIP_NAME + ")");
+            throw new Error(
+                "Chip type mismatch (expected " +
+                    config["chip"] +
+                    ", got " +
+                    esploader.chip.CHIP_NAME +
+                    ")"
+            );
         }
 
         for (const file of skipped) {
@@ -176,10 +189,9 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
             compress: true,
             reportProgress: (fileIndex: number, written: number) => {
                 reporter.update(fileIndex, written);
-            }
+            },
         });
-    }
-    finally {
+    } finally {
         reporter.stop();
         await esploader.hard_reset();
         await esploader.transport.disconnect();
@@ -218,8 +230,7 @@ export function info(Package: Package): string {
         output += `  ${file} (at 0x${address.toString(16)}, ${dataBuffer.length}`;
         if (isStorage) {
             output += ", storage)";
-        }
-        else {
+        } else {
             output += ")";
         }
         output += "\n";

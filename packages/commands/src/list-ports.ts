@@ -2,15 +2,16 @@ import { Command } from "./lib/command.js";
 import { stdout } from "process";
 import { SerialPort } from "serialport";
 
-
 const cmd = new Command("List available serial ports", {
     action: async () => {
-        const table: { path: string, manufacturer?: string }[] = [ { path: "Path", manufacturer: "Manufacturer" } ];
+        const table: { path: string; manufacturer?: string }[] = [
+            { path: "Path", manufacturer: "Manufacturer" },
+        ];
         const ports = await SerialPort.list();
         for (const port of ports) {
             table.push({
                 path: port.path,
-                manufacturer: port.manufacturer
+                manufacturer: port.manufacturer,
             });
         }
         let maxPathLength = 0;
@@ -26,7 +27,7 @@ const cmd = new Command("List available serial ports", {
             }
         }
         return;
-    }
+    },
 });
 
 export default cmd;

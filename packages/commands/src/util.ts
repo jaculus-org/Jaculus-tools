@@ -37,7 +37,10 @@ export function defaultSocket(value?: string): string {
     return value;
 }
 
-export async function getPortSocket(port?: string | boolean, socket?: string | boolean): Promise<{ type: "port" | "socket", value: string }> {
+export async function getPortSocket(
+    port?: string | boolean,
+    socket?: string | boolean
+): Promise<{ type: "port" | "socket"; value: string }> {
     if (port && socket) {
         stderr.write("Must specify either a serial port or a socket, not both\n");
         throw 1;
@@ -58,8 +61,7 @@ export function parseSocket(value: string): [string, number] {
     const parts = value.split(":");
     if (parts.length === 1) {
         return ["localhost", parseInt(parts[0])];
-    }
-    else if (parts.length > 2) {
+    } else if (parts.length > 2) {
         stderr.write("Invalid socket value\n");
         throw 1;
     }
@@ -67,7 +69,12 @@ export function parseSocket(value: string): [string, number] {
     return [parts[0], parseInt(parts[1])];
 }
 
-export async function getDevice(port: string | undefined, baudrate: string | undefined, socket: string | undefined, env: Env): Promise<JacDevice> {
+export async function getDevice(
+    port: string | undefined,
+    baudrate: string | undefined,
+    socket: string | undefined,
+    env: Env
+): Promise<JacDevice> {
     if (env.device) {
         return env.device.value as JacDevice;
     }
@@ -81,31 +88,34 @@ export async function getDevice(port: string | undefined, baudrate: string | und
         stderr.write("Connecting to serial at " + where.value + " at " + rate + " bauds... ");
 
         await new Promise((resolve, reject) => {
-            device = new JacDevice(new SerialStream(where.value, rate, {
-                "error": (err) => {
-                    stderr.write("\nPort error: " + err.message + "\n");
-                    reject(1);
-                },
-                "open": () => {
-                    resolve(null);
-                }
-            }));
+            device = new JacDevice(
+                new SerialStream(where.value, rate, {
+                    error: (err) => {
+                        stderr.write("\nPort error: " + err.message + "\n");
+                        reject(1);
+                    },
+                    open: () => {
+                        resolve(null);
+                    },
+                })
+            );
         });
-    }
-    else if (where.type === "socket") {
+    } else if (where.type === "socket") {
         const [host, port] = parseSocket(where.value);
         stderr.write("Connecting to socket at " + host + ":" + port + "... ");
 
         await new Promise((resolve, reject) => {
-            device = new JacDevice(new SocketStream(host, port, {
-                "error": (err) => {
-                    stderr.write("\nSocket error: " + err.message + "\n");
-                    reject(1);
-                },
-                "open": () => {
-                    resolve(null);
-                }
-            }));
+            device = new JacDevice(
+                new SocketStream(host, port, {
+                    error: (err) => {
+                        stderr.write("\nSocket error: " + err.message + "\n");
+                        reject(1);
+                    },
+                    open: () => {
+                        resolve(null);
+                    },
+                })
+            );
         });
     }
 
@@ -114,7 +124,6 @@ export async function getDevice(port: string | undefined, baudrate: string | und
         throw 1;
     }
     device = device as JacDevice;
-
 
     stderr.write("Connected.\n\n");
 
@@ -130,7 +139,12 @@ export async function getDevice(port: string | undefined, baudrate: string | und
         logger.debug("Device: " + data.toString());
     });
 
-    env.device = { value: device, onEnd: async (device: JacDevice) => { await device.destroy(); } };
+    env.device = {
+        value: device,
+        onEnd: async (device: JacDevice) => {
+            await device.destroy();
+        },
+    };
 
     device.onEnd(() => {
         logger.error("Device disconnected");
@@ -140,14 +154,17 @@ export async function getDevice(port: string | undefined, baudrate: string | und
     return device;
 }
 
-export async function withDevice(port: string | undefined, baudrate: string | undefined,
-    socket: string | undefined, env: Env, action: (device: JacDevice) => Promise<void>
+export async function withDevice(
+    port: string | undefined,
+    baudrate: string | undefined,
+    socket: string | undefined,
+    env: Env,
+    action: (device: JacDevice) => Promise<void>
 ): Promise<void> {
     const device = await getDevice(port, baudrate, socket, env);
     await action(device);
     await device.destroy();
 }
-
 
 export async function readPassword(prompt: string): Promise<string> {
     const rl = readline.createInterface({ input: process.stdin });

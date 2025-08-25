@@ -10,11 +10,11 @@ chai.use(chaiBytes);
 const expect = chai.expect;
 
 function rangeArray(start: number, count: number): number[] {
-    return Array.from(Array(count).keys()).map(i => i + start);
+    return Array.from(Array(count).keys()).map((i) => i + start);
 }
 
-function toBuffer(data: Array<number|string>): Buffer {
-    return Buffer.from(data.map(d => typeof d == "string" ? d.charCodeAt(0) : d));
+function toBuffer(data: Array<number | string>): Buffer {
+    return Buffer.from(data.map((d) => (typeof d == "string" ? d.charCodeAt(0) : d)));
 }
 
 class Pipe implements Duplex {
@@ -25,9 +25,15 @@ class Pipe implements Duplex {
         this._onData = callback;
     }
 
-    onEnd(): void { /* do nothing */ }
-    onError(): void { /* do nothing */ }
-    destroy(): Promise<void> { return Promise.resolve(); }
+    onEnd(): void {
+        /* do nothing */
+    }
+    onError(): void {
+        /* do nothing */
+    }
+    destroy(): Promise<void> {
+        return Promise.resolve();
+    }
 
     onSend(callback: ((data: Buffer) => void) | undefined): void {
         this._onSend = callback;
@@ -57,7 +63,6 @@ class BufferConsumer implements Consumer {
         this.queue.enqueue(data);
     }
 }
-
 
 describe("Mux", () => {
     describe("send-receive packet", () => {
