@@ -1,8 +1,8 @@
 #!/usr/bin/env node
+import { stdout, stderr } from "process";
 import { Program, Command, Opt } from "./commands/lib/command.js";
 import { registerJaculusCommands } from "./commands/index.js";
 import { logger } from "./logger.js";
-import { stdout, stderr } from "process";
 import versionCommand from "./commands/version.js";
 
 const jac = new Program("jac", "Tools for controlling devices running Jaculus", {

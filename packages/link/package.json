@@ -6,18 +6,15 @@
     "files": [
         "dist"
     ],
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
     "exports": {
-        "./communicator.js": "./dist/src/communicator.js",
-        "./linkTypes.js": "./dist/src/linkTypes.js",
-        "./mux.js": "./dist/src/mux.js",
-        "./muxCommunicator.js": "./dist/src/muxCommunicator.js",
-        "./stream.js": "./dist/src/stream.js",
-        "./streams/serialStream.js": "./dist/src/streams/serialStream.js",
-        "./streams/socketStream.js": "./dist/src/streams/socketStream.js",
-        "./encoders/cobs.js": "./dist/src/encoders/cobs.js",
-        "./encoders/interface.js": "./dist/src/encoders/interface.js"
+        "./communicator": "./dist/communicator.js",
+        "./linkTypes": "./dist/linkTypes.js",
+        "./mux": "./dist/mux.js",
+        "./muxCommunicator": "./dist/muxCommunicator.js",
+        "./stream": "./dist/stream.js",
+        "./streams/serialStream": "./dist/streams/serialStream.js",
+        "./streams/socketStream": "./dist/streams/socketStream.js",
+        "./encoders/cobs": "./dist/encoders/cobs.js"
     },
     "scripts": {
         "build": "tsc -b",

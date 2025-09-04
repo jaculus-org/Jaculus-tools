@@ -1,8 +1,8 @@
-import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link/communicator.js";
-import { Packet } from "@jaculus/link/linkTypes.js";
-import { Logger } from "@jaculus/util/index.js";
+import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link/communicator";
+import { Packet } from "@jaculus/link/linkTypes";
+import { Logger } from "@jaculus/util";
 import * as fs from "fs";
-import { encodePath } from "./encoding.js";
+import { encodePath } from "./util.js";
 import path from "path";
 
 export enum UploaderCommand {

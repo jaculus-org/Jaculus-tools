@@ -1,5 +1,5 @@
-import { Duplex } from "../stream.js";
 import * as net from "net";
+import { Duplex } from "../stream.js";
 
 export class SocketStream implements Duplex {
     private callbacks: {

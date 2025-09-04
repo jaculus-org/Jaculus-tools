@@ -1,8 +1,5 @@
 import { Program } from "./lib/command.js";
 
-// import & re-export “util” so apps can use getDevice()
-export * from "./util.js";
-
 // Register all reusable commands (everything except “version”)
 import listPorts from "./list-ports.js";
 import serialSocket from "./serial-socket.js";

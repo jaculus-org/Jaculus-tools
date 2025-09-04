@@ -6,13 +6,8 @@
     "files": [
         "dist"
     ],
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
-    "exports": {
-        "./controller.js": "./dist/src/controller.js",
-        "./uploader.js": "./dist/src/uploader.js",
-        "./jacDevice.js": "./dist/src/jacDevice.js"
-    },
+    "main": "./dist/device.js",
+    "types": "./dist/device.d.ts",
     "scripts": {
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",

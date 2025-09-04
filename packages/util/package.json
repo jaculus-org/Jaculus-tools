@@ -3,17 +3,11 @@
     "version": "0.0.1",
     "type": "module",
     "private": false,
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
     "files": [
         "dist"
     ],
-    "exports": {
-        ".": {
-            "types": "./dist/src/index.d.ts",
-            "default": "./dist/src/index.js"
-        }
-    },
     "scripts": {
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",

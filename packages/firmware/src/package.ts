@@ -1,7 +1,7 @@
 import { getUri } from "get-uri";
 import * as tar from "tar-stream";
-import * as espPlatform from "./esp32/esp32.js";
 import * as zlib from "zlib";
+import * as espPlatform from "./esp32/esp32.js";
 
 /**
  * Module for loading and flashing package files

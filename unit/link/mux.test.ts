@@ -1,7 +1,7 @@
 import * as chai from "chai";
 import chaiBytes from "chai-bytes";
-import { Mux } from "@jaculus/link/mux.js";
 import Queue from "queue-fifo";
+import { Mux } from "@jaculus/link/mux.js";
 import { Duplex } from "@jaculus/link/stream.js";
 import { Consumer } from "@jaculus/link/linkTypes.js";
 import { CobsEncoder } from "@jaculus/link/encoders/cobs.js";

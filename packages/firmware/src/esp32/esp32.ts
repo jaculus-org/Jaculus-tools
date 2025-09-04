@@ -1,8 +1,8 @@
-import { Package } from "../package.js";
 import { ESPLoader, NodeTransport } from "@cubicap/esptool-js";
 import { SerialPort } from "serialport";
 import cliProgress from "cli-progress";
 import { stdout } from "process";
+import { Package } from "../package.js";
 
 /**
  * Flasher for the esp32 platform

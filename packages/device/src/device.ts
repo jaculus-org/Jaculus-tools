@@ -1,15 +1,17 @@
-import { Mux } from "@jaculus/link/mux.js";
-import { Duplex } from "@jaculus/link/stream.js";
+import { Logger } from "@jaculus/util";
+import { Mux } from "@jaculus/link/mux";
+import { Duplex } from "@jaculus/link/stream";
 import {
     MuxOutputPacketCommunicator,
     MuxInputPacketCommunicator,
     MuxOutputStreamCommunicator,
     MuxInputStreamCommunicator,
-} from "@jaculus/link/muxCommunicator.js";
+} from "@jaculus/link/muxCommunicator";
+import { CobsEncoder } from "@jaculus/link/encoders/cobs";
 import { Uploader } from "./uploader.js";
 import { Controller } from "./controller.js";
-import { CobsEncoder } from "@jaculus/link/encoders/cobs.js";
-import { Logger } from "@jaculus/util/index.js";
+
+export { Uploader, Controller };
 
 export class JacDevice {
     private _mux: Mux;

@@ -6,7 +6,7 @@ import * as tar from "tar-stream";
 import * as zlib from "zlib";
 import path from "path";
 import { getUri } from "get-uri";
-import { JacDevice } from "@jaculus/device/jacDevice.js";
+import { JacDevice } from "@jaculus/device";
 
 interface Package {
     dirs: string[];

@@ -1,17 +1,13 @@
 {
-    "name": "@jaculus/package",
+    "name": "@jaculus/firmware",
     "version": "0.0.1",
     "type": "module",
     "private": false,
     "files": [
         "dist"
     ],
-    "main": "dist/src/index.js",
-    "types": "dist/src/index.d.ts",
-    "exports": {
-        ".": "./dist/src/package.js",
-        "./esp32": "./dist/src/esp32/esp32.js"
-    },
+    "main": "./dist/package.js",
+    "types": "./dist/package.d.ts",
     "scripts": {
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",

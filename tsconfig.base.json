@@ -6,24 +6,8 @@
         "declaration": true,
         "declarationMap": true,
         "sourceMap": true,
-        "outDir": "dist",
-        "rootDir": "src",
-        "esModuleInterop": true,
         "resolveJsonModule": true,
         "strict": true,
-        "skipLibCheck": true,
-        "baseUrl": ".",
-        "paths": {
-            "@jaculus/device": ["./packages/device/dist"],
-            "@jaculus/device/*": ["./packages/device/dist/*"],
-            "@jaculus/fw": ["./packages/fw/dist"],
-            "@jaculus/fw/*": ["./packages/fw/dist/*"],
-            "@jaculus/link": ["./packages/link/dist"],
-            "@jaculus/link/*": ["./packages/link/dist/*"],
-            "@jaculus/project": ["./packages/project/dist"],
-            "@jaculus/project/*": ["./packages/project/dist/*"],
-            "@jaculus/util": ["./packages/util/dist"],
-            "@jaculus/util/*": ["./packages/util/dist/*"]
-        }
+        "skipLibCheck": true
     }
 }

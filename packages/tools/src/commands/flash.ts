@@ -1,11 +1,10 @@
+import { Command, Env, Opt } from "./lib/command.js";
 import * as fs from "fs";
 import crypto from "crypto";
-
-import { Command, Env, Opt } from "./lib/command.js";
 import { stderr } from "process";
 import { getDevice } from "./util.js";
 import { logger } from "../logger.js";
-import { Uploader } from "@jaculus/device/uploader.js";
+import { Uploader } from "@jaculus/device";
 
 enum SyncAction {
     Noop,

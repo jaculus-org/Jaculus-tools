@@ -1,7 +1,7 @@
 import { Command, Opt } from "./lib/command.js";
 import * as path from "path";
-import { compile } from "@jaculus/project/compiler.js";
 import { stderr } from "process";
+import { compile } from "@jaculus/project/compiler";
 import { logger } from "../logger.js";
 
 // function listDts(dir: string): string[] {

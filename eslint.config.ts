@@ -2,7 +2,7 @@ import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier";
 
-export default tseslint.config(
+const config: tseslint.ConfigArray = tseslint.config(
     eslint.configs.recommended,
     tseslint.configs.recommended,
     {
@@ -20,12 +20,7 @@ export default tseslint.config(
         languageOptions: {
             parser: tseslint.parser,
             parserOptions: {
-                project: [
-                    "./tsconfig.json",
-                    "./apps/*/tsconfig.json",
-                    "./packages/*/tsconfig.json",
-                    "./unit/tsconfig.json",
-                ],
+                project: ["./tsconfig.json", "./packages/*/tsconfig.json"],
             },
         },
         plugins: { "@typescript-eslint": tseslint.plugin },
@@ -45,3 +40,5 @@ export default tseslint.config(
     },
     eslintConfigPrettier
 );
+
+export default config;

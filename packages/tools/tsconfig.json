@@ -2,14 +2,7 @@
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
         "outDir": "dist",
-        "rootDir": "src",
-        "composite": true
+        "rootDir": "src"
     },
-    "references": [
-        { "path": "../device" },
-        { "path": "../util" },
-        { "path": "../project" },
-        { "path": "../fw" }
-    ],
     "include": ["src"]
 }

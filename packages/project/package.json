@@ -6,10 +6,9 @@
     "files": [
         "dist"
     ],
-    "main": "dist/src/compiler.js",
-    "types": "dist/src/compiler.d.ts",
+    "types": "dist/compiler.d.ts",
     "exports": {
-        "./compiler.js": "./dist/src/compiler.js"
+        "./compiler": "./dist/compiler.js"
     },
     "scripts": {
         "build": "tsc -b",
@@ -17,11 +16,11 @@
         "lint": "eslint --ext .ts src"
     },
     "dependencies": {
-        "@jaculus/util": "workspace:*"
+        "@jaculus/util": "workspace:*",
+        "typescript": "^5.8.3"
     },
     "devDependencies": {
         "@types/node": "^24.0.7",
-        "rimraf": "^6.0.1",
-        "typescript": "^5.8.3"
+        "rimraf": "^6.0.1"
     }
 }
