@@ -36,16 +36,14 @@ export function compile(
         throw new Error("Error reading tsconfig.json");
     }
 
-    const forcedOptions: ts.CompilerOptions = {
-        target: ts.ScriptTarget.ES2020,
-        module: ts.ModuleKind.ES2020,
-        moduleResolution: ts.ModuleResolutionKind.NodeJs,
-        resolveJsonModule: false,
-        esModuleInterop: true,
-        outDir: outDir,
+    const forcedOptions: Record<string, any[]> = {
+        target: [ts.ScriptTarget.ES2023, ts.ScriptTarget.ES2020],
+        module: [ts.ModuleKind.ES2022, ts.ModuleKind.ES2020],
+        moduleResolution: [ts.ModuleResolutionKind.NodeJs],
+        resolveJsonModule: [false],
+        esModuleInterop: [true],
+        outDir: [outDir],
     };
-
-    config.config.compilerOptions = config.config.compilerOptions || forcedOptions;
 
     const { options, fileNames, errors } = ts.parseJsonConfigFileContent(
         config.config,
@@ -57,11 +55,13 @@ export function compile(
         throw new Error("Error parsing tsconfig.json");
     }
 
-    for (const [key, value] of Object.entries(forcedOptions)) {
-        if (options[key] && options[key] !== value) {
-            throw new Error(`tsconfig.json must have ${key} set to ${value}`);
-        } else {
-            options[key] = value;
+    for (const [key, values] of Object.entries(forcedOptions)) {
+        if (options[key] && !values.includes(options[key])) {
+            throw new Error(
+                `tsconfig.json must have ${key} set to one of: [ ${values.join(", ")} ]`
+            );
+        } else if (!options[key]) {
+            options[key] = values[0];
         }
     }
 
