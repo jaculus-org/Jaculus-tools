@@ -15,7 +15,7 @@
     },
     "dependencies": {
         "@cubicap/esptool-js": "^0.3.2",
-        "@jaculus/util": "workspace:*",
+        "@jaculus/common": "workspace:*",
         "cli-progress": "^3.12.0",
         "get-uri": "^6.0.4",
         "serialport": "^13.0.0",

@@ -1,4 +1,4 @@
-import { Logger } from "@jaculus/util";
+import { Logger } from "@jaculus/common";
 import { Encoder, Packetizer, Serializer } from "./encoders/interface.js";
 import { Consumer, Packet } from "./linkTypes.js";
 import { Duplex, OutputStream } from "./stream.js";

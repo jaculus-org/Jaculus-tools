@@ -22,7 +22,7 @@
         "lint": "eslint --ext .ts src"
     },
     "dependencies": {
-        "@jaculus/util": "workspace:*",
+        "@jaculus/common": "workspace:*",
         "crc": "^4.3.2",
         "serialport": "^13.0.0"
     },

@@ -1,4 +1,4 @@
-import { Logger } from "@jaculus/util";
+import { Logger } from "@jaculus/common";
 import { Mux } from "@jaculus/link/mux";
 import { Duplex } from "@jaculus/link/stream";
 import {

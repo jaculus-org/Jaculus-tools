@@ -16,7 +16,7 @@
         "lint": "eslint --ext .ts src"
     },
     "dependencies": {
-        "@jaculus/util": "workspace:*",
+        "@jaculus/common": "workspace:*",
         "typescript": "^5.8.3"
     },
     "devDependencies": {

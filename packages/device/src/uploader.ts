@@ -1,6 +1,6 @@
 import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link/communicator";
 import { Packet } from "@jaculus/link/linkTypes";
-import { Logger } from "@jaculus/util";
+import { Logger } from "@jaculus/common";
 import * as fs from "fs";
 import { encodePath } from "./util.js";
 import path from "path";

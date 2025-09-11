@@ -1,5 +1,5 @@
 import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link/communicator";
-import { Logger } from "@jaculus/util";
+import { Logger } from "@jaculus/common";
 import { TimeoutPromise, encodePath } from "./util.js";
 
 const TIMEOUT_MS = 5000;

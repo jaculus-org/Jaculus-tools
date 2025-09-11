@@ -1,4 +1,4 @@
-import { Logger } from "@jaculus/util";
+import { Logger } from "@jaculus/common";
 import { stderr } from "process";
 import { Writable } from "stream";
 import ts from "typescript";
