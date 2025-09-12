@@ -1,6 +1,6 @@
 import { getUri } from "get-uri";
 import * as tar from "tar-stream";
-import * as zlib from "zlib";
+import pako from "pako";
 import * as espPlatform from "./esp32/esp32.js";
 
 /**
@@ -163,6 +163,23 @@ export async function loadPackage(uri: string): Promise<Package> {
             reject(err);
         });
 
-        stream.pipe(zlib.createGunzip()).pipe(extract);
+        const inflator = new pako.Inflate();
+        inflator.onData = (chunk) => {
+            const u8 = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+            extract.write(u8);
+        };
+        inflator.onEnd = (status) => {
+            if (status !== 0) {
+                reject(new Error("Failed to decompress package"));
+                return;
+            }
+            extract.end();
+        };
+        stream.on("data", (chunk: Buffer) => {
+            inflator.push(chunk, false);
+        });
+        stream.on("end", () => {
+            inflator.push(new Uint8Array(0), true);
+        });
     });
 }

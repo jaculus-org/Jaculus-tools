@@ -3,7 +3,7 @@ import { stderr } from "process";
 import { getDevice } from "./util.js";
 import fs from "fs";
 import * as tar from "tar-stream";
-import * as zlib from "zlib";
+import pako from "pako";
 import path from "path";
 import { getUri } from "get-uri";
 import { JacDevice } from "@jaculus/device";
@@ -65,14 +65,33 @@ async function loadPackage(options: Record<string, string | boolean>, env: Env):
 
     if (source.uri) {
         const stream = await getUri(source.uri);
-        stream.pipe(zlib.createGunzip()).pipe(extract);
+
+        await new Promise((resolve, reject) => {
+            const inflator = new pako.Inflate();
+            inflator.onData = (chunk) => {
+                const u8 = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+                extract.write(u8);
+            };
+            inflator.onEnd = (status) => {
+                if (status !== 0) {
+                    reject(new Error("Failed to decompress package"));
+                    return;
+                }
+                extract.end();
+                resolve(null);
+            };
+            stream.on("data", (chunk: Buffer) => {
+                inflator.push(chunk, false);
+            });
+            stream.on("end", () => {
+                inflator.push(new Uint8Array(0), true);
+            });
+        });
     } else if (source.device) {
         const buffer = await loadFromDevice(source.device);
-
-        const gunzip = zlib.createGunzip();
-        gunzip.pipe(extract);
-        gunzip.write(buffer);
-        gunzip.end();
+        const res = pako.ungzip(buffer);
+        extract.write(Buffer.from(res));
+        extract.end();
     } else {
         stderr.write("Invalid source for package");
         throw 1;
