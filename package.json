@@ -1,62 +1,38 @@
 {
-    "name": "jaculus-tools",
-    "version": "0.0.26",
-    "description": "Companion application/library for Jaculus",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/jaculus-org/Jaculus-tools.git"
-    },
-    "author": {
-        "name": "Petr Kubica (cubicap)",
-        "email": "cubicap@email.cz"
-    },
-    "license": "GPL-3.0-only",
+    "name": "jaculus-tools-monorepo",
+    "private": true,
+    "packageManager": "pnpm@10.16.0",
     "type": "module",
     "scripts": {
-        "prebuild": "node -p \"'export const version = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/project/version.ts",
-        "build": "tsc --build",
-        "clean": "tsc --build --clean",
-        "lint": "eslint --ext .ts src unit",
-        "test": "vitest run",
-        "prepack": "npm run lint && npm run clean && npm run build && npm run test",
-        "command": "node ./dist/src/commands/index.js"
-    },
-    "bin": {
-        "jac": "dist/src/commands/index.js"
-    },
-    "main": "./dist/src/index.js",
-    "module": "./dist/src/index.js",
-    "types": "./dist/src/index.d.ts",
-    "files": [
-        "dist"
-    ],
-    "dependencies": {
-        "@cubicap/esptool-js": "^0.3.2",
-        "chalk": "^5.4.1",
-        "cli-progress": "^3.12.0",
-        "crc": "^4.3.2",
-        "get-uri": "^6.0.4",
-        "node-stream-zip": "^1.15.0",
-        "serialport": "^13.0.0",
-        "tar-stream": "^3.1.7",
-        "typescript": "^5.8.3",
-        "winston": "^3.17.0"
+        "build": "pnpm -r run build",
+        "clean": "pnpm -r run clean",
+        "fullclean": "pnpm -r run fullclean && rimraf node_modules",
+        "test": "mocha",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "format:all": "pnpm lint:fix && pnpm format",
+        "jac": "pnpm --filter jaculus-tools exec jac",
+        "prepare": "husky"
     },
     "devDependencies": {
-        "@tsconfig/node16": "^16.1.4",
-        "@types/chai": "^5.2.2",
-        "@types/cli-progress": "^3.11.6",
+        "@jaculus/link": "workspace:*",
+        "@types/chai": "^4.3.20",
+        "@types/mocha": "^10.0.10",
         "@types/node": "^24.0.7",
-        "@types/tar-stream": "^3.1.4",
-        "@typescript-eslint/eslint-plugin": "^8.35.0",
-        "@typescript-eslint/parser": "^8.35.0",
-        "@vitest/coverage-v8": "^3.2.4",
-        "chai": "^4.3.10",
+        "chai": "^5.1.2",
         "chai-bytes": "^0.1.2",
-        "eslint": "^9.30.0",
-        "npm-check-updates": "^18.0.1",
-        "queue-fifo": "^0.2.6",
-        "typescript-eslint": "^8.35.0",
-        "vitest": "^3.2.4"
+        "eslint": "^9.35.0",
+        "eslint-config-prettier": "^10.1.8",
+        "husky": "^9.1.7",
+        "jiti": "^2.5.1",
+        "lint-staged": "^16.1.5",
+        "mocha": "^11.7.2",
+        "prettier": "^3.6.2",
+        "queue-fifo": "^0.2.5",
+        "rimraf": "^6.0.1",
+        "tsx": "^4.20.5",
+        "typescript-eslint": "^8.43.0"
     }
 }

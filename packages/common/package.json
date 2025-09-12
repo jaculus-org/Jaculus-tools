@@ -1,0 +1,28 @@
+{
+    "name": "@jaculus/common",
+    "version": "0.0.1",
+    "description": "Common utilities and types used across Jaculus packages",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jaculus-org/Jaculus-tools.git"
+    },
+    "author": {
+        "name": "Petr Kubica (cubicap)"
+    },
+    "license": "GPL-3.0-only",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -b",
+        "clean": "rimraf dist tsconfig.tsbuildinfo",
+        "fullclean": "npm run clean && rimraf node_modules"
+    },
+    "devDependencies": {
+        "rimraf": "^6.0.1",
+        "typescript": "^5.8.3"
+    }
+}

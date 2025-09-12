@@ -1,6 +1,6 @@
-﻿.vscode
 dist
+build
+coverage
 node_modules
-jac.log
-download
+pnpm-lock.yaml
 tsconfig.tsbuildinfo

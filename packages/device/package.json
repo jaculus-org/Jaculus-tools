@@ -1,0 +1,33 @@
+{
+    "name": "@jaculus/device",
+    "version": "0.0.1",
+    "description": "Library for interfacing with Jaculus devices",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jaculus-org/Jaculus-tools.git"
+    },
+    "author": {
+        "name": "Petr Kubica (cubicap)"
+    },
+    "license": "GPL-3.0-only",
+    "type": "module",
+    "main": "./dist/device.js",
+    "types": "./dist/device.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -b",
+        "clean": "rimraf dist tsconfig.tsbuildinfo",
+        "fullclean": "npm run clean && rimraf node_modules"
+    },
+    "dependencies": {
+        "@jaculus/common": "workspace:*",
+        "@jaculus/link": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.7",
+        "rimraf": "^6.0.1",
+        "typescript": "^5.8.3"
+    }
+}

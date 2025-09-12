@@ -1,15 +1,9 @@
 {
-    "extends": "./tsconfig-base.json",
-    "files": [],
-    "include": [
-        "unit/**/*.ts"
-    ],
-    "references": [
-        {
-            "path": "./src"
-        },
-        {
-            "path": "./unit"
-        }
-    ]
+    "extends": "./tsconfig.base.json",
+    "include": ["eslint.config.ts", "./test/**/*.test.ts", "./test/**/*.ts"],
+    "compilerOptions": {
+        "rootDir": ".",
+        "allowJs": true,
+        "noEmit": true
+    }
 }

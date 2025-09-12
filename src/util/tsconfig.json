@@ -1,9 +1,0 @@
-{
-    "extends": "../../tsconfig-base.json",
-    "files": [
-        "encoding.ts",
-        "logger.ts",
-        "timeoutPromise.ts",
-    ],
-    "references": []
-}

@@ -1,0 +1,33 @@
+{
+    "name": "@jaculus/project",
+    "version": "0.0.1",
+    "description": "Library for managing Jaculus projects, including source files, build, and dependencies",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jaculus-org/Jaculus-tools.git"
+    },
+    "author": {
+        "name": "Petr Kubica (cubicap)"
+    },
+    "license": "GPL-3.0-only",
+    "type": "module",
+    "types": "dist/compiler.d.ts",
+    "exports": {
+        "./compiler": "./dist/compiler.js"
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -b",
+        "clean": "rimraf dist tsconfig.tsbuildinfo",
+        "fullclean": "npm run clean && rimraf node_modules"
+    },
+    "dependencies": {
+        "@jaculus/common": "workspace:*",
+        "typescript": "^5.8.3"
+    },
+    "devDependencies": {
+        "rimraf": "^6.0.1"
+    }
+}
