@@ -1,7 +1,7 @@
 {
     "name": "jaculus-tools-monorepo",
     "private": true,
-    "packageManager": "pnpm@9.6.0",
+    "packageManager": "pnpm@10.16.0",
     "type": "module",
     "scripts": {
         "build": "pnpm -r run build",

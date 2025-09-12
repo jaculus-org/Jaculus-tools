@@ -1,13 +1,21 @@
 {
     "name": "@jaculus/firmware",
     "version": "0.0.1",
+    "description": "Library for updating firmware of Jaculus devices",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jaculus-org/Jaculus-tools.git"
+    },
+    "author": {
+        "name": "Petr Kubica (cubicap)"
+    },
+    "license": "GPL-3.0-only",
     "type": "module",
-    "private": false,
+    "main": "./dist/package.js",
+    "types": "./dist/package.d.ts",
     "files": [
         "dist"
     ],
-    "main": "./dist/package.js",
-    "types": "./dist/package.d.ts",
     "scripts": {
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",

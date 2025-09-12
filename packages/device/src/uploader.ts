@@ -1,9 +1,7 @@
 import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link/communicator";
 import { Packet } from "@jaculus/link/linkTypes";
 import { Logger } from "@jaculus/common";
-import * as fs from "fs";
 import { encodePath } from "./util.js";
-import path from "path";
 
 export enum UploaderCommand {
     READ_FILE = 0x01,
@@ -345,104 +343,6 @@ export class Uploader {
             }
             packet.send();
         });
-    }
-
-    public async upload(from: string, to: string): Promise<UploaderCommand> {
-        this._logger?.info("Uploading " + from + " to " + to);
-        if (fs.lstatSync(from).isDirectory()) {
-            const files = fs.readdirSync(from);
-
-            await this.createDirectory(to).catch((cmd: UploaderCommand) => {
-                throw "Failed to create directory: " + UploaderCommandStrings[cmd];
-            });
-            for (const file of files) {
-                await this.upload(path.join(from, file), to + "/" + file).catch((err) => {
-                    throw err;
-                });
-            }
-            return UploaderCommand.OK;
-        } else {
-            const data = fs.readFileSync(from);
-
-            await this.writeFile(to, data).catch((cmd: UploaderCommand) => {
-                throw "Failed to write file (" + to + "): " + UploaderCommandStrings[cmd];
-            });
-            return UploaderCommand.OK;
-        }
-    }
-
-    public async push(from: string, to: string): Promise<UploaderCommand> {
-        this._logger?.verbose("Pushing " + from + " to " + to);
-        if (!fs.lstatSync(from).isDirectory()) {
-            throw "Source must be a directory";
-        }
-
-        const files = fs.readdirSync(from);
-        for (const file of files) {
-            await this.upload(path.join(from, file), to + "/" + file).catch((err) => {
-                throw err;
-            });
-        }
-        return UploaderCommand.OK;
-    }
-
-    private async pullFile(from: string, to: string): Promise<UploaderCommand> {
-        this._logger?.info("Pulling " + from + " to " + to);
-
-        const data = await this.readFile(from).catch((cmd: UploaderCommand) => {
-            throw "Failed to read file: " + UploaderCommandStrings[cmd];
-        });
-
-        fs.writeFileSync(to, data);
-
-        return UploaderCommand.OK;
-    }
-
-    private async pullDir(from: string, to: string): Promise<UploaderCommand> {
-        this._logger?.info("Pulling " + from + " to " + to);
-
-        const files = await this.listDirectory(from).catch((cmd: UploaderCommand) => {
-            throw "Failed to list directory: " + UploaderCommandStrings[cmd];
-        });
-
-        if (!fs.existsSync(to)) {
-            fs.mkdirSync(to);
-        }
-        if (!fs.lstatSync(to).isDirectory()) {
-            throw "Destination must be a directory";
-        }
-        if (fs.readdirSync(to).length > 0) {
-            throw "Destination directory is not empty";
-        }
-
-        for (const file of files) {
-            const name = file[0];
-            const isDir = file[1];
-            if (isDir) {
-                await this.pullDir(from + "/" + name, to + "/" + name).catch((err) => {
-                    throw err;
-                });
-            } else {
-                await this.pullFile(from + "/" + name, to + "/" + name).catch((err) => {
-                    throw err;
-                });
-            }
-        }
-        return UploaderCommand.OK;
-    }
-
-    public async pull(from: string, to: string): Promise<UploaderCommand> {
-        this._logger?.verbose("Pulling " + from + " to " + to);
-
-        const [, isDir] = await this.listDirectory(from).catch((err) => {
-            throw "Failed to get file type: " + err;
-        });
-
-        if (isDir) {
-            return this.pullDir(from, to);
-        }
-
-        return this.pullFile(from, to);
     }
 
     public formatStorage(): Promise<UploaderCommand> {

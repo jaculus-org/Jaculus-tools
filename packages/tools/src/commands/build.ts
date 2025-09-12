@@ -4,18 +4,6 @@ import { stderr } from "process";
 import { compile } from "@jaculus/project/compiler";
 import { logger } from "../logger.js";
 
-// function listDts(dir: string): string[] {
-//     let dts: string[] = [];
-//     for (const file of fs.readdirSync(dir)) {
-//         if (fs.lstatSync(path.join(dir, file)).isDirectory()) {
-//             dts = dts.concat(listDts(path.join(dir, file)));
-//         } else if (file.endsWith(".d.ts")) {
-//             dts.push(path.join(dir, file));
-//         }
-//     }
-//     return dts;
-// }
-
 const cmd = new Command("Build TypeScript project", {
     action: async (options: Record<string, string | boolean>) => {
         const path_ = options["input"] as string;
@@ -23,7 +11,7 @@ const cmd = new Command("Build TypeScript project", {
         const parentDir = path.dirname(path_);
         const outDir = path.join(parentDir, "build");
 
-        if (compile(path_, outDir, logger)) {
+        if (compile(path_, outDir, stderr, logger)) {
             stderr.write("Compiled successfully\n");
         } else {
             stderr.write("Compilation failed\n");

@@ -1,6 +1,5 @@
 import { Program } from "./lib/command.js";
 
-// Register all reusable commands (everything except “version”)
 import listPorts from "./list-ports.js";
 import serialSocket from "./serial-socket.js";
 import install from "./install.js";
@@ -23,12 +22,15 @@ import resourcesLs from "./resources-ls.js";
 import resourcesRead from "./resources-read.js";
 import { wifiAdd, wifiRemove, wifiGet, wifiSetAp, wifiSetSta, wifiDisable } from "./wifi.js";
 import { projectCreate, projectUpdate } from "./project.js";
+import versionCommand from "./version.js";
 
 export function registerJaculusCommands(jac: Program) {
+    jac.addCommand("version", versionCommand);
     jac.addCommand("list-ports", listPorts);
-    jac.addCommand("serial-socket", serialSocket);
     jac.addCommand("install", install);
+
     jac.addCommand("build", build);
+
     jac.addCommand("flash", flash);
     jac.addCommand("pull", pull);
     jac.addCommand("ls", ls);
@@ -39,18 +41,23 @@ export function registerJaculusCommands(jac: Program) {
     jac.addCommand("rmdir", rmdir);
     jac.addCommand("upload", upload);
     jac.addCommand("format", formatCmd);
+
     jac.addCommand("project-create", projectCreate);
     jac.addCommand("project-update", projectUpdate);
     jac.addCommand("resources-ls", resourcesLs);
     jac.addCommand("resources-read", resourcesRead);
+
     jac.addCommand("start", start);
     jac.addCommand("stop", stop);
     jac.addCommand("status", status);
     jac.addCommand("monitor", monitor);
+
     jac.addCommand("wifi-get", wifiGet);
     jac.addCommand("wifi-ap", wifiSetAp);
     jac.addCommand("wifi-add", wifiAdd);
     jac.addCommand("wifi-rm", wifiRemove);
     jac.addCommand("wifi-sta", wifiSetSta);
     jac.addCommand("wifi-disable", wifiDisable);
+
+    jac.addCommand("serial-socket", serialSocket);
 }

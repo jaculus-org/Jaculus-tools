@@ -1,3 +1,3 @@
 # @jaculus/firmware
 
-Library for updating firmware on Jaculus devices.
+Library for updating firmware of Jaculus devices.

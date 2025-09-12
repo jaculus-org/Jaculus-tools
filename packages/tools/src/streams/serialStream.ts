@@ -1,5 +1,5 @@
 import { SerialPort } from "serialport";
-import { Duplex } from "../stream.js";
+import { Duplex } from "@jaculus/link/stream";
 
 export class SerialStream implements Duplex {
     private path: string;

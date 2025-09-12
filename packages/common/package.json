@@ -1,10 +1,18 @@
 {
     "name": "@jaculus/common",
     "version": "0.0.1",
+    "description": "Common utilities and types used across Jaculus packages",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jaculus-org/Jaculus-tools.git"
+    },
+    "author": {
+        "name": "Petr Kubica (cubicap)"
+    },
+    "license": "GPL-3.0-only",
     "type": "module",
-    "private": false,
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "files": [
         "dist"
     ],
@@ -13,11 +21,9 @@
         "clean": "rimraf dist tsconfig.tsbuildinfo",
         "lint": "eslint --ext .ts src"
     },
-    "dependencies": {
-        "typescript": "^5.8.3"
-    },
+    "dependencies": {},
     "devDependencies": {
-        "@types/node": "^24.0.7",
+        "typescript": "^5.8.3",
         "rimraf": "^6.0.1"
     }
 }

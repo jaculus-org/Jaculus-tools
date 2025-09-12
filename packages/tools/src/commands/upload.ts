@@ -1,6 +1,7 @@
 import { Arg, Command, Env } from "./lib/command.js";
 import { stdout, stderr } from "process";
 import { getDevice } from "./util.js";
+import { upload } from "../uploaderUtil.js";
 
 const cmd = new Command("Upload a file/directory to device", {
     action: async (
@@ -21,7 +22,7 @@ const cmd = new Command("Upload a file/directory to device", {
             throw 1;
         });
 
-        const cmd = await device.uploader.upload(local, remote).catch((err) => {
+        const cmd = await upload(device.uploader, local, remote).catch((err) => {
             stderr.write("Error: " + err + "\n");
             throw 1;
         });

@@ -1,13 +1,9 @@
 import { Logger } from "@jaculus/common";
-import { stderr } from "process";
-import { Writable } from "stream";
 import ts from "typescript";
 
-function printMessage(
-    message: string | ts.DiagnosticMessageChain,
-    stream: Writable = stderr,
-    indent = 0
-) {
+type Writable = { write: (chunk: string) => void };
+
+function printMessage(message: string | ts.DiagnosticMessageChain, stream: Writable, indent = 0) {
     if (typeof message === "string") {
         stream.write(" ".repeat(indent * 2) + message + "\n");
     } else {
@@ -20,12 +16,7 @@ function printMessage(
     }
 }
 
-export function compile(
-    input: string,
-    outDir: string,
-    logger?: Logger,
-    err: Writable = stderr
-): boolean {
+export function compile(input: string, outDir: string, err: Writable, logger?: Logger): boolean {
     const tsconfig = ts.findConfigFile(input, ts.sys.fileExists, "tsconfig.json");
     if (!tsconfig) {
         throw new Error("Could not find tsconfig.json");

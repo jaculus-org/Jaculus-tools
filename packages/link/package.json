@@ -1,21 +1,27 @@
 {
     "name": "@jaculus/link",
     "version": "0.0.1",
+    "description": "Library implementing the Jaculus-link protocol used for communication with Jaculus devices",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jaculus-org/Jaculus-tools.git"
+    },
+    "author": {
+        "name": "Petr Kubica (cubicap)"
+    },
+    "license": "GPL-3.0-only",
     "type": "module",
-    "private": false,
-    "files": [
-        "dist"
-    ],
     "exports": {
         "./communicator": "./dist/communicator.js",
         "./linkTypes": "./dist/linkTypes.js",
         "./mux": "./dist/mux.js",
         "./muxCommunicator": "./dist/muxCommunicator.js",
         "./stream": "./dist/stream.js",
-        "./streams/serialStream": "./dist/streams/serialStream.js",
-        "./streams/socketStream": "./dist/streams/socketStream.js",
         "./encoders/cobs": "./dist/encoders/cobs.js"
     },
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
@@ -23,11 +29,9 @@
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
-        "crc": "^4.3.2",
-        "serialport": "^13.0.0"
+        "crc": "^4.3.2"
     },
     "devDependencies": {
-        "@types/node": "^24.0.7",
         "rimraf": "^6.0.1",
         "typescript": "^5.8.3"
     }
