@@ -23,14 +23,15 @@
         "prebuild": "node -p \"'export const version = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/meta/version.ts",
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
+        "fullclean": "npm run clean && rimraf node_modules",
         "lint": "eslint --ext .ts src"
     },
     "dependencies": {
-        "@jaculus/device": "workspace:*",
-        "@jaculus/link": "workspace:*",
-        "@jaculus/firmware": "workspace:*",
-        "@jaculus/project": "workspace:*",
         "@jaculus/common": "workspace:*",
+        "@jaculus/device": "workspace:*",
+        "@jaculus/firmware": "workspace:*",
+        "@jaculus/link": "workspace:*",
+        "@jaculus/project": "workspace:*",
         "chalk": "^5.4.1",
         "get-uri": "^6.0.4",
         "serialport": "^13.0.0",
@@ -39,11 +40,11 @@
         "zlib": "^1.0.5"
     },
     "devDependencies": {
-        "typescript": "^5.8.3",
         "@types/node": "^24.0.7",
         "@types/tar-stream": "^3.1.4",
-        "eslint": "^9.30.0",
+        "eslint": "^9.35.0",
         "rimraf": "^6.0.1",
+        "typescript": "^5.8.3",
         "typescript-eslint": "^8.35.0"
     }
 }

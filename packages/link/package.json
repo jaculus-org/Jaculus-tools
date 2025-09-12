@@ -25,13 +25,15 @@
     "scripts": {
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
-        "lint": "eslint --ext .ts src"
+        "lint": "eslint --ext .ts src",
+        "fullclean": "npm run clean && rimraf node_modules"
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
         "crc": "^4.3.2"
     },
     "devDependencies": {
+        "eslint": "^9.35.0",
         "rimraf": "^6.0.1",
         "typescript": "^5.8.3"
     }

@@ -17,6 +17,9 @@ importers:
       chai-bytes:
         specifier: ^0.1.2
         version: 0.1.2(chai@5.3.3)
+      eslint:
+        specifier: ^9.35.0
+        version: 9.35.0(jiti@2.5.1)
       eslint-config-prettier:
         specifier: ^10.1.8
         version: 10.1.8(eslint@9.35.0(jiti@2.5.1))
@@ -35,12 +38,18 @@ importers:
       queue-fifo:
         specifier: ^0.2.5
         version: 0.2.6
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.0.1
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@24.3.1)(jiti@2.5.1)(yaml@2.8.1)
 
   packages/common:
     devDependencies:
+      eslint:
+        specifier: ^9.35.0
+        version: 9.35.0(jiti@2.5.1)
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -60,6 +69,9 @@ importers:
       '@types/node':
         specifier: ^24.0.7
         version: 24.3.1
+      eslint:
+        specifier: ^9.35.0
+        version: 9.35.0(jiti@2.5.1)
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -100,6 +112,9 @@ importers:
       '@types/tar-stream':
         specifier: ^3.1.4
         version: 3.1.4
+      eslint:
+        specifier: ^9.35.0
+        version: 9.35.0(jiti@2.5.1)
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -116,6 +131,9 @@ importers:
         specifier: ^4.3.2
         version: 4.3.2
     devDependencies:
+      eslint:
+        specifier: ^9.35.0
+        version: 9.35.0(jiti@2.5.1)
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -132,6 +150,9 @@ importers:
         specifier: ^5.8.3
         version: 5.9.2
     devDependencies:
+      eslint:
+        specifier: ^9.35.0
+        version: 9.35.0(jiti@2.5.1)
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -179,7 +200,7 @@ importers:
         specifier: ^3.1.4
         version: 3.1.4
       eslint:
-        specifier: ^9.30.0
+        specifier: ^9.35.0
         version: 9.35.0(jiti@2.5.1)
       rimraf:
         specifier: ^6.0.1
@@ -1932,7 +1953,7 @@ snapshots:
   '@serialport/binding-mock@10.2.2':
     dependencies:
       '@serialport/bindings-interface': 1.2.2
-      debug: 4.4.0
+      debug: 4.4.1
     transitivePeerDependencies:
       - supports-color
 
