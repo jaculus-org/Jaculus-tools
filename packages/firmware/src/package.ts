@@ -130,31 +130,21 @@ export async function loadPackage(uri: string): Promise<Package> {
         const files: Record<string, Buffer> = {};
 
         extract.on("entry", (header, stream, next) => {
-            if (header.name === "manifest.json") {
-                let str = "";
-                stream.on("data", (chunk) => {
-                    str += chunk;
-                });
-                stream.on("end", () => {
-                    manifest = parseManifest(str);
-                    next();
-                });
-                stream.on("error", (err) => {
-                    reject(err);
-                });
-            } else {
-                const chunks: Buffer[] = [];
-                stream.on("data", (chunk) => {
-                    chunks.push(chunk);
-                });
-                stream.on("end", () => {
+            const chunks: Buffer[] = [];
+            stream.on("data", (chunk) => {
+                chunks.push(chunk);
+            });
+            stream.on("end", () => {
+                if (header.name === "manifest.json") {
+                    manifest = parseManifest(Buffer.concat(chunks).toString("utf-8"));
+                } else {
                     files[header.name] = Buffer.concat(chunks);
-                    next();
-                });
-                stream.on("error", (err) => {
-                    reject(err);
-                });
-            }
+                }
+                next();
+            });
+            stream.on("error", (err) => {
+                reject(err);
+            });
         });
         extract.on("finish", () => {
             resolve(new Package(manifest, files));
