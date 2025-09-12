@@ -6,14 +6,7 @@ const config: tseslint.ConfigArray = tseslint.config(
     eslint.configs.recommended,
     tseslint.configs.recommended,
     {
-        ignores: [
-            "**/dist/**",
-            "**/node_modules/**",
-            "**/src-appmeta/**",
-            "**/*.d.ts",
-            "**/coverage/**",
-            "src/**",
-        ],
+        ignores: ["**/dist/**", "**/node_modules/**"],
     },
     {
         files: ["**/*.ts"],

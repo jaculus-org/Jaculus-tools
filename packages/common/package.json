@@ -19,11 +19,9 @@
     "scripts": {
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
-        "fullclean": "npm run clean && rimraf node_modules",
-        "lint": "eslint --ext .ts src"
+        "fullclean": "npm run clean && rimraf node_modules"
     },
     "devDependencies": {
-        "eslint": "^9.35.0",
         "rimraf": "^6.0.1",
         "typescript": "^5.8.3"
     }

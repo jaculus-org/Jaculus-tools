@@ -1,10 +1,10 @@
 import * as chai from "chai";
 import chaiBytes from "chai-bytes";
 import Queue from "queue-fifo";
-import { Mux } from "@jaculus/link/mux.js";
-import { Duplex } from "@jaculus/link/stream.js";
-import { Consumer } from "@jaculus/link/linkTypes.js";
-import { CobsEncoder } from "@jaculus/link/encoders/cobs.js";
+import { Mux } from "@jaculus/link/mux";
+import { Duplex } from "@jaculus/link/stream";
+import { Consumer } from "@jaculus/link/linkTypes";
+import { CobsEncoder } from "@jaculus/link/encoders/cobs";
 
 chai.use(chaiBytes);
 const expect = chai.expect;

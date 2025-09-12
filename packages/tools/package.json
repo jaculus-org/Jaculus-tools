@@ -23,8 +23,7 @@
         "prebuild": "node -p \"'export const version = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/meta/version.ts",
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
-        "fullclean": "npm run clean && rimraf node_modules",
-        "lint": "eslint --ext .ts src"
+        "fullclean": "npm run clean && rimraf node_modules"
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
@@ -42,9 +41,7 @@
     "devDependencies": {
         "@types/node": "^24.0.7",
         "@types/tar-stream": "^3.1.4",
-        "eslint": "^9.35.0",
         "rimraf": "^6.0.1",
-        "typescript": "^5.8.3",
-        "typescript-eslint": "^8.35.0"
+        "typescript": "^5.8.3"
     }
 }
