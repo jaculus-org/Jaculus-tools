@@ -11,3 +11,20 @@ can be found in the `packages/` directory and are available on npm.
 - [@jaculus/project](./packages/project/README.md) - Library for managing Jaculus projects.
 - [@jaculus/device](./packages/device/README.md) - Library for managing Jaculus devices.
 - [@jaculus/common](./packages/common/README.md) - Common utilities and types used across Jaculus packages.
+
+
+## Dependencies
+
+```mermaid
+graph TD;
+    device --> common;
+    device --> link;
+    firmware --> common;
+    link --> common;
+    project --> common;
+    tools --> common;
+    tools --> device;
+    tools --> firmware;
+    tools --> link;
+    tools --> project;
+```
