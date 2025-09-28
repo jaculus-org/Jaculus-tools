@@ -11,9 +11,15 @@
     },
     "license": "GPL-3.0-only",
     "type": "module",
-    "types": "dist/compiler.d.ts",
     "exports": {
-        "./compiler": "./dist/compiler.js"
+        "./compiler": {
+            "types": "./dist/compiler.d.ts",
+            "import": "./dist/compiler.js"
+        },
+        "./project": {
+            "types": "./dist/project.d.ts",
+            "import": "./dist/project.js"
+        }
     },
     "files": [
         "dist"
@@ -25,9 +31,16 @@
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
+        "@jaculus/device": "workspace:*",
+        "buffer": "^6.0.3",
+        "get-uri": "^6.0.4",
+        "pako": "^2.1.0",
+        "tar-stream": "^3.1.7",
         "typescript": "^5.8.3"
     },
     "devDependencies": {
+        "@types/pako": "^2.0.4",
+        "@types/tar-stream": "^3.1.4",
         "rimraf": "^6.0.1"
     }
 }

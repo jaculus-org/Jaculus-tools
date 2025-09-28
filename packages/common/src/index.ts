@@ -8,3 +8,5 @@ export interface Logger {
     debug: LogMethod;
     silly: LogMethod;
 }
+
+export { FSInterface } from "./fs.js";
