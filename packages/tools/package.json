@@ -22,6 +22,7 @@
     "scripts": {
         "prebuild": "node -p \"'export const version = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/meta/version.ts",
         "build": "tsc -b",
+        "build:watch": "tsc -b --watch",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
         "fullclean": "npm run clean && rimraf node_modules"
     },
@@ -31,6 +32,7 @@
         "@jaculus/firmware": "workspace:*",
         "@jaculus/link": "workspace:*",
         "@jaculus/project": "workspace:*",
+        "@obsidize/tar-browserify": "^6.1.0",
         "chalk": "^5.4.1",
         "get-uri": "^6.0.4",
         "pako": "^2.1.0",

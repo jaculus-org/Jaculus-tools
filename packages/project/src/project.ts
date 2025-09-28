@@ -1,15 +1,9 @@
-import { Logger, FSInterface } from "@jaculus/common";
+import { FSPromisesInterface, Logger,  } from "@jaculus/common";
 import { JacDevice } from "@jaculus/device";
+import { Archive, ArchiveEntry } from '@obsidize/tar-browserify';
 import pako from "pako";
 import path from "path";
-import * as tar from "tar-stream";
-import { extractPackageFromUri } from "./utils.js";
 import { Buffer } from "buffer";
-
-export interface Package {
-    dirs: string[];
-    files: Record<string, Buffer>;
-}
 
 async function loadFromDevice(device: JacDevice, logger?: Logger): Promise<Buffer> {
     await device.controller.lock().catch((err) => {
@@ -30,88 +24,39 @@ async function loadFromDevice(device: JacDevice, logger?: Logger): Promise<Buffe
     return data;
 }
 
-async function processPackageSource(extract: tar.Extract): Promise<Package> {
-    const dirs: string[] = [];
-    const files: Record<string, Buffer> = {};
-
-    await new Promise((resolve, reject) => {
-        extract.on(
-            "entry",
-            (header: tar.Headers, stream: NodeJS.ReadableStream, next: () => void) => {
-                if (header.type === "directory") {
-                    dirs.push(header.name);
-                    next();
-                    return;
-                }
-                if (header.type !== "file") {
-                    next();
-                    return;
-                }
-
-                const chunks: Buffer[] = [];
-                stream.on("data", (chunk: Buffer) => {
-                    chunks.push(chunk);
-                });
-                stream.on("end", () => {
-                    const data = Buffer.concat(chunks);
-                    files[path.normalize(header.name)] = data;
-
-                    next();
-                });
-                stream.on("error", (err: Error) => {
-                    reject(err);
-                });
-            }
-        );
-        extract.on("finish", () => {
-            resolve(null);
-        });
-        extract.on("error", (err: Error) => {
-            reject(err);
-        });
-    });
-
-    return { dirs, files };
-}
-
-export async function loadPackageDevice(device: JacDevice, logger?: Logger): Promise<Package> {
-    const extract = tar.extract();
+export async function loadPackageDevice(device: JacDevice, logger?: Logger): Promise<AsyncIterable<ArchiveEntry>> {
     const buffer = await loadFromDevice(device, logger);
     const res = pako.ungzip(buffer);
-    extract.write(Buffer.from(res));
-    extract.end();
-    return processPackageSource(extract);
+    return Archive.read(res);
 }
 
-export async function loadPackageUri(pkgUri: string): Promise<Package> {
-    const extract = await extractPackageFromUri(pkgUri);
-    return processPackageSource(extract);
+export async function loadPackageUri(pkgUri: string, fs?: FSPromisesInterface): Promise<AsyncIterable<ArchiveEntry>> {
+    let gz: Buffer;
+    if (pkgUri.startsWith("http://") || pkgUri.startsWith("https://")) {
+        const res = await fetch(pkgUri);
+        if (!res.ok) throw new Error(`HTTP ${res.status} for ${pkgUri}`);
+        gz = Buffer.from(await res.arrayBuffer());
+    } else if (pkgUri.startsWith("file://" ) && fs) {
+        const filePath = pkgUri.slice(7);
+        gz = await fs.readFile(filePath);
+    } else {
+        throw new Error(`Unsupported URI scheme or missing fs for ${pkgUri}`);
+    }
+
+    const res = pako.ungzip(gz);
+    return Archive.read(res);
 }
 
 export async function unpackPackage(
-    pkg: Package,
+    pkg: AsyncIterable<ArchiveEntry>,
     outPath: string,
     filter: (fileName: string) => boolean,
     dryRun: boolean = false,
-    fs: FSInterface,
+    fs: FSPromisesInterface,
     logger?: Logger
 ): Promise<void> {
-    for (const dir of pkg.dirs) {
-        const source = dir;
-        const fullPath = path.join(outPath, source);
-        if (!dryRun) {
-            try {
-                await fs.promises.stat(fullPath);
-                // Directory exists, skip
-            } catch {
-                // Directory doesn't exist, create it
-                logger?.info(`Create directory: ${fullPath}`);
-            }
-        }
-    }
-
-    for (const [fileName, data] of Object.entries(pkg.files)) {
-        const source = fileName;
+    for await (const entry of pkg) {
+        const source = entry.fileName;
 
         if (!filter(source)) {
             logger?.info(`Skip file: ${source}`);
@@ -121,7 +66,7 @@ export async function unpackPackage(
 
         let fileExists = false;
         try {
-            await fs.promises.stat(fullPath);
+            await fs.stat(fullPath);
             fileExists = true;
         } catch {
             // File doesn't exist
@@ -131,31 +76,23 @@ export async function unpackPackage(
         if (!dryRun) {
             const dir = path.dirname(fullPath);
             try {
-                await fs.promises.stat(dir);
+                await fs.stat(dir);
             } catch {
                 // Directory doesn't exist, create it
-                await fs.promises.mkdir(dir, { mode: 0o777 });
+                await fs.mkdir(dir, { mode: 0o777 });
             }
-            await fs.promises.writeFile(fullPath, data);
+            await fs.writeFile(fullPath, entry.content!);
         }
     }
 }
 
 export async function createProject(
     outPath: string,
-    pkg: Package,
+    archive: AsyncIterable<ArchiveEntry>,
     dryRun: boolean = false,
-    fs: FSInterface,
+    fs: FSPromisesInterface,
     logger?: Logger
 ): Promise<void> {
-    try {
-        await fs.promises.stat(outPath);
-        logger?.error(`Directory '${outPath}' already exists`);
-        throw 1;
-    } catch {
-        // Directory doesn't exist, which is what we want
-    }
-
     const filter = (fileName: string): boolean => {
         if (fileName === "manifest.json") {
             return false;
@@ -163,19 +100,19 @@ export async function createProject(
         return true;
     };
 
-    await unpackPackage(pkg, outPath, filter, dryRun, fs, logger);
+    await unpackPackage(archive, outPath, filter, dryRun, fs, logger);
 }
 
 export async function updateProject(
     outPath: string,
-    pkg: Package,
+    archive: AsyncIterable<ArchiveEntry>,
     dryRun: boolean = false,
-    fs: FSInterface,
+    fs: FSPromisesInterface,
     logger?: Logger
 ): Promise<void> {
     let stats;
     try {
-        stats = await fs.promises.stat(outPath);
+        stats = await fs.stat(outPath);
     } catch {
         logger?.error(`Directory '${outPath}' does not exist`);
         throw 1;
@@ -187,8 +124,11 @@ export async function updateProject(
     }
 
     let manifest;
-    if (pkg.files["manifest.json"]) {
-        manifest = JSON.parse(pkg.files["manifest.json"].toString("utf-8"));
+    for await (const entry of archive) {
+        if (entry.fileName === "manifest.json") {
+            manifest = JSON.parse(entry.content!.toString());
+            break;
+        }
     }
 
     let skeleton: string[];
@@ -219,5 +159,5 @@ export async function updateProject(
         return false;
     };
 
-    await unpackPackage(pkg, outPath, filter, dryRun, fs, logger);
+    await unpackPackage(archive, outPath, filter, dryRun, fs, logger);
 }

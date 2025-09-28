@@ -6,15 +6,13 @@ import {
     createProject,
     loadPackageDevice,
     loadPackageUri,
-    Package,
     updateProject,
 } from "@jaculus/project/project";
-import { FSInterface } from "@jaculus/common";
+import { ArchiveEntry } from "@obsidize/tar-browserify";
 
-// Cast Node.js fs as FSInterface - we only use the promises API which is compatible
-const fsInterface = fs as unknown as FSInterface;
+const fsp = fs.promises;
 
-async function loadPackage(options: Record<string, string | boolean>, env: Env): Promise<Package> {
+async function loadPackage(options: Record<string, string | boolean>, env: Env): Promise<AsyncIterable<ArchiveEntry>> {
     const pkgUri = options["package"] as string;
     const fromDevice = options["from-device"] as boolean;
 
@@ -35,7 +33,7 @@ async function loadPackage(options: Record<string, string | boolean>, env: Env):
         const device = await getDevice(port, baudrate, socket, env);
         return loadPackageDevice(device);
     } else {
-        return loadPackageUri(pkgUri);
+        return loadPackageUri(pkgUri, fsp);
     }
 }
 
@@ -49,7 +47,7 @@ export const projectCreate = new Command("Create project from package", {
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
 
-        await createProject(outPath, pkg, dryRun, fsInterface, logger);
+        await createProject(outPath, pkg, dryRun, fsp, logger);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
@@ -70,7 +68,7 @@ export const projectUpdate = new Command("Update existing project from package s
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
 
-        updateProject(outPath, pkg, dryRun, fsInterface, logger);
+        updateProject(outPath, pkg, dryRun, fsp, logger);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),

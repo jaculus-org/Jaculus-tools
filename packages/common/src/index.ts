@@ -9,4 +9,5 @@ export interface Logger {
     silly: LogMethod;
 }
 
-export { FSInterface } from "./fs.js";
+export type FSPromisesInterface = typeof import("fs").promises;
+export type FSInterface = typeof import("fs");
