@@ -12,7 +12,10 @@ import { ArchiveEntry } from "@obsidize/tar-browserify";
 
 const fsp = fs.promises;
 
-async function loadPackage(options: Record<string, string | boolean>, env: Env): Promise<AsyncIterable<ArchiveEntry>> {
+async function loadPackage(
+    options: Record<string, string | boolean>,
+    env: Env
+): Promise<AsyncIterable<ArchiveEntry>> {
     const pkgUri = options["package"] as string;
     const fromDevice = options["from-device"] as boolean;
 
@@ -47,7 +50,7 @@ export const projectCreate = new Command("Create project from package", {
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
 
-        await createProject(outPath, pkg, dryRun, fsp, logger);
+        await createProject(fsp, outPath, pkg, dryRun, logger);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
@@ -68,7 +71,7 @@ export const projectUpdate = new Command("Update existing project from package s
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
 
-        updateProject(outPath, pkg, dryRun, fsp, logger);
+        updateProject(fsp, outPath, pkg, dryRun, logger);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),

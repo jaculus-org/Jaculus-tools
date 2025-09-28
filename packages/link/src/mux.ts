@@ -33,7 +33,7 @@ export class Mux {
     private _logger?: Logger;
 
     private _channels: Record<number, Consumer>;
-    private _globalCallback?: (channel: number, data: Buffer) => void;
+    private _globalCallback?: (channel: number, data: Uint8Array) => void;
 
     private _packetizer: Packetizer;
     private _serializerCapacity: number;
@@ -52,10 +52,10 @@ export class Mux {
     }
 
     public start(): void {
-        this._stream.onData((data: Buffer) => this.receive(data));
+        this._stream.onData((data: Uint8Array) => this.receive(data));
     }
 
-    private receive(data: Buffer): void {
+    private receive(data: Uint8Array): void {
         if (this.closed) {
             throw new Error("Mux is closed");
         }
@@ -68,7 +68,7 @@ export class Mux {
                 if (result) {
                     const consumer = this._channels[result.channel];
                     if (consumer) {
-                        consumer.processPacket(Buffer.from(result.data));
+                        consumer.processPacket(result.data);
                     }
                     if (this._globalCallback) {
                         this._globalCallback(result.channel, result.data);
@@ -100,7 +100,7 @@ export class Mux {
         this._channels[channel] = consumer;
     }
 
-    public setGlobalCallback(callback?: (channel: number, data: Buffer) => void) {
+    public setGlobalCallback(callback?: (channel: number, data: Uint8Array) => void) {
         this._globalCallback = callback;
     }
 

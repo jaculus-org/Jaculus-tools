@@ -48,7 +48,7 @@ export class Uploader {
     private _out: OutputPacketCommunicator;
     private _logger?: Logger;
 
-    private _onData?: (data: Buffer) => boolean;
+    private _onData?: (data: Uint8Array) => boolean;
     private _onDataComplete?: () => boolean;
     private _onOk?: () => boolean;
     private _onError?: (cmd: UploaderCommand) => boolean;
@@ -62,7 +62,7 @@ export class Uploader {
         this._in = in_;
         this._out = out;
         this._logger = logger;
-        this._in.onData((data: Buffer) => {
+        this._in.onData((data: Uint8Array) => {
             this.processPacket(data);
         });
     }
@@ -77,8 +77,8 @@ export class Uploader {
         });
     }
 
-    private processPacket(data_: Buffer): boolean {
-        const data = Buffer.from(data_);
+    private processPacket(data_: Uint8Array): boolean {
+        const data = data_;
         if (data.length < 1) {
             return false;
         }
@@ -143,12 +143,12 @@ export class Uploader {
         }
     }
 
-    public readFile(path_: string): Promise<Buffer> {
+    public readFile(path_: string): Promise<Uint8Array> {
         this._logger?.verbose("Reading file: " + path_);
         return new Promise((resolve, reject) => {
-            let data: Buffer = Buffer.alloc(0);
-            this._onData = (d: Buffer) => {
-                const newData = Buffer.alloc(data.length + d.length);
+            let data: Uint8Array = new Uint8Array(0);
+            this._onData = (d: Uint8Array) => {
+                const newData = new Uint8Array(data.length + d.length);
                 newData.set(data);
                 newData.set(d, data.length);
                 data = newData;
@@ -171,7 +171,7 @@ export class Uploader {
         });
     }
 
-    public writeFile(path_: string, data: Buffer): Promise<UploaderCommand> {
+    public writeFile(path_: string, data: Uint8Array): Promise<UploaderCommand> {
         this._logger?.verbose("Writing file: " + path_ + " - " + data.length);
         return new Promise((resolve, reject) => {
             this._onOk = () => {
@@ -250,22 +250,22 @@ export class Uploader {
     public listDirectory(path_: string, flags = ""): Promise<[string, boolean, number][]> {
         this._logger?.verbose("Listing directory: " + path_ + " - '" + flags + "'");
         return new Promise((resolve, reject) => {
-            let data: Buffer = Buffer.alloc(0);
-            this._onData = (d: Buffer) => {
-                const newData = Buffer.alloc(data.length + d.length);
+            let data: Uint8Array = new Uint8Array(0);
+            this._onData = (d: Uint8Array) => {
+                const newData = new Uint8Array(data.length + d.length);
                 newData.set(data);
                 newData.set(d, data.length);
                 data = newData;
                 return true;
             };
             this._onDataComplete = () => {
-                const buffer = Buffer.alloc(270);
+                const buffer = new Uint8Array(270);
                 let bufferIn = 0;
                 const result: [string, boolean, number][] = [];
                 for (let i = 0; i < data.length; i++) {
                     const b = data[i];
                     if (b == 0) {
-                        let name = buffer.toString("utf8", 0, buffer.indexOf(0));
+                        let name = new TextDecoder().decode(buffer.subarray(0, buffer.indexOf(0)));
                         const isDir = name.charAt(0) == "d";
                         name = name.slice(1);
                         let size = 0;
@@ -368,23 +368,27 @@ export class Uploader {
     public getDirHashes(path_: string): Promise<[string, string][]> {
         this._logger?.verbose("Getting hashes of directory: " + path_);
         return new Promise((resolve, reject) => {
-            let data: Buffer = Buffer.alloc(0);
-            this._onData = (d: Buffer) => {
-                const newData = Buffer.alloc(data.length + d.length);
+            let data: Uint8Array = new Uint8Array(0);
+            this._onData = (d: Uint8Array) => {
+                const newData = new Uint8Array(data.length + d.length);
                 newData.set(data);
                 newData.set(d, data.length);
                 data = newData;
                 return true;
             };
             this._onDataComplete = () => {
-                const buffer = Buffer.alloc(270);
+                const buffer = new Uint8Array(270);
                 let bufferIn = 0;
                 const result: [string, string][] = [];
                 for (let i = 0; i < data.length; i++) {
                     const b = data[i];
                     if (b == 0) {
-                        const name = buffer.toString("utf8", 0, buffer.indexOf(0));
-                        const sha1 = data.toString("hex", i + 1, i + 21);
+                        const name = new TextDecoder().decode(
+                            buffer.subarray(0, buffer.indexOf(0))
+                        );
+                        const sha1 = Array.from(data.subarray(i + 1, i + 21))
+                            .map((b) => b.toString(16).padStart(2, "0"))
+                            .join("");
                         i += 20;
                         this._logger?.verbose(`${name} ${sha1}`);
                         result.push([name, sha1]);
@@ -413,26 +417,25 @@ export class Uploader {
     public listResources(): Promise<[string, number][]> {
         this._logger?.verbose("Listing resources");
         return new Promise((resolve, reject) => {
-            let data: Buffer = Buffer.alloc(0);
-            this._onData = (d: Buffer) => {
-                const newData = Buffer.alloc(data.length + d.length);
+            let data: Uint8Array = new Uint8Array(0);
+            this._onData = (d: Uint8Array) => {
+                const newData = new Uint8Array(data.length + d.length);
                 newData.set(data);
                 newData.set(d, data.length);
                 data = newData;
                 return true;
             };
             this._onDataComplete = () => {
-                console.log(data);
-                const buffer = Buffer.alloc(270);
+                const buffer = new Uint8Array(270);
                 let bufferIn = 0;
                 const result: [string, number][] = [];
                 for (let i = 0; i < data.length; i++) {
                     const b = data[i];
                     if (b == 0) {
-                        const name = buffer.toString("utf8", 0, buffer.indexOf(0));
+                        const nullIndex = buffer.indexOf(0);
+                        const name = new TextDecoder().decode(buffer.subarray(0, nullIndex));
                         let size = 0;
                         for (let off = 0; off < 4; off++) {
-                            this._logger?.debug("size: " + size + " + " + data[i + off + 1]);
                             size <<= 8;
                             size |= data[i + off + 1];
                         }
@@ -458,12 +461,12 @@ export class Uploader {
         });
     }
 
-    public readResource(name: string): Promise<Buffer> {
+    public readResource(name: string): Promise<Uint8Array> {
         this._logger?.verbose("Reading resource: " + name);
         return new Promise((resolve, reject) => {
-            let data: Buffer = Buffer.alloc(0);
-            this._onData = (d: Buffer) => {
-                const newData = Buffer.alloc(data.length + d.length);
+            let data: Uint8Array = new Uint8Array(0);
+            this._onData = (d: Uint8Array) => {
+                const newData = new Uint8Array(data.length + d.length);
                 newData.set(data);
                 newData.set(d, data.length);
                 data = newData;

@@ -81,9 +81,9 @@ function parseManifest(data: string) {
 
 export class Package {
     private manifest: Manifest;
-    private data: Record<string, Buffer>;
+    private data: Record<string, Uint8Array>;
 
-    constructor(manifest: Manifest, data: Record<string, Buffer>) {
+    constructor(manifest: Manifest, data: Record<string, Uint8Array>) {
         this.manifest = manifest;
         this.data = data;
     }
@@ -92,7 +92,7 @@ export class Package {
         return this.manifest;
     }
 
-    public getData(): Record<string, Buffer> {
+    public getData(): Record<string, Uint8Array> {
         return this.data;
     }
 
@@ -127,18 +127,24 @@ export async function loadPackage(uri: string): Promise<Package> {
 
     return new Promise((resolve, reject) => {
         let manifest: Manifest = new Manifest("", "", "", {});
-        const files: Record<string, Buffer> = {};
+        const files: Record<string, Uint8Array> = {};
 
         extract.on("entry", (header, stream, next) => {
-            const chunks: Buffer[] = [];
-            stream.on("data", (chunk) => {
+            const chunks: Uint8Array[] = [];
+            stream.on("data", (chunk: Uint8Array) => {
                 chunks.push(chunk);
             });
             stream.on("end", () => {
+                const data = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0));
+                let offset = 0;
+                for (const chunk of chunks) {
+                    data.set(chunk, offset);
+                    offset += chunk.length;
+                }
                 if (header.name === "manifest.json") {
-                    manifest = parseManifest(Buffer.concat(chunks).toString("utf-8"));
+                    manifest = parseManifest(new TextDecoder().decode(data));
                 } else {
-                    files[header.name] = Buffer.concat(chunks);
+                    files[header.name] = data;
                 }
                 next();
             });
@@ -165,7 +171,7 @@ export async function loadPackage(uri: string): Promise<Package> {
             }
             extract.end();
         };
-        stream.on("data", (chunk: Buffer) => {
+        stream.on("data", (chunk: Uint8Array) => {
             inflator.push(chunk, false);
         });
         stream.on("end", () => {

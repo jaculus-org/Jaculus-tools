@@ -1,11 +1,10 @@
-import { FSPromisesInterface, Logger,  } from "@jaculus/common";
+import { FSPromisesInterface, Logger } from "@jaculus/common";
 import { JacDevice } from "@jaculus/device";
-import { Archive, ArchiveEntry } from '@obsidize/tar-browserify';
+import { Archive, ArchiveEntry } from "@obsidize/tar-browserify";
 import pako from "pako";
 import path from "path";
-import { Buffer } from "buffer";
 
-async function loadFromDevice(device: JacDevice, logger?: Logger): Promise<Buffer> {
+async function loadFromDevice(device: JacDevice, logger?: Logger): Promise<Uint8Array> {
     await device.controller.lock().catch((err) => {
         logger?.error("Error locking device: " + err);
         throw 1;
@@ -24,19 +23,25 @@ async function loadFromDevice(device: JacDevice, logger?: Logger): Promise<Buffe
     return data;
 }
 
-export async function loadPackageDevice(device: JacDevice, logger?: Logger): Promise<AsyncIterable<ArchiveEntry>> {
+export async function loadPackageDevice(
+    device: JacDevice,
+    logger?: Logger
+): Promise<AsyncIterable<ArchiveEntry>> {
     const buffer = await loadFromDevice(device, logger);
     const res = pako.ungzip(buffer);
     return Archive.read(res);
 }
 
-export async function loadPackageUri(pkgUri: string, fs?: FSPromisesInterface): Promise<AsyncIterable<ArchiveEntry>> {
-    let gz: Buffer;
+export async function loadPackageUri(
+    pkgUri: string,
+    fs?: FSPromisesInterface
+): Promise<AsyncIterable<ArchiveEntry>> {
+    let gz: Uint8Array;
     if (pkgUri.startsWith("http://") || pkgUri.startsWith("https://")) {
         const res = await fetch(pkgUri);
         if (!res.ok) throw new Error(`HTTP ${res.status} for ${pkgUri}`);
-        gz = Buffer.from(await res.arrayBuffer());
-    } else if (pkgUri.startsWith("file://" ) && fs) {
+        gz = new Uint8Array(await res.arrayBuffer());
+    } else if (pkgUri.startsWith("file://") && fs) {
         const filePath = pkgUri.slice(7);
         gz = await fs.readFile(filePath);
     } else {
@@ -48,11 +53,11 @@ export async function loadPackageUri(pkgUri: string, fs?: FSPromisesInterface): 
 }
 
 export async function unpackPackage(
-    pkg: AsyncIterable<ArchiveEntry>,
+    fs: FSPromisesInterface,
     outPath: string,
+    pkg: AsyncIterable<ArchiveEntry>,
     filter: (fileName: string) => boolean,
     dryRun: boolean = false,
-    fs: FSPromisesInterface,
     logger?: Logger
 ): Promise<void> {
     for await (const entry of pkg) {
@@ -87,10 +92,10 @@ export async function unpackPackage(
 }
 
 export async function createProject(
+    fsp: FSPromisesInterface,
     outPath: string,
     archive: AsyncIterable<ArchiveEntry>,
     dryRun: boolean = false,
-    fs: FSPromisesInterface,
     logger?: Logger
 ): Promise<void> {
     const filter = (fileName: string): boolean => {
@@ -100,19 +105,19 @@ export async function createProject(
         return true;
     };
 
-    await unpackPackage(archive, outPath, filter, dryRun, fs, logger);
+    await unpackPackage(fsp, outPath, archive, filter, dryRun, logger);
 }
 
 export async function updateProject(
+    fsp: FSPromisesInterface,
     outPath: string,
     archive: AsyncIterable<ArchiveEntry>,
     dryRun: boolean = false,
-    fs: FSPromisesInterface,
     logger?: Logger
 ): Promise<void> {
     let stats;
     try {
-        stats = await fs.stat(outPath);
+        stats = await fsp.stat(outPath);
     } catch {
         logger?.error(`Directory '${outPath}' does not exist`);
         throw 1;
@@ -159,5 +164,5 @@ export async function updateProject(
         return false;
     };
 
-    await unpackPackage(archive, outPath, filter, dryRun, fs, logger);
+    await unpackPackage(fsp, outPath, archive, filter, dryRun, logger);
 }

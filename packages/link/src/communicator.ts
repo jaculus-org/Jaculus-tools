@@ -2,11 +2,11 @@ import { Packet } from "./linkTypes.js";
 
 export interface OutputStreamCommunicator {
     put(c: number): void;
-    write(data: Buffer): void;
+    write(data: Uint8Array): void;
 }
 
 export interface InputStreamCommunicator {
-    onData(callback: (data: Buffer) => void): void;
+    onData(callback: (data: Uint8Array) => void): void;
 }
 
 export interface OutputPacketCommunicator {
@@ -15,5 +15,5 @@ export interface OutputPacketCommunicator {
 }
 
 export interface InputPacketCommunicator {
-    onData(callback: (data: Buffer) => void): void;
+    onData(callback: (data: Uint8Array) => void): void;
 }
