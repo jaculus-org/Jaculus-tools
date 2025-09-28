@@ -34,16 +34,16 @@ export async function loadPackageDevice(
 
 export async function loadPackageUri(
     pkgUri: string,
-    fs?: FSPromisesInterface
+    fsp?: FSPromisesInterface
 ): Promise<AsyncIterable<ArchiveEntry>> {
     let gz: Uint8Array;
     if (pkgUri.startsWith("http://") || pkgUri.startsWith("https://")) {
         const res = await fetch(pkgUri);
         if (!res.ok) throw new Error(`HTTP ${res.status} for ${pkgUri}`);
         gz = new Uint8Array(await res.arrayBuffer());
-    } else if (pkgUri.startsWith("file://") && fs) {
+    } else if (pkgUri.startsWith("file://") && fsp) {
         const filePath = pkgUri.slice(7);
-        gz = await fs.readFile(filePath);
+        gz = await fsp.readFile(filePath);
     } else {
         throw new Error(`Unsupported URI scheme or missing fs for ${pkgUri}`);
     }
@@ -53,7 +53,7 @@ export async function loadPackageUri(
 }
 
 export async function unpackPackage(
-    fs: FSPromisesInterface,
+    fsp: FSPromisesInterface,
     outPath: string,
     pkg: AsyncIterable<ArchiveEntry>,
     filter: (fileName: string) => boolean,
@@ -71,7 +71,7 @@ export async function unpackPackage(
 
         let fileExists = false;
         try {
-            await fs.stat(fullPath);
+            await fsp.stat(fullPath);
             fileExists = true;
         } catch {
             // File doesn't exist
@@ -81,12 +81,12 @@ export async function unpackPackage(
         if (!dryRun) {
             const dir = path.dirname(fullPath);
             try {
-                await fs.stat(dir);
+                await fsp.stat(dir);
             } catch {
                 // Directory doesn't exist, create it
-                await fs.mkdir(dir, { mode: 0o777 });
+                await fsp.mkdir(dir, { mode: 0o777 });
             }
-            await fs.writeFile(fullPath, entry.content!);
+            await fsp.writeFile(fullPath, entry.content!);
         }
     }
 }
