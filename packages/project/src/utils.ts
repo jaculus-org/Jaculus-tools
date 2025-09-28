@@ -1,10 +1,43 @@
 import * as tar from "tar-stream";
-import { getUri } from "get-uri";
 import pako from "pako";
+import { Readable } from "stream";
+import { Buffer } from "buffer";
 
 export async function extractPackageFromUri(pkgUri: string): Promise<tar.Extract> {
     const extract = tar.extract();
-    const stream = await getUri(pkgUri);
+
+    // Fetch the package from the URI and convert to a readable stream
+    const response = await fetch(pkgUri);
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch package from ${pkgUri}: ${response.status} ${response.statusText}`
+        );
+    }
+
+    if (!response.body) {
+        throw new Error(`No response body received from ${pkgUri}`);
+    }
+
+    // Convert web ReadableStream to Node.js Readable stream
+    const stream = new Readable({
+        async read() {
+            const reader = response.body!.getReader();
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        this.push(null);
+                        break;
+                    }
+                    this.push(Buffer.from(value));
+                }
+            } catch (error) {
+                this.destroy(error as Error);
+            } finally {
+                reader.releaseLock();
+            }
+        },
+    });
 
     await new Promise((resolve, reject) => {
         const inflator = new pako.Inflate();

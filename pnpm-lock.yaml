@@ -158,9 +158,6 @@ importers:
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
-      get-uri:
-        specifier: ^6.0.4
-        version: 6.0.5
       pako:
         specifier: ^2.1.0
         version: 2.1.0
