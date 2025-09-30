@@ -23,7 +23,8 @@
         "prebuild": "node -p \"'export const version = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/meta/version.ts",
         "build": "tsc -b",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
-        "fullclean": "npm run clean && rimraf node_modules"
+        "fullclean": "npm run clean && rimraf node_modules",
+        "cli": "node dist/cli.js"
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
