@@ -7,6 +7,7 @@ import pako from "pako";
 import path from "path";
 import { getUri } from "get-uri";
 import { JacDevice } from "@jaculus/device";
+import { logger } from "../logger.js";
 
 interface Package {
     dirs: string[];
@@ -52,6 +53,7 @@ async function loadPackage(options: Record<string, string | boolean>, env: Env):
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
 
+        logger.verbose("Connecting to device...");
         const device = await getDevice(port, baudrate, socket, env);
         source = { device };
     } else {
@@ -64,29 +66,35 @@ async function loadPackage(options: Record<string, string | boolean>, env: Env):
     const extract = tar.extract();
 
     if (source.uri) {
+        logger.verbose("Downloading package from " + source.uri);
         const stream = await getUri(source.uri);
+        let buffer = new Uint8Array(0);
 
         await new Promise((resolve, reject) => {
             const inflator = new pako.Inflate();
             inflator.onData = (chunk) => {
                 const u8 = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
-                extract.write(u8);
+                buffer = Buffer.concat([buffer, Buffer.from(u8)]);
             };
             inflator.onEnd = (status) => {
+                logger.verbose("Decompression finished with status " + status);
                 if (status !== 0) {
                     reject(new Error("Failed to decompress package"));
                     return;
                 }
-                extract.end();
                 resolve(null);
             };
             stream.on("data", (chunk: Buffer) => {
+                logger.verbose("Received " + chunk.length + " bytes");
                 inflator.push(chunk, false);
             });
             stream.on("end", () => {
+                logger.verbose("Download complete");
                 inflator.push(new Uint8Array(0), true);
             });
         });
+        extract.write(buffer);
+        extract.end();
     } else if (source.device) {
         const buffer = await loadFromDevice(source.device);
         const res = pako.ungzip(buffer);
