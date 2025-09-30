@@ -422,7 +422,6 @@ export class Uploader {
                 return true;
             };
             this._onDataComplete = () => {
-                console.log(data);
                 const buffer = Buffer.alloc(270);
                 let bufferIn = 0;
                 const result: [string, number][] = [];
