@@ -33,6 +33,7 @@ async function loadPackage(
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
 
+        logger.verbose("Connecting to device...");
         const device = await getDevice(port, baudrate, socket, env);
         return loadPackageDevice(device);
     } else {

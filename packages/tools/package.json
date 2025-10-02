@@ -1,6 +1,6 @@
 {
     "name": "jaculus-tools",
-    "version": "0.0.27",
+    "version": "0.0.29",
     "description": "Companion CLI application for Jaculus",
     "repository": {
         "type": "git",
@@ -24,7 +24,8 @@
         "build": "tsc -b",
         "build:watch": "tsc -b --watch",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
-        "fullclean": "npm run clean && rimraf node_modules"
+        "fullclean": "npm run clean && rimraf node_modules",
+        "cli": "node dist/cli.js"
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",

@@ -14,7 +14,7 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "format:all": "pnpm lint:fix && pnpm format",
-        "jac": "pnpm --filter jaculus-tools exec jac",
+        "cli": "pnpm --filter jaculus-tools run cli",
         "prepare": "husky"
     },
     "devDependencies": {

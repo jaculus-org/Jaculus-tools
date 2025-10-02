@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { stdout, stderr } from "process";
-import { Program, Command, Opt } from "./commands/lib/command.js";
+import { Program, Command, Opt, Arg } from "./commands/lib/command.js";
 import { registerJaculusCommands } from "./commands/index.js";
 import { logger } from "./logger.js";
 
@@ -25,22 +25,29 @@ const jac = new Program("jac", "Tools for controlling devices running Jaculus", 
 jac.addCommand(
     "help",
     new Command("Print help for given command", {
-        action: async (options, args) => {
+        action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
             const command = args["command"];
             if (command) {
                 const cmd = jac.getCommand(command);
-                stdout.write((cmd ? cmd.help(command) : `Unknown command: ${command}`) + "\n");
+                if (cmd) {
+                    stdout.write(cmd.help(command) + "\n");
+                } else {
+                    stdout.write(`Unknown command: ${command}` + "\n");
+                }
             } else {
                 stdout.write(jac.help() + "\n");
             }
         },
+        args: [new Arg("command", "The command to get help for", { required: false })],
     })
 );
 
 registerJaculusCommands(jac);
 
 const args = process.argv.slice(2);
-if (args.length === 0) args.push("help");
+if (args.length === 0) {
+    args.push("help");
+}
 
 jac.run(args)
     .then(() => {
@@ -50,7 +57,9 @@ jac.run(args)
     })
     .catch((e) => {
         jac.end();
-        if (typeof e === "number") process.exit(e);
+        if (typeof e === "number") {
+            process.exit(e);
+        }
         if (e instanceof Error) {
             console.error(e.message);
             process.exit(1);
