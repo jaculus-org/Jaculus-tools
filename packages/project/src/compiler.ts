@@ -23,17 +23,8 @@ export async function compile(
     out: Writable,
     err: Writable,
     workingDirectory: string,
-    logger?: Logger,
+    logger?: Logger
 ): Promise<boolean> {
-    const tryCatchWrapper = <T>(fn: () => T): T | undefined => {
-        try {
-            return fn();
-        } catch (error) {
-            logger?.error((error as Error).message);
-            err.write((error as Error).message);
-            return undefined;
-        }
-    };
     const tsconfig = ts.findConfigFile(input, ts.sys.fileExists, "tsconfig.json");
     if (!tsconfig) {
         throw new Error("Could not find tsconfig.json");

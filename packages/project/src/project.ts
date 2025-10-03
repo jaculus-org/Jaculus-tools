@@ -1,8 +1,9 @@
-import { FSPromisesInterface, Logger } from "@jaculus/common";
+import { FSInterface, Logger } from "@jaculus/common";
 import { JacDevice } from "@jaculus/device";
 import { Archive, ArchiveEntry } from "@obsidize/tar-browserify";
 import pako from "pako";
 import path from "path";
+import { Writable } from "stream";
 
 async function loadFromDevice(device: JacDevice, logger?: Logger): Promise<Uint8Array> {
     await device.controller.lock().catch((err) => {
@@ -33,50 +34,37 @@ export async function loadPackageDevice(
 }
 
 export async function unpackPackage(
-    fsp: FSPromisesInterface,
+    fs: FSInterface,
     outPath: string,
     pkg: AsyncIterable<ArchiveEntry>,
     filter: (fileName: string) => boolean,
-    dryRun: boolean = false,
-    logger?: Logger
+    dryRun: boolean = false
 ): Promise<void> {
     for await (const entry of pkg) {
         const source = entry.fileName;
 
         if (!filter(source)) {
-            logger?.info(`Skip file: ${source}`);
+            console.log(`Skip file: ${source}`);
             continue;
         }
         const fullPath = path.join(outPath, source);
 
-        let fileExists = false;
-        try {
-            await fsp.stat(fullPath);
-            fileExists = true;
-        } catch {
-            // File doesn't exist
-        }
-
-        logger?.info(`${fileExists ? "Overwrite" : "Create"} file: ${fullPath}`);
+        console.log(`${fs.existsSync(fullPath) ? "Overwrite" : "Create"} file: ${fullPath}`);
         if (!dryRun) {
             const dir = path.dirname(fullPath);
-            try {
-                await fsp.stat(dir);
-            } catch {
-                // Directory doesn't exist, create it
-                await fsp.mkdir(dir, { mode: 0o777 });
+            if (!fs.existsSync(dir)) {
+                await fs.promises.mkdir(dir, { recursive: true });
             }
-            await fsp.writeFile(fullPath, entry.content!);
+            await fs.promises.writeFile(fullPath, entry.content!);
         }
     }
 }
 
 export async function createProject(
-    fsp: FSPromisesInterface,
+    fs: FSInterface,
     outPath: string,
     archive: AsyncIterable<ArchiveEntry>,
-    dryRun: boolean = false,
-    logger?: Logger
+    dryRun: boolean = false
 ): Promise<void> {
     const filter = (fileName: string): boolean => {
         if (fileName === "manifest.json") {
@@ -85,26 +73,23 @@ export async function createProject(
         return true;
     };
 
-    await unpackPackage(fsp, outPath, archive, filter, dryRun, logger);
+    await unpackPackage(fs, outPath, archive, filter, dryRun);
 }
 
 export async function updateProject(
-    fsp: FSPromisesInterface,
+    fs: FSInterface,
     outPath: string,
     archive: AsyncIterable<ArchiveEntry>,
     dryRun: boolean = false,
-    logger?: Logger
+    stderr: Writable
 ): Promise<void> {
-    let stats;
-    try {
-        stats = await fsp.stat(outPath);
-    } catch {
-        logger?.error(`Directory '${outPath}' does not exist`);
+    if (!fs.existsSync(outPath)) {
+        stderr.write(`Directory '${outPath}' does not exist\n`);
         throw 1;
     }
 
-    if (!stats.isDirectory()) {
-        logger?.error(`Path '${outPath}' is not a directory`);
+    if (!fs.statSync(outPath).isDirectory()) {
+        stderr.write(`Path '${outPath}' is not a directory\n`);
         throw 1;
     }
 
@@ -126,7 +111,7 @@ export async function updateProject(
             if (typeof entry === "string") {
                 skeleton.push(entry);
             } else {
-                logger?.error(`Invalid skeleton entry: ${JSON.stringify(entry)}`);
+                stderr.write(`Invalid skeleton entry: ${JSON.stringify(entry)}\n`);
                 throw 1;
             }
         }
@@ -144,5 +129,5 @@ export async function updateProject(
         return false;
     };
 
-    await unpackPackage(fsp, outPath, archive, filter, dryRun, logger);
+    await unpackPackage(fs, outPath, archive, filter, dryRun);
 }

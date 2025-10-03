@@ -2,15 +2,9 @@ import { Arg, Command, Env, Opt } from "./lib/command.js";
 import { getDevice } from "./util.js";
 import fs from "fs";
 import { logger } from "../logger.js";
-import {
-    createProject,
-    loadPackageDevice,
-    updateProject,
-} from "@jaculus/project/project";
+import { createProject, loadPackageDevice, updateProject } from "@jaculus/project/project";
 import { ArchiveEntry } from "@obsidize/tar-browserify";
 import { loadPackageUri } from "./lib/request.js";
-
-const fsp = fs.promises;
 
 async function loadPackage(
     options: Record<string, string | boolean>,
@@ -37,7 +31,7 @@ async function loadPackage(
         const device = await getDevice(port, baudrate, socket, env);
         return loadPackageDevice(device);
     } else {
-        return loadPackageUri(pkgUri, fsp);
+        return loadPackageUri(pkgUri);
     }
 }
 
@@ -51,7 +45,7 @@ export const projectCreate = new Command("Create project from package", {
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
 
-        await createProject(fsp, outPath, pkg, dryRun, logger);
+        await createProject(fs, outPath, pkg, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
@@ -72,7 +66,7 @@ export const projectUpdate = new Command("Update existing project from package s
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
 
-        updateProject(fsp, outPath, pkg, dryRun, logger);
+        updateProject(fs, outPath, pkg, dryRun, process.stderr);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
