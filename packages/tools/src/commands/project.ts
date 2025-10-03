@@ -5,10 +5,10 @@ import { logger } from "../logger.js";
 import {
     createProject,
     loadPackageDevice,
-    loadPackageUri,
     updateProject,
 } from "@jaculus/project/project";
 import { ArchiveEntry } from "@obsidize/tar-browserify";
+import { loadPackageUri } from "./lib/request.js";
 
 const fsp = fs.promises;
 

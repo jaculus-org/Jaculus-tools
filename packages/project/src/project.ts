@@ -32,26 +32,6 @@ export async function loadPackageDevice(
     return Archive.read(res);
 }
 
-export async function loadPackageUri(
-    pkgUri: string,
-    fsp?: FSPromisesInterface
-): Promise<AsyncIterable<ArchiveEntry>> {
-    let gz: Uint8Array;
-    if (pkgUri.startsWith("http://") || pkgUri.startsWith("https://")) {
-        const res = await fetch(pkgUri);
-        if (!res.ok) throw new Error(`HTTP ${res.status} for ${pkgUri}`);
-        gz = new Uint8Array(await res.arrayBuffer());
-    } else if (pkgUri.startsWith("file://") && fsp) {
-        const filePath = pkgUri.slice(7);
-        gz = await fsp.readFile(filePath);
-    } else {
-        throw new Error(`Unsupported URI scheme or missing fs for ${pkgUri}`);
-    }
-
-    const res = pako.ungzip(gz);
-    return Archive.read(res);
-}
-
 export async function unpackPackage(
     fsp: FSPromisesInterface,
     outPath: string,
