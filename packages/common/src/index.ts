@@ -8,3 +8,6 @@ export interface Logger {
     debug: LogMethod;
     silly: LogMethod;
 }
+
+export type FSPromisesInterface = typeof import("fs").promises;
+export type FSInterface = typeof import("fs");

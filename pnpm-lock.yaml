@@ -152,10 +152,28 @@ importers:
       '@jaculus/common':
         specifier: workspace:*
         version: link:../common
+      '@jaculus/device':
+        specifier: workspace:*
+        version: link:../device
+      '@obsidize/tar-browserify':
+        specifier: ^6.1.0
+        version: 6.1.0
+      pako:
+        specifier: ^2.1.0
+        version: 2.1.0
+      tar-stream:
+        specifier: ^3.1.7
+        version: 3.1.7
       typescript:
         specifier: ^5.8.3
         version: 5.9.2
     devDependencies:
+      '@types/pako':
+        specifier: ^2.0.4
+        version: 2.0.4
+      '@types/tar-stream':
+        specifier: ^3.1.4
+        version: 3.1.4
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -177,6 +195,9 @@ importers:
       '@jaculus/project':
         specifier: workspace:*
         version: link:../project
+      '@obsidize/tar-browserify':
+        specifier: ^6.1.0
+        version: 6.1.0
       chalk:
         specifier: ^5.4.1
         version: 5.6.2
@@ -457,6 +478,9 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@obsidize/tar-browserify@6.1.0':
+    resolution: {integrity: sha512-doqiQPTJzhLiBdGENEjow8inpt5hfCD/MuxgfmZBuBqmCCOSgCZ7q1jIpzsUOQ618K/j/ZPYFQw+mltQwz/jCw==}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -1699,6 +1723,8 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
+
+  '@obsidize/tar-browserify@6.1.0': {}
 
   '@pkgjs/parseargs@0.11.0':
     optional: true

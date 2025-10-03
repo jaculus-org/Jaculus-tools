@@ -3,7 +3,7 @@ import { Duplex } from "@jaculus/link/stream";
 
 export class SocketStream implements Duplex {
     private callbacks: {
-        data?: (data: Buffer) => void;
+        data?: (data: Uint8Array) => void;
         error?: (err: any) => void;
         end?: () => void;
     } = {};
@@ -44,9 +44,9 @@ export class SocketStream implements Duplex {
         // consider all errors open errors before the socket is ready
         this.socket.on("error", openErrCbk);
 
-        this.socket.on("data", (data: Buffer) => {
+        this.socket.on("data", (data: Uint8Array) => {
             if (this.callbacks["data"]) {
-                this.callbacks["data"](data);
+                this.callbacks["data"](new Uint8Array(data));
             }
         });
 
@@ -60,15 +60,14 @@ export class SocketStream implements Duplex {
     }
 
     public put(c: number): void {
-        this.socket.write(Buffer.from([c]));
+        this.socket.write(new Uint8Array([c]));
     }
 
-    public write(buf: Buffer): void {
-        const bufCopy = Buffer.from(buf);
-        this.socket.write(bufCopy);
+    public write(buf: Uint8Array): void {
+        this.socket.write(buf);
     }
 
-    public onData(callback?: (data: Buffer) => void): void {
+    public onData(callback?: (data: Uint8Array) => void): void {
         this.callbacks["data"] = callback;
     }
 

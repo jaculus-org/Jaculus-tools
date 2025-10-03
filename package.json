@@ -5,6 +5,7 @@
     "type": "module",
     "scripts": {
         "build": "pnpm -r run build",
+        "build:watch": "pnpm -r run build:watch",
         "clean": "pnpm -r run clean",
         "fullclean": "pnpm -r run fullclean && rimraf node_modules",
         "test": "mocha",

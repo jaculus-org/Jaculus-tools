@@ -1,4 +1,4 @@
-import { Logger } from "@jaculus/common";
+import { FSInterface, Logger } from "@jaculus/common";
 import ts from "typescript";
 
 type Writable = { write: (chunk: string) => void };
@@ -16,7 +16,15 @@ function printMessage(message: string | ts.DiagnosticMessageChain, stream: Writa
     }
 }
 
-export function compile(input: string, outDir: string, err: Writable, logger?: Logger): boolean {
+export async function compile(
+    fs: FSInterface,
+    input: string,
+    outDir: string,
+    out: Writable,
+    err: Writable,
+    workingDirectory: string,
+    logger?: Logger
+): Promise<boolean> {
     const tsconfig = ts.findConfigFile(input, ts.sys.fileExists, "tsconfig.json");
     if (!tsconfig) {
         throw new Error("Could not find tsconfig.json");

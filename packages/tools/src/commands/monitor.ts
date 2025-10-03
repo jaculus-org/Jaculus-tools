@@ -49,7 +49,7 @@ const cmd = new Command("Monitor program output", {
                     if (out === "\r") {
                         out = "\n";
                     }
-                    device.programInput.write(Buffer.from(out, "utf-8"));
+                    device.programInput.write(new TextEncoder().encode(out));
                 }
             });
         });

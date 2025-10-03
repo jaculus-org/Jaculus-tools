@@ -4,13 +4,13 @@ export interface Serializer {
     is_empty(): boolean;
     reset(): void;
     put(c: number): boolean;
-    finalize(channel: number): Buffer;
+    finalize(channel: number): Uint8Array;
 }
 
 export interface Packetizer {
     reset(): void;
     put(c: number): boolean;
-    decode(): { channel: number; data: Buffer } | null;
+    decode(): { channel: number; data: Uint8Array } | null;
 }
 
 export interface Encoder {
