@@ -30,7 +30,7 @@ const cmd = new Command("Read a file from device", {
             throw 1;
         });
 
-        stdout.write(data);
+        stdout.write(new TextDecoder().decode(data));
     },
     args: [new Arg("path", "File to read", { required: true })],
     chainable: true,

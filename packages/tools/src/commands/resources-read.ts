@@ -35,7 +35,7 @@ const cmd = new Command("Read a resource from device", {
         if (outfile) {
             fs.writeFileSync(outfile, data);
         } else {
-            stdout.write(data);
+            stdout.write(new TextDecoder().decode(data));
         }
     },
     options: {

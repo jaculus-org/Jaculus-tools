@@ -130,15 +130,15 @@ export async function getDevice(
     stderr.write("Connected.\n\n");
 
     device.errorOutput.onData((data) => {
-        logger.error("Device: " + data.toString());
+        logger.error("Device: " + new TextDecoder().decode(data));
     });
 
     device.logOutput.onData((data) => {
-        logger.info("Device: " + data.toString());
+        logger.info("Device: " + new TextDecoder().decode(data));
     });
 
     device.debugOutput.onData((data) => {
-        logger.debug("Device: " + data.toString());
+        logger.debug("Device: " + new TextDecoder().decode(data));
     });
 
     env.device = {
