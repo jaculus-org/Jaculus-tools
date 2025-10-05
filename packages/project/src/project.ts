@@ -19,7 +19,7 @@ export async function unpackPackage(
         const source = dir;
         const fullPath = path.join(outPath, source);
         if (!fs.existsSync(fullPath) && !dryRun) {
-            err.write(`Create directory: ${fullPath}`);
+            err.write(`Create directory: ${fullPath}\n`);
             await fs.promises.mkdir(fullPath, { recursive: true });
         }
     }
@@ -28,12 +28,12 @@ export async function unpackPackage(
         const source = fileName;
 
         if (!filter(source)) {
-            err.write(`Skip file: ${source}`);
+            err.write(`Skip file: ${source}\n`);
             continue;
         }
         const fullPath = path.join(outPath, source);
 
-        err.write(`${fs.existsSync(fullPath) ? "Overwrite" : "Create"} file: ${fullPath}`);
+        err.write(`${fs.existsSync(fullPath) ? "Overwrite" : "Create"} file: ${fullPath}\n`);
         if (!dryRun) {
             const dir = path.dirname(fullPath);
             if (!fs.existsSync(dir)) {
