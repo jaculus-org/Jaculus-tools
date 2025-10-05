@@ -1,5 +1,5 @@
 import { getUri } from "get-uri";
-import * as tar from "tar-stream";
+import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import * as espPlatform from "./esp32/esp32.js";
 
@@ -123,59 +123,25 @@ export class Package {
  */
 export async function loadPackage(uri: string): Promise<Package> {
     const stream = await getUri(uri);
-    const extract = tar.extract();
+    const chunks = [];
+    for await (const chunk of stream) {
+        chunks.push(chunk);
+    }
+    const archive = Buffer.concat(chunks);
 
-    return new Promise((resolve, reject) => {
-        let manifest: Manifest = new Manifest("", "", "", {});
-        const files: Record<string, Uint8Array> = {};
+    let manifest: Manifest = new Manifest("", "", "", {});
+    const files: Record<string, Uint8Array> = {};
 
-        extract.on("entry", (header, stream, next) => {
-            const chunks: Uint8Array[] = [];
-            stream.on("data", (chunk: Uint8Array) => {
-                chunks.push(chunk);
-            });
-            stream.on("end", () => {
-                const data = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0));
-                let offset = 0;
-                for (const chunk of chunks) {
-                    data.set(chunk, offset);
-                    offset += chunk.length;
-                }
-                if (header.name === "manifest.json") {
-                    manifest = parseManifest(new TextDecoder().decode(data));
-                } else {
-                    files[header.name] = data;
-                }
-                next();
-            });
-            stream.on("error", (err) => {
-                reject(err);
-            });
-        });
-        extract.on("finish", () => {
-            resolve(new Package(manifest, files));
-        });
-        extract.on("error", (err) => {
-            reject(err);
-        });
+    for await (const entry of Archive.read(pako.ungzip(archive))) {
+        if (!entry.isFile()) {
+            continue;
+        }
+        if (entry.fileName === "manifest.json") {
+            manifest = parseManifest(new TextDecoder().decode(entry.content!));
+        } else {
+            files[entry.fileName] = entry.content!;
+        }
+    }
 
-        const inflator = new pako.Inflate();
-        inflator.onData = (chunk) => {
-            const u8 = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
-            extract.write(u8);
-        };
-        inflator.onEnd = (status) => {
-            if (status !== 0) {
-                reject(new Error("Failed to decompress package"));
-                return;
-            }
-            extract.end();
-        };
-        stream.on("data", (chunk: Uint8Array) => {
-            inflator.push(chunk, false);
-        });
-        stream.on("end", () => {
-            inflator.push(new Uint8Array(0), true);
-        });
-    });
+    return new Package(manifest, files);
 }
