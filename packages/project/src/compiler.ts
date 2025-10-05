@@ -20,9 +20,7 @@ export async function compile(
     fs: FSInterface,
     input: string,
     outDir: string,
-    out: Writable,
     err: Writable,
-    workingDirectory: string,
     logger?: Logger
 ): Promise<boolean> {
     const tsconfig = ts.findConfigFile(input, ts.sys.fileExists, "tsconfig.json");
@@ -57,7 +55,7 @@ export async function compile(
     for (const [key, values] of Object.entries(forcedOptions)) {
         if (options[key] && !values.includes(options[key])) {
             throw new Error(
-                `tsconfig.json must have ${key} set to one of: [ ${values.join(", ")} ]`
+                `tsconfig.json must have ${key} set to one of: [ ${values.join(", ")} ] but got ${options[key]}`
             );
         } else if (!options[key]) {
             options[key] = values[0];
@@ -65,6 +63,7 @@ export async function compile(
     }
 
     logger?.verbose("Compiling files:" + fileNames.join(", "));
+    logger?.verbose("With options: " + JSON.stringify(options));
 
     const program = ts.createProgram(fileNames, options);
     const emitResult = program.emit();
