@@ -1,61 +1,45 @@
-import { FSInterface, Logger } from "@jaculus/common";
-import { JacDevice } from "@jaculus/device";
-import { Archive, ArchiveEntry } from "@obsidize/tar-browserify";
-import pako from "pako";
+import { FSInterface } from "@jaculus/common";
 import path from "path";
 import { Writable } from "stream";
 
-async function loadFromDevice(device: JacDevice, logger?: Logger): Promise<Uint8Array> {
-    await device.controller.lock().catch((err) => {
-        logger?.error("Error locking device: " + err);
-        throw 1;
-    });
-
-    const data = await device.uploader.readResource("ts-examples").catch((err) => {
-        logger?.error("Error: " + err);
-        throw 1;
-    });
-
-    await device.controller.unlock().catch((err) => {
-        logger?.error("Error unlocking device: " + err);
-        throw 1;
-    });
-
-    return data;
-}
-
-export async function loadPackageDevice(
-    device: JacDevice,
-    logger?: Logger
-): Promise<AsyncIterable<ArchiveEntry>> {
-    const buffer = await loadFromDevice(device, logger);
-    const res = pako.ungzip(buffer);
-    return Archive.read(res);
+export interface ProjectPackage {
+    dirs: string[];
+    files: Record<string, Uint8Array>;
 }
 
 export async function unpackPackage(
     fs: FSInterface,
     outPath: string,
-    pkg: AsyncIterable<ArchiveEntry>,
+    pkg: ProjectPackage,
     filter: (fileName: string) => boolean,
+    err: Writable,
     dryRun: boolean = false
 ): Promise<void> {
-    for await (const entry of pkg) {
-        const source = entry.fileName;
+    for (const dir of pkg.dirs) {
+        const source = dir;
+        const fullPath = path.join(outPath, source);
+        if (!fs.existsSync(fullPath) && !dryRun) {
+            err.write(`Create directory: ${fullPath}`);
+            await fs.promises.mkdir(fullPath, { recursive: true });
+        }
+    }
+
+    for (const [fileName, data] of Object.entries(pkg.files)) {
+        const source = fileName;
 
         if (!filter(source)) {
-            console.log(`Skip file: ${source}`);
+            err.write(`Skip file: ${source}`);
             continue;
         }
         const fullPath = path.join(outPath, source);
 
-        console.log(`${fs.existsSync(fullPath) ? "Overwrite" : "Create"} file: ${fullPath}`);
+        err.write(`${fs.existsSync(fullPath) ? "Overwrite" : "Create"} file: ${fullPath}`);
         if (!dryRun) {
             const dir = path.dirname(fullPath);
             if (!fs.existsSync(dir)) {
                 await fs.promises.mkdir(dir, { recursive: true });
             }
-            await fs.promises.writeFile(fullPath, entry.content!);
+            await fs.promises.writeFile(fullPath, data);
         }
     }
 }
@@ -63,9 +47,15 @@ export async function unpackPackage(
 export async function createProject(
     fs: FSInterface,
     outPath: string,
-    archive: AsyncIterable<ArchiveEntry>,
+    pkg: ProjectPackage,
+    err: Writable,
     dryRun: boolean = false
 ): Promise<void> {
+    if (fs.existsSync(outPath)) {
+        err.write(`Directory '${outPath}' already exists\n`);
+        throw 1;
+    }
+
     const filter = (fileName: string): boolean => {
         if (fileName === "manifest.json") {
             return false;
@@ -73,32 +63,29 @@ export async function createProject(
         return true;
     };
 
-    await unpackPackage(fs, outPath, archive, filter, dryRun);
+    await unpackPackage(fs, outPath, pkg, filter, err, dryRun);
 }
 
 export async function updateProject(
     fs: FSInterface,
     outPath: string,
-    archive: AsyncIterable<ArchiveEntry>,
-    dryRun: boolean = false,
-    stderr: Writable
+    pkg: ProjectPackage,
+    err: Writable,
+    dryRun: boolean = false
 ): Promise<void> {
     if (!fs.existsSync(outPath)) {
-        stderr.write(`Directory '${outPath}' does not exist\n`);
+        err.write(`Directory '${outPath}' does not exist\n`);
         throw 1;
     }
 
     if (!fs.statSync(outPath).isDirectory()) {
-        stderr.write(`Path '${outPath}' is not a directory\n`);
+        err.write(`Path '${outPath}' is not a directory\n`);
         throw 1;
     }
 
     let manifest;
-    for await (const entry of archive) {
-        if (entry.fileName === "manifest.json") {
-            manifest = JSON.parse(entry.content!.toString());
-            break;
-        }
+    if (pkg.files["manifest.json"]) {
+        manifest = JSON.parse(new TextDecoder().decode(pkg.files["manifest.json"]));
     }
 
     let skeleton: string[];
@@ -111,7 +98,7 @@ export async function updateProject(
             if (typeof entry === "string") {
                 skeleton.push(entry);
             } else {
-                stderr.write(`Invalid skeleton entry: ${JSON.stringify(entry)}\n`);
+                err.write(`Invalid skeleton entry: ${JSON.stringify(entry)}\n`);
                 throw 1;
             }
         }
@@ -129,5 +116,5 @@ export async function updateProject(
         return false;
     };
 
-    await unpackPackage(fs, outPath, archive, filter, dryRun);
+    await unpackPackage(fs, outPath, pkg, filter, err, dryRun);
 }

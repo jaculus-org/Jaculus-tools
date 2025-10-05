@@ -13,7 +13,7 @@ const cmd = new Command("Build TypeScript project", {
         const outDir = path.join(parentDir, "build");
 
         if (await compile(fs, path_, outDir, stdout, stderr, path_, logger)) {
-            stdout.write("Compiled successfully\n");
+            stderr.write("Compiled successfully\n");
         } else {
             stderr.write("Compilation failed\n");
             throw 1;
