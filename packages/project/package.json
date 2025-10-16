@@ -17,8 +17,8 @@
             "import": "./dist/project.js"
         },
         "./compiler": {
-            "types": "./dist/compiler.d.ts",
-            "import": "./dist/compiler.js"
+            "types": "./dist/compiler/index.d.ts",
+            "import": "./dist/compiler/index.js"
         }
     },
     "files": [

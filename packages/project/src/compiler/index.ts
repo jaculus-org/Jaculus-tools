@@ -1,5 +1,8 @@
 import { FSInterface, Logger } from "@jaculus/common";
 import ts from "typescript";
+import * as tsvfs from "./vfs.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
 type Writable = { write: (chunk: string) => void };
 
@@ -16,18 +19,31 @@ function printMessage(message: string | ts.DiagnosticMessageChain, stream: Writa
     }
 }
 
+/**
+ * Compiles TypeScript files with custom FSInterface
+ * @param fs - The file system interface (Node, zenfs, etc.)
+ * @param inputDir - The input directory containing TypeScript files.
+ * @param outDir - The output directory for compiled files.
+ * @param err - The writable stream for error messages.
+ * @param logger - The logger instance.
+ * @param tsLibsPath - The path to TypeScript libraries (in Node, it's the directory of the 'typescript' package)
+ *                     (in zenfs, it's necessary to provide this path and copy TS files to the virtual FS in advance)
+ * @returns A promise that resolves to true if compilation is successful, false otherwise.
+ */
 export async function compile(
     fs: FSInterface,
-    input: string,
+    inputDir: string,
     outDir: string,
     err: Writable,
-    logger?: Logger
+    logger?: Logger,
+    tsLibsPath: string = path.dirname(fileURLToPath(import.meta.resolve?.("typescript")))
 ): Promise<boolean> {
-    const tsconfig = ts.findConfigFile(input, ts.sys.fileExists, "tsconfig.json");
+    const system = tsvfs.createSystem(fs, inputDir);
+    const tsconfig = ts.findConfigFile("./", system.fileExists, "tsconfig.json");
     if (!tsconfig) {
         throw new Error("Could not find tsconfig.json");
     }
-    const config = ts.readConfigFile(tsconfig, ts.sys.readFile);
+    const config = ts.readConfigFile(tsconfig, system.readFile);
     if (config.error) {
         printMessage(config.error.messageText, err);
         throw new Error("Error reading tsconfig.json");
@@ -42,30 +58,35 @@ export async function compile(
         outDir: [outDir],
     };
 
-    const { options, fileNames, errors } = ts.parseJsonConfigFileContent(
-        config.config,
-        ts.sys,
-        input
-    );
+    const {
+        options: compilerOptions,
+        fileNames,
+        errors,
+    } = ts.parseJsonConfigFileContent(config.config, system, "./");
     if (errors.length > 0) {
         errors.forEach((error) => printMessage(error.messageText, err));
         throw new Error("Error parsing tsconfig.json");
     }
 
     for (const [key, values] of Object.entries(forcedOptions)) {
-        if (options[key] && !values.includes(options[key])) {
+        if (compilerOptions[key] && !values.includes(compilerOptions[key])) {
             throw new Error(
-                `tsconfig.json must have ${key} set to one of: [ ${values.join(", ")} ] but got ${options[key]}`
+                `tsconfig.json must have ${key} set to one of: [ ${values.join(", ")} ]`
             );
-        } else if (!options[key]) {
-            options[key] = values[0];
+        } else if (!compilerOptions[key]) {
+            compilerOptions[key] = values[0];
         }
     }
 
     logger?.verbose("Compiling files:" + fileNames.join(", "));
-    logger?.verbose("With options: " + JSON.stringify(options));
 
-    const program = ts.createProgram(fileNames, options);
+    const host = tsvfs.createVirtualCompilerHost(system, compilerOptions, ts, tsLibsPath);
+
+    const program = ts.createProgram({
+        rootNames: fileNames,
+        options: compilerOptions,
+        host: host.compilerHost,
+    });
     const emitResult = program.emit();
 
     const diagnostics = ts.getPreEmitDiagnostics(program).concat(emitResult.diagnostics);
