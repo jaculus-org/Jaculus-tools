@@ -11,8 +11,16 @@
     },
     "license": "GPL-3.0-only",
     "type": "module",
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./fs": {
+            "types": "./dist/fs.d.ts",
+            "import": "./dist/fs.js"
+        }
+    },
     "files": [
         "dist"
     ],

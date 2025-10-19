@@ -36,12 +36,14 @@ export async function compile(
     outDir: string,
     err: Writable,
     logger?: Logger,
-    tsLibsPath: string = path.dirname(fileURLToPath(import.meta.resolve?.("typescript")))
+    tsLibsPath: string = path.dirname(
+        fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
+    )
 ): Promise<boolean> {
     const system = tsvfs.createSystem(fs, inputDir);
     const tsconfig = ts.findConfigFile("./", system.fileExists, "tsconfig.json");
     if (!tsconfig) {
-        throw new Error("Could not find tsconfig.json");
+        throw new Error(`Could not find tsconfig.json in directory: ${inputDir}`);
     }
     const config = ts.readConfigFile(tsconfig, system.readFile);
     if (config.error) {

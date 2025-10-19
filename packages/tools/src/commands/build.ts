@@ -8,9 +8,9 @@ import * as fs from "fs";
 const cmd = new Command("Build TypeScript project", {
     action: async (options: Record<string, string | boolean>) => {
         const path_ = options["input"] as string;
-        const outDir = path.join(path_, "build");
+        const inputDir = path.resolve(path_);
 
-        if (await compile(fs, path_, outDir, stderr, logger)) {
+        if (await compile(fs, inputDir, "build", stderr, logger)) {
             stderr.write("Compiled successfully\n");
         } else {
             stderr.write("Compilation failed\n");

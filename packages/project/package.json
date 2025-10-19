@@ -13,12 +13,12 @@
     "type": "module",
     "exports": {
         ".": {
-            "types": "./dist/project.d.ts",
-            "import": "./dist/project.js"
+            "types": "./dist/src/project/index.d.ts",
+            "import": "./dist/src/project/index.js"
         },
         "./compiler": {
-            "types": "./dist/compiler/index.d.ts",
-            "import": "./dist/compiler/index.js"
+            "types": "./dist/src/compiler/index.d.ts",
+            "import": "./dist/src/compiler/index.js"
         }
     },
     "files": [
@@ -28,7 +28,8 @@
         "build": "tsc -b",
         "build:watch": "tsc -b --watch",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
-        "fullclean": "npm run clean && rimraf node_modules"
+        "fullclean": "npm run clean && rimraf node_modules",
+        "test": "mocha test/**/*.test.ts"
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
@@ -36,6 +37,11 @@
     },
     "devDependencies": {
         "@types/pako": "^2.0.4",
+        "@types/chai": "^4.3.20",
+        "@types/mocha": "^10.0.10",
+        "@zenfs/core": "^1.0.6",
+        "chai": "^5.1.2",
+        "mocha": "^11.7.2",
         "rimraf": "^6.0.1"
     }
 }
