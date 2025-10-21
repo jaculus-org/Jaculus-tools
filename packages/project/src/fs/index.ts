@@ -1,9 +1,12 @@
 import path from "path";
 
+export type FSPromisesInterface = typeof import("fs").promises;
+export type FSInterface = typeof import("fs");
+
 export async function copyFolder(
-    fsSource: typeof import("fs"),
+    fsSource: FSInterface,
     dirSource: string,
-    fsDest: typeof import("fs"),
+    fsDest: FSInterface,
     dirDest: string,
     copySubdirs: boolean = true
 ) {
@@ -30,7 +33,7 @@ export async function copyFolder(
     }
 }
 
-export function recursivelyPrintFs(fs: typeof import("fs"), dir: string, indent: string = "") {
+export function recursivelyPrintFs(fs: FSInterface, dir: string, indent: string = "") {
     const items = fs.readdirSync(dir);
     for (const item of items) {
         const fullPath = path.join(dir, item);

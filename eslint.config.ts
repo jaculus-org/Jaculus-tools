@@ -23,6 +23,7 @@ const config: tseslint.ConfigArray = tseslint.config(
             quotes: ["error", "double"],
             semi: ["error", "always"],
             "@typescript-eslint/no-explicit-any": "off",
+            "@typescript-eslint/await-thenable": "error",
         },
     },
     {

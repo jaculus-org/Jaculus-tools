@@ -1,8 +1,9 @@
-import { FSInterface, Logger } from "@jaculus/common";
-import ts from "typescript";
+import { Logger } from "@jaculus/common";
 import * as tsvfs from "./vfs.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import { FSInterface } from "../fs/index.js";
+import ts from "typescript";
 
 type Writable = { write: (chunk: string) => void };
 
@@ -82,7 +83,7 @@ export async function compile(
 
     logger?.verbose("Compiling files:" + fileNames.join(", "));
 
-    const host = tsvfs.createVirtualCompilerHost(system, compilerOptions, ts, tsLibsPath);
+    const host = tsvfs.createVirtualCompilerHost(system, compilerOptions, tsLibsPath);
 
     const program = ts.createProgram({
         rootNames: fileNames,

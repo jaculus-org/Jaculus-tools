@@ -1,15 +1,14 @@
-import { copyFolder } from "@jaculus/common/fs";
+import { copyFolder } from "@jaculus/project/fs";
 import * as chai from "chai";
 import * as path from "path";
-import { compile } from "../src/compiler/index.js";
+import { compile } from "@jaculus/project/compiler";
 import * as fsReal from "fs";
 import { tmpdir } from "os";
 import { configure, umount, InMemory, fs as fsVirt } from "@zenfs/core";
 import { fileURLToPath } from "url";
 
 const expect = chai.expect;
-
-const testProjectPath = path.resolve("./test/data/test-project");
+const testProjectPath = path.resolve("./test/project/data/test-project");
 
 interface TestConfig {
     name: string;
@@ -55,8 +54,8 @@ describe("TypeScript Compiler", () => {
                 return { inputPath: pathPrefix, tsLibsPath };
             },
             cleanup: async () => {
-                await umount("/project/");
-                await umount("/tsLibs/");
+                umount("/project/");
+                umount("/tsLibs/");
             },
         },
     ];

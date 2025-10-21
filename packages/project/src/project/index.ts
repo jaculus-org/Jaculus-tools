@@ -1,6 +1,6 @@
-import { FSInterface } from "@jaculus/common";
 import path from "path";
 import { Writable } from "stream";
+import { FSInterface } from "../fs/index.js";
 
 export interface ProjectPackage {
     dirs: string[];
