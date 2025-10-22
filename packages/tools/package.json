@@ -1,6 +1,6 @@
 {
     "name": "jaculus-tools",
-    "version": "0.0.29",
+    "version": "0.0.30",
     "description": "Companion CLI application for Jaculus",
     "repository": {
         "type": "git",
