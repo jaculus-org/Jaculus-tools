@@ -153,6 +153,9 @@ importers:
         specifier: ^5.8.3
         version: 5.9.2
     devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.23
       rimraf:
         specifier: ^6.0.1
         version: 6.0.1
@@ -541,6 +544,9 @@ packages:
 
   '@types/mocha@10.0.10':
     resolution: {integrity: sha512-xPyYSz1cMPnJQhl0CLMH68j3gprKZaTjG3s5Vi+fDgx+uhG9NOXwbVt52eFS8ECyXhyKcjDLCBEqBExKuiZb7Q==}
+
+  '@types/node@20.19.23':
+    resolution: {integrity: sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ==}
 
   '@types/node@22.18.10':
     resolution: {integrity: sha512-anNG/V/Efn/YZY4pRzbACnKxNKoBng2VTFydVu8RRs5hQjikP8CQfaeAV59VFSCzKNp90mXiVXW2QzV56rwMrg==}
@@ -1689,6 +1695,10 @@ snapshots:
   '@types/json-schema@7.0.15': {}
 
   '@types/mocha@10.0.10': {}
+
+  '@types/node@20.19.23':
+    dependencies:
+      undici-types: 6.21.0
 
   '@types/node@22.18.10':
     dependencies:

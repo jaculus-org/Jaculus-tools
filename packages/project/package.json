@@ -32,14 +32,14 @@
         "build": "tsc -b",
         "build:watch": "tsc -b --watch",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
-        "fullclean": "npm run clean && rimraf node_modules",
-        "test": "mocha test/**/*.test.ts"
+        "fullclean": "npm run clean && rimraf node_modules"
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
         "typescript": "^5.8.3"
     },
     "devDependencies": {
+        "@types/node": "^20.0.0",
         "rimraf": "^6.0.1"
     }
 }
