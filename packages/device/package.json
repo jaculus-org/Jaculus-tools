@@ -1,6 +1,6 @@
 {
     "name": "@jaculus/device",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Library for interfacing with Jaculus devices",
     "repository": {
         "type": "git",
