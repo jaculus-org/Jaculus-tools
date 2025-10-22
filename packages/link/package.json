@@ -1,6 +1,6 @@
 {
     "name": "@jaculus/link",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Library implementing the Jaculus-link protocol used for communication with Jaculus devices",
     "repository": {
         "type": "git",
