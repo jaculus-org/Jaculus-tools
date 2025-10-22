@@ -49,7 +49,7 @@ export class Controller {
     private _out: OutputPacketCommunicator;
     private _logger?: Logger;
 
-    private _onPacket?: (cmd: ControllerCommand, data: Buffer) => boolean;
+    private _onPacket?: (cmd: ControllerCommand, data: Uint8Array) => boolean;
 
     private cancel(): void {
         this._onPacket = undefined;
@@ -63,13 +63,13 @@ export class Controller {
         this._in = in_;
         this._out = out;
         this._logger = logger;
-        this._in.onData((data: Buffer) => {
+        this._in.onData((data: Uint8Array) => {
             this.processPacket(data);
         });
     }
 
-    public processPacket(data_: Buffer): boolean {
-        const data = Buffer.from(data_);
+    public processPacket(data_: Uint8Array): boolean {
+        const data = data_;
         if (data.length < 1) {
             return false;
         }
@@ -138,12 +138,12 @@ export class Controller {
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
-                this._onPacket = (cmd: ControllerCommand, data: Buffer) => {
+                this._onPacket = (cmd: ControllerCommand, data: Uint8Array) => {
                     if (cmd == ControllerCommand.STATUS && data.length > 0) {
                         resolve({
                             running: data[0] == 1,
                             exitCode: data[1],
-                            status: data.slice(2).toString("utf8"),
+                            status: new TextDecoder().decode(data.slice(2)),
                         });
                     } else {
                         reject(ControllerCommandStrings[cmd]);
@@ -166,10 +166,10 @@ export class Controller {
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
-                this._onPacket = (cmd: ControllerCommand, data: Buffer) => {
+                this._onPacket = (cmd: ControllerCommand, data: Uint8Array) => {
                     if (cmd == ControllerCommand.VERSION && data.length > 0) {
                         const res = [];
-                        for (let row of data.toString("utf8").split("\n")) {
+                        for (let row of new TextDecoder().decode(data).split("\n")) {
                             row = row.trim();
                             if (row.length > 0) {
                                 res.push(row);
@@ -370,8 +370,9 @@ export class Controller {
 
                 packet.put(KeyValueDataType.INT64);
 
-                const data = Buffer.alloc(8);
-                data.writeIntLE(value, 0, 6);
+                const data = new Uint8Array(8);
+                const view = new DataView(data.buffer);
+                view.setUint32(0, value, true);
                 for (const b of data) {
                     packet.put(b);
                 }
@@ -389,9 +390,9 @@ export class Controller {
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
-                this._onPacket = (cmd: ControllerCommand, data: Buffer) => {
+                this._onPacket = (cmd: ControllerCommand, data: Uint8Array) => {
                     if (cmd == ControllerCommand.CONFIG_GET && data.length >= 2) {
-                        resolve(data.subarray(1).toString("utf-8"));
+                        resolve(new TextDecoder().decode(data.subarray(1)));
                     } else {
                         reject(ControllerCommandStrings[cmd]);
                     }
@@ -421,9 +422,10 @@ export class Controller {
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
-                this._onPacket = (cmd: ControllerCommand, data: Buffer) => {
+                this._onPacket = (cmd: ControllerCommand, data: Uint8Array) => {
                     if (cmd == ControllerCommand.CONFIG_GET && data.length >= 9) {
-                        resolve(data.readUintLE(1, 6));
+                        const view = new DataView(data.buffer, data.byteOffset + 1, 6);
+                        resolve(view.getUint32(0, true));
                     } else {
                         reject(ControllerCommandStrings[cmd]);
                     }

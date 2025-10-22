@@ -1,5 +1,5 @@
 export interface Consumer {
-    processPacket(data: Buffer): void;
+    processPacket(data: Uint8Array): void;
 }
 
 export interface Packet {

@@ -23,10 +23,10 @@ const cmd = new Command("Monitor program output", {
         const device = await getDevice(port, baudrate, socket, env);
 
         device.programOutput.onData((data) => {
-            stdout.write(data);
+            stdout.write(new TextDecoder().decode(data));
         });
         device.programError.onData((data) => {
-            stdout.write(chalk.red(data));
+            stdout.write(chalk.red(new TextDecoder().decode(data)));
         });
 
         await new Promise((resolve) => {
@@ -49,7 +49,7 @@ const cmd = new Command("Monitor program output", {
                     if (out === "\r") {
                         out = "\n";
                     }
-                    device.programInput.write(Buffer.from(out, "utf-8"));
+                    device.programInput.write(new TextEncoder().encode(out));
                 }
             });
         });

@@ -1,17 +1,10 @@
 import * as chai from "chai";
 import chaiBytes from "chai-bytes";
 import { CobsEncoder } from "@jaculus/link/encoders/cobs";
+import { rangeArray, toBuffer } from "./util.js";
 
 chai.use(chaiBytes);
 const expect = chai.expect;
-
-function rangeArray(start: number, count: number): number[] {
-    return Array.from(Array(count).keys()).map((i) => i + start);
-}
-
-function toBuffer(data: Array<number | string>): Buffer {
-    return Buffer.from(data.map((d) => (typeof d == "string" ? d.charCodeAt(0) : d)));
-}
 
 const CobsSerializer = CobsEncoder.serializer;
 const CobsPacketizer = CobsEncoder.packetizer;

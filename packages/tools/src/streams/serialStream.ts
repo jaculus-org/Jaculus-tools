@@ -5,7 +5,7 @@ export class SerialStream implements Duplex {
     private path: string;
     private baudRate: number;
     private callbacks: {
-        data?: (data: Buffer) => void;
+        data?: (data: Uint8Array) => void;
         error?: (err: any) => void;
         end?: () => void;
     } = {};
@@ -52,9 +52,9 @@ export class SerialStream implements Duplex {
                 }, 10);
             }
         );
-        this.port.on("data", (data) => {
+        this.port.on("data", (data: Uint8Array) => {
             if (this.callbacks["data"]) {
-                this.callbacks["data"](data);
+                this.callbacks["data"](new Uint8Array(data));
             }
         });
 
@@ -75,12 +75,11 @@ export class SerialStream implements Duplex {
         this.port.write(c);
     }
 
-    public write(buf: Buffer): void {
-        const bufCopy = Buffer.from(buf);
-        this.port.write(bufCopy);
+    public write(buf: Uint8Array): void {
+        this.port.write(buf);
     }
 
-    public onData(callback?: (data: Buffer) => void): void {
+    public onData(callback?: (data: Uint8Array) => void): void {
         this.callbacks["data"] = callback;
     }
 

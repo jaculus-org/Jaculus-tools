@@ -22,7 +22,7 @@ export async function fileSha1(path: string): Promise<string> {
         const hasher = crypto.createHash("sha1");
 
         const stream = fs.createReadStream(path);
-        stream.on("data", (data: Buffer | string) => {
+        stream.on("data", (data: Uint8Array | string) => {
             hasher.update(data);
         });
         stream.on("error", (err: NodeJS.ErrnoException) => {

@@ -2,19 +2,14 @@ import { Arg, Command, Env, Opt } from "./lib/command.js";
 import { stderr } from "process";
 import { getDevice } from "./util.js";
 import fs from "fs";
-import * as tar from "tar-stream";
+import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
-import path from "path";
 import { getUri } from "get-uri";
+import { createProject, updateProject, ProjectPackage } from "@jaculus/project";
 import { JacDevice } from "@jaculus/device";
 import { logger } from "../logger.js";
 
-interface Package {
-    dirs: string[];
-    files: Record<string, Buffer>;
-}
-
-async function loadFromDevice(device: JacDevice): Promise<Buffer> {
+async function loadFromDevice(device: JacDevice): Promise<Uint8Array> {
     await device.controller.lock().catch((err) => {
         stderr.write("Error locking device: " + err + "\n");
         throw 1;
@@ -33,21 +28,23 @@ async function loadFromDevice(device: JacDevice): Promise<Buffer> {
     return data;
 }
 
-async function loadPackage(options: Record<string, string | boolean>, env: Env): Promise<Package> {
+async function loadPackage(
+    options: Record<string, string | boolean>,
+    env: Env
+): Promise<ProjectPackage> {
     const pkgUri = options["package"] as string;
     const fromDevice = options["from-device"] as boolean;
 
     if (fromDevice && pkgUri) {
-        stderr.write("Cannot specify both --from-device and --package options\n");
+        logger?.error("Cannot specify both --from-device and --package options");
         throw 1;
     }
     if (!fromDevice && !pkgUri) {
-        stderr.write("Either --from-device or --package option must be specified\n");
+        logger?.error("Either --from-device or --package option must be specified");
         throw 1;
     }
 
-    let source: { uri?: string; device?: JacDevice };
-
+    let archive;
     if (fromDevice) {
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
@@ -55,126 +52,29 @@ async function loadPackage(options: Record<string, string | boolean>, env: Env):
 
         logger.verbose("Connecting to device...");
         const device = await getDevice(port, baudrate, socket, env);
-        source = { device };
+
+        archive = await loadFromDevice(device);
     } else {
-        source = { uri: pkgUri };
+        const stream = await getUri(pkgUri);
+        const chunks = [];
+        for await (const chunk of stream) {
+            chunks.push(chunk);
+        }
+        archive = Buffer.concat(chunks);
     }
 
     const dirs: string[] = [];
-    const files: Record<string, Buffer> = {};
+    const files: Record<string, Uint8Array> = {};
 
-    const extract = tar.extract();
-
-    if (source.uri) {
-        logger.verbose("Downloading package from " + source.uri);
-        const stream = await getUri(source.uri);
-        let buffer = new Uint8Array(0);
-
-        await new Promise((resolve, reject) => {
-            const inflator = new pako.Inflate();
-            inflator.onData = (chunk) => {
-                const u8 = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
-                buffer = Buffer.concat([buffer, Buffer.from(u8)]);
-            };
-            inflator.onEnd = (status) => {
-                logger.verbose("Decompression finished with status " + status);
-                if (status !== 0) {
-                    reject(new Error("Failed to decompress package"));
-                    return;
-                }
-                resolve(null);
-            };
-            stream.on("data", (chunk: Buffer) => {
-                logger.verbose("Received " + chunk.length + " bytes");
-                inflator.push(chunk, false);
-            });
-            stream.on("end", () => {
-                logger.verbose("Download complete");
-                inflator.push(new Uint8Array(0), true);
-            });
-        });
-        extract.write(buffer);
-        extract.end();
-    } else if (source.device) {
-        const buffer = await loadFromDevice(source.device);
-        const res = pako.ungzip(buffer);
-        extract.write(Buffer.from(res));
-        extract.end();
-    } else {
-        stderr.write("Invalid source for package");
-        throw 1;
+    for await (const entry of Archive.read(pako.ungzip(archive))) {
+        if (entry.isDirectory()) {
+            dirs.push(entry.fileName);
+        } else if (entry.isFile()) {
+            files[entry.fileName] = entry.content!;
+        }
     }
-
-    await new Promise((resolve, reject) => {
-        extract.on("entry", (header, stream, next) => {
-            if (header.type === "directory") {
-                dirs.push(header.name);
-                next();
-                return;
-            }
-            if (header.type !== "file") {
-                next();
-                return;
-            }
-
-            const chunks: Buffer[] = [];
-            stream.on("data", (chunk) => {
-                chunks.push(chunk);
-            });
-            stream.on("end", () => {
-                const data = Buffer.concat(chunks);
-                files[path.normalize(header.name)] = data;
-
-                next();
-            });
-            stream.on("error", (err) => {
-                reject(err);
-            });
-        });
-        extract.on("finish", () => {
-            resolve(null);
-        });
-        extract.on("error", (err) => {
-            reject(err);
-        });
-    });
 
     return { dirs, files };
-}
-
-function unpackPackage(
-    pkg: Package,
-    outPath: string,
-    filter: (fileName: string) => boolean,
-    dryRun: boolean = false
-): void {
-    for (const dir of pkg.dirs) {
-        const source = dir;
-        const fullPath = path.join(outPath, source);
-        if (!fs.existsSync(fullPath) && !dryRun) {
-            console.log(`Create directory: ${fullPath}`);
-            fs.mkdirSync(fullPath, { recursive: true });
-        }
-    }
-
-    for (const [fileName, data] of Object.entries(pkg.files)) {
-        const source = fileName;
-
-        if (!filter(source)) {
-            console.log(`Skip file: ${source}`);
-            continue;
-        }
-        const fullPath = path.join(outPath, source);
-
-        console.log(`${fs.existsSync(fullPath) ? "Overwrite" : "Create"} file: ${fullPath}`);
-        if (!dryRun) {
-            const dir = path.dirname(fullPath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
-            }
-            fs.writeFileSync(fullPath, data);
-        }
-    }
 }
 
 export const projectCreate = new Command("Create project from package", {
@@ -185,22 +85,9 @@ export const projectCreate = new Command("Create project from package", {
     ) => {
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
-
-        if (fs.existsSync(outPath)) {
-            stderr.write(`Directory '${outPath}' already exists\n`);
-            throw 1;
-        }
-
         const pkg = await loadPackage(options, env);
 
-        const filter = (fileName: string): boolean => {
-            if (fileName === "manifest.json") {
-                return false;
-            }
-            return true;
-        };
-
-        unpackPackage(pkg, outPath, filter, dryRun);
+        await createProject(fs, outPath, pkg, stderr, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
@@ -219,53 +106,9 @@ export const projectUpdate = new Command("Update existing project from package s
     ) => {
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
-
-        if (!fs.existsSync(outPath)) {
-            stderr.write(`Directory '${outPath}' does not exist\n`);
-            throw 1;
-        }
-
-        if (!fs.statSync(outPath).isDirectory()) {
-            stderr.write(`Path '${outPath}' is not a directory\n`);
-            throw 1;
-        }
-
         const pkg = await loadPackage(options, env);
 
-        let manifest;
-        if (pkg.files["manifest.json"]) {
-            manifest = JSON.parse(pkg.files["manifest.json"].toString("utf-8"));
-        }
-
-        let skeleton: string[];
-        if (!manifest || !manifest["skeletonFiles"]) {
-            skeleton = ["@types/*", "tsconfig.json"];
-        } else {
-            const input = manifest["skeletonFiles"];
-            skeleton = [];
-            for (const entry of input) {
-                if (typeof entry === "string") {
-                    skeleton.push(entry);
-                } else {
-                    stderr.write(`Invalid skeleton entry: ${JSON.stringify(entry)}\n`);
-                    throw 1;
-                }
-            }
-        }
-
-        const filter = (fileName: string): boolean => {
-            if (fileName === "manifest.json") {
-                return false;
-            }
-            for (const pattern of skeleton) {
-                if (path.matchesGlob(fileName, pattern)) {
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        unpackPackage(pkg, outPath, filter, dryRun);
+        await updateProject(fs, outPath, pkg, stderr, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),

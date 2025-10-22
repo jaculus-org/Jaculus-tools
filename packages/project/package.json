@@ -11,15 +11,26 @@
     },
     "license": "GPL-3.0-only",
     "type": "module",
-    "types": "dist/compiler.d.ts",
     "exports": {
-        "./compiler": "./dist/compiler.js"
+        ".": {
+            "types": "./dist/src/project/index.d.ts",
+            "import": "./dist/src/project/index.js"
+        },
+        "./compiler": {
+            "types": "./dist/src/compiler/index.d.ts",
+            "import": "./dist/src/compiler/index.js"
+        },
+        "./fs": {
+            "types": "./dist/src/fs/index.d.ts",
+            "import": "./dist/src/fs/index.js"
+        }
     },
     "files": [
         "dist"
     ],
     "scripts": {
         "build": "tsc -b",
+        "build:watch": "tsc -b --watch",
         "clean": "rimraf dist tsconfig.tsbuildinfo",
         "fullclean": "npm run clean && rimraf node_modules"
     },
@@ -28,6 +39,7 @@
         "typescript": "^5.8.3"
     },
     "devDependencies": {
+        "@types/node": "^20.0.0",
         "rimraf": "^6.0.1"
     }
 }

@@ -17,10 +17,10 @@ export class MuxOutputStreamCommunicator implements OutputStreamCommunicator {
     }
 
     public put(c: number): void {
-        this.write(Buffer.from([c]));
+        this.write(new Uint8Array([c]));
     }
 
-    public write(data: Buffer): void {
+    public write(data: Uint8Array): void {
         let packet = this.mux.buildPacket(this.channel);
         for (const c of data) {
             if (packet.put(c)) {
@@ -35,19 +35,19 @@ export class MuxOutputStreamCommunicator implements OutputStreamCommunicator {
 }
 
 export class MuxInputStreamCommunicator implements InputStreamCommunicator, Consumer {
-    private _onData?: (data: Buffer) => void;
+    private _onData?: (data: Uint8Array) => void;
 
     constructor(mux: Mux, channel: number) {
         mux.subscribeChannel(channel, this);
     }
 
-    public processPacket(data: Buffer): void {
+    public processPacket(data: Uint8Array): void {
         if (this._onData) {
             this._onData(data);
         }
     }
 
-    public onData(callback: ((data: Buffer) => void) | undefined): void {
+    public onData(callback: ((data: Uint8Array) => void) | undefined): void {
         this._onData = callback;
     }
 }
@@ -71,19 +71,19 @@ export class MuxOutputPacketCommunicator implements OutputPacketCommunicator {
 }
 
 export class MuxInputPacketCommunicator implements InputPacketCommunicator, Consumer {
-    private _onData?: (data: Buffer) => void;
+    private _onData?: (data: Uint8Array) => void;
 
     constructor(mux: Mux, channel: number) {
         mux.subscribeChannel(channel, this);
     }
 
-    public processPacket(data: Buffer): void {
+    public processPacket(data: Uint8Array): void {
         if (this._onData) {
             this._onData(data);
         }
     }
 
-    public onData(callback: ((data: Buffer) => void) | undefined): void {
+    public onData(callback: ((data: Uint8Array) => void) | undefined): void {
         this._onData = callback;
     }
 }

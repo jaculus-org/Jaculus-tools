@@ -1,6 +1,6 @@
 export interface OutputStream {
     put(c: number): void;
-    write(buf: Buffer): void;
+    write(buf: Uint8Array): void;
 
     onEnd(callback: (() => void) | undefined): void;
     onError(callback: ((err: any) => void) | undefined): void;
@@ -9,7 +9,7 @@ export interface OutputStream {
 }
 
 export interface InputStream {
-    onData(callback: ((data: Buffer) => void) | undefined): void;
+    onData(callback: ((data: Uint8Array) => void) | undefined): void;
     onEnd(callback: (() => void) | undefined): void;
     onError(callback: ((err: any) => void) | undefined): void;
 

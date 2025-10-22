@@ -5,23 +5,16 @@ import { Mux } from "@jaculus/link/mux";
 import { Duplex } from "@jaculus/link/stream";
 import { Consumer } from "@jaculus/link/linkTypes";
 import { CobsEncoder } from "@jaculus/link/encoders/cobs";
+import { rangeArray, toBuffer } from "./util.js";
 
 chai.use(chaiBytes);
 const expect = chai.expect;
 
-function rangeArray(start: number, count: number): number[] {
-    return Array.from(Array(count).keys()).map((i) => i + start);
-}
-
-function toBuffer(data: Array<number | string>): Buffer {
-    return Buffer.from(data.map((d) => (typeof d == "string" ? d.charCodeAt(0) : d)));
-}
-
 class Pipe implements Duplex {
-    private _onData: ((data: Buffer) => void) | undefined;
-    private _onSend: ((data: Buffer) => void) | undefined;
+    private _onData: ((data: Uint8Array) => void) | undefined;
+    private _onSend: ((data: Uint8Array) => void) | undefined;
 
-    onData(callback: ((data: Buffer) => void) | undefined): void {
+    onData(callback: ((data: Uint8Array) => void) | undefined): void {
         this._onData = callback;
     }
 
@@ -35,21 +28,21 @@ class Pipe implements Duplex {
         return Promise.resolve();
     }
 
-    onSend(callback: ((data: Buffer) => void) | undefined): void {
+    onSend(callback: ((data: Uint8Array) => void) | undefined): void {
         this._onSend = callback;
     }
 
     put(c: number): void {
-        this.write(Buffer.from([c]));
+        this.write(new Uint8Array([c]));
     }
 
-    write(buf: Buffer): void {
+    write(buf: Uint8Array): void {
         if (this._onSend) {
             this._onSend(buf);
         }
     }
 
-    receive(buf: Buffer): void {
+    receive(buf: Uint8Array): void {
         if (this._onData) {
             this._onData(buf);
         }
@@ -57,9 +50,9 @@ class Pipe implements Duplex {
 }
 
 class BufferConsumer implements Consumer {
-    public queue: Queue<Buffer> = new Queue();
+    public queue: Queue<Uint8Array> = new Queue();
 
-    processPacket(data: Buffer): void {
+    processPacket(data: Uint8Array): void {
         this.queue.enqueue(data);
     }
 }
@@ -69,8 +62,8 @@ describe("Mux", () => {
         const pipe1 = new Pipe();
         const pipe2 = new Pipe();
 
-        pipe1.onSend((data: Buffer) => pipe2.receive(data));
-        pipe2.onSend((data: Buffer) => pipe1.receive(data));
+        pipe1.onSend((data: Uint8Array) => pipe2.receive(data));
+        pipe2.onSend((data: Uint8Array) => pipe1.receive(data));
 
         const mux1 = new Mux(CobsEncoder, pipe1);
         const mux2 = new Mux(CobsEncoder, pipe2);
@@ -92,9 +85,9 @@ describe("Mux", () => {
         describe("global callback", () => {
             testData.forEach(([comment, channel, data]) => {
                 it(comment, () => {
-                    const queue: Queue<[number, Buffer]> = new Queue();
+                    const queue: Queue<[number, Uint8Array]> = new Queue();
 
-                    mux2.setGlobalCallback((channel: number, data: Buffer) => {
+                    mux2.setGlobalCallback((channel: number, data: Uint8Array) => {
                         queue.enqueue([channel, data]);
                     });
 

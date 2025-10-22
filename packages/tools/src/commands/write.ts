@@ -48,7 +48,7 @@ const cmd = new Command("Write a file to device", {
         });
 
         const cmd = await device.uploader
-            .writeFile(path, Buffer.from(str, "utf-8"))
+            .writeFile(path, new TextEncoder().encode(str))
             .catch((err) => {
                 stderr.write("Error: " + err + "\n");
                 throw 1;

@@ -6,7 +6,7 @@ const config: tseslint.ConfigArray = tseslint.config(
     eslint.configs.recommended,
     tseslint.configs.recommended,
     {
-        ignores: ["**/dist/**", "**/node_modules/**"],
+        ignores: ["**/dist/**", "**/node_modules/**", "**/test-project/**"],
     },
     {
         files: ["**/*.ts"],
@@ -23,6 +23,7 @@ const config: tseslint.ConfigArray = tseslint.config(
             quotes: ["error", "double"],
             semi: ["error", "always"],
             "@typescript-eslint/no-explicit-any": "off",
+            "@typescript-eslint/await-thenable": "error",
         },
     },
     {
