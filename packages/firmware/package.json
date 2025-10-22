@@ -1,6 +1,6 @@
 {
     "name": "@jaculus/firmware",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Library for updating firmware of Jaculus devices",
     "repository": {
         "type": "git",
