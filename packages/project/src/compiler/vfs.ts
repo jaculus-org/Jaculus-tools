@@ -1,9 +1,6 @@
-import { System } from "typescript";
-import { CompilerOptions } from "typescript";
-import { CompilerHost } from "typescript";
-import { SourceFile } from "typescript";
-import path from "path";
+import { System, CompilerOptions, CompilerHost, SourceFile } from "typescript";
 import ts from "typescript";
+import path from "path";
 import { FSInterface } from "../fs/index.js";
 
 function notImplemented(methodName: string): any {
