@@ -5,6 +5,9 @@ import serialSocket from "./serial-socket.js";
 import install from "./install.js";
 import build from "./build.js";
 import flash from "./flash.js";
+import libAdd from "./lib-add.js";
+import libInstall from "./lib-install.js";
+import libRemove from "./lib-remove.js";
 import ls from "./ls.js";
 import read from "./read.js";
 import write from "./write.js";
@@ -32,6 +35,11 @@ export function registerJaculusCommands(jac: Program) {
     jac.addCommand("build", build);
 
     jac.addCommand("flash", flash);
+
+    jac.addCommand("lib-add", libAdd);
+    jac.addCommand("lib-install", libInstall);
+    jac.addCommand("lib-remove", libRemove);
+
     jac.addCommand("pull", pull);
     jac.addCommand("ls", ls);
     jac.addCommand("read", read);

@@ -36,10 +36,15 @@
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
-        "typescript": "^5.8.3"
+        "pako": "^2.1.0",
+        "semver": "^7.7.3",
+        "typescript": "^5.8.3",
+        "zod": "^4.1.12"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",
+        "@types/pako": "^2.0.4",
+        "@types/semver": "^7.7.1",
         "rimraf": "^6.0.1"
     }
 }

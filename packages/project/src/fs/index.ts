@@ -3,6 +3,19 @@ import path from "path";
 export type FSPromisesInterface = typeof import("fs").promises;
 export type FSInterface = typeof import("fs");
 
+export type RequestFunction = (baseUri: string, libFile: string) => Promise<Uint8Array>;
+
+export function getRequestJson(
+    getRequest: RequestFunction,
+    baseUri: string,
+    libFile: string
+): Promise<any> {
+    return getRequest(baseUri, libFile).then((data) => {
+        const text = new TextDecoder().decode(data);
+        return JSON.parse(text);
+    });
+}
+
 export async function copyFolder(
     fsSource: FSInterface,
     dirSource: string,

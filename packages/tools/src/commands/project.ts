@@ -1,11 +1,11 @@
 import { Arg, Command, Env, Opt } from "./lib/command.js";
-import { stderr } from "process";
+import { stderr, stdout } from "process";
 import { getDevice } from "./util.js";
 import fs from "fs";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import { getUri } from "get-uri";
-import { createProject, updateProject, ProjectPackage } from "@jaculus/project";
+import { Project, ProjectPackage } from "@jaculus/project";
 import { JacDevice } from "@jaculus/device";
 import { logger } from "../logger.js";
 
@@ -87,7 +87,8 @@ export const projectCreate = new Command("Create project from package", {
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
 
-        await createProject(fs, outPath, pkg, stderr, dryRun);
+        const project = new Project(fs, outPath, stdout, stderr);
+        await project.createFromPackage(pkg, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
@@ -108,7 +109,8 @@ export const projectUpdate = new Command("Update existing project from package s
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
 
-        await updateProject(fs, outPath, pkg, stderr, dryRun);
+        const project = new Project(fs, outPath, stdout, stderr);
+        await project.updateFromPackage(pkg, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),

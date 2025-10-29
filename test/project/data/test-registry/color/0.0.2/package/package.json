@@ -1,0 +1,10 @@
+{
+    "name": "color",
+    "version": "0.0.2",
+    "author": "kubaandrysek",
+    "license": "MIT",
+    "description": "Color package",
+    "type": "module",
+    "main": "",
+    "types": "dist/types/index.d.ts"
+}
