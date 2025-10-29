@@ -1,4 +1,3 @@
-import { generateTestRegistryPackages } from "./testUtil.js";
 import {
     setupTest,
     createProjectStructure,
@@ -6,6 +5,7 @@ import {
     expectPackageJson,
     expectOutput,
     expect,
+    generateTestRegistryPackages,
 } from "./testHelpers.js";
 
 describe("Project - Dependency Management", () => {
@@ -48,8 +48,6 @@ describe("Project - Dependency Management", () => {
 
                 const project = createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.install();
-
-                // No specific assertions needed, just test it doesn't throw
             } finally {
                 cleanup();
             }
@@ -404,8 +402,6 @@ describe("Project - Dependency Management", () => {
 
                 const project = createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.install();
-
-                // Test passes if no errors are thrown
             } finally {
                 cleanup();
             }

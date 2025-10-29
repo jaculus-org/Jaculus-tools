@@ -1,4 +1,3 @@
-import { generateTestRegistryPackages } from "./testUtil.js";
 import { Registry } from "@jaculus/project";
 import {
     createGetRequest,
@@ -8,6 +7,7 @@ import {
     expect,
     fs,
     registryBasePath,
+    generateTestRegistryPackages,
 } from "./testHelpers.js";
 
 describe("Registry", () => {
@@ -208,11 +208,7 @@ describe("Registry", () => {
                     for (const version of await registry.listVersions(library)) {
                         const packageData = await registry.getPackageTgz(library, version);
                         const extractDir = `${tempDir}/${library}-${version}`;
-
-                        // Note: registry.extractPackage uses fs directly, not our mock
                         await registry.extractPackage(packageData, fs, extractDir);
-
-                        // Test passes if no errors are thrown
                     }
                 }
             } finally {
@@ -230,7 +226,6 @@ describe("Registry", () => {
                 const extractDir = `${tempDir}/nested/directory`;
 
                 await registry.extractPackage(packageData, fs, extractDir);
-                // Test passes if no errors are thrown
             } finally {
                 cleanupTestDir(tempDir);
             }
@@ -249,7 +244,6 @@ describe("Registry", () => {
                     await registry.extractPackage(corruptData, fs, extractDir);
                     expect.fail("Expected extractPackage to throw an error for corrupt data");
                 } catch (error) {
-                    // The error could be a string or Error object depending on the underlying library
                     expect(error).to.exist;
                 }
             } finally {
@@ -275,7 +269,6 @@ describe("Registry", () => {
                 }
             );
 
-            // Test a specific method that uses retrieveSingleResultFromRegistries
             const exists = await registry.exists("core");
             expect(exists).to.be.true;
         });

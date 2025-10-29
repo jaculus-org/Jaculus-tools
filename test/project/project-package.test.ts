@@ -142,7 +142,7 @@ describe("Project - Package Operations", () => {
                 };
 
                 await project.unpackPackage(pkg, () => true, false);
-                // Test passes if no errors are thrown
+                expectOutput(mockOut, ["Create"]);
             } finally {
                 cleanup();
             }
