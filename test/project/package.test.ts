@@ -1,7 +1,6 @@
 import { loadPackageJson, savePackageJson, PackageJson } from "@jaculus/project";
 import { cleanupTestDir, createTestDir, expect, fs, path, mockFs } from "./testHelpers.js";
 
-// Mock FSInterface that uses real fs for testing
 const projectBasePath = "data/test-project/";
 
 describe("Package JSON", () => {

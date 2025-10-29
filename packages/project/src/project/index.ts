@@ -180,18 +180,18 @@ export class Project {
     }
 
     /// Private methods //////////////////////////////////////////
-    private async loadRegistry(registryUrls: RegistryUris | undefined): Promise<Registry> {
+    private async loadRegistry(registryUris: RegistryUris | undefined): Promise<Registry> {
         if (!this.uriRequest) {
             throw new Error("URI request function not provided");
         }
-        return new Registry(registryUrls || DefaultRegistryUrl, this.uriRequest);
+        return new Registry(registryUris || DefaultRegistryUrl, this.uriRequest);
     }
 
     private async resolveDependencies(
-        registryUrls: RegistryUris | undefined,
+        registryUris: RegistryUris | undefined,
         dependencies: Dependencies
     ): Promise<Dependencies> {
-        const registry = await this.loadRegistry(registryUrls);
+        const registry = await this.loadRegistry(registryUris);
 
         const resolvedDeps = { ...dependencies };
         const processedLibraries = new Set<string>();
@@ -247,10 +247,10 @@ export class Project {
     }
 
     private async installDependencies(
-        registryUrls: RegistryUris | undefined,
+        registryUris: RegistryUris | undefined,
         dependencies: Dependencies
     ): Promise<void> {
-        const registry = await this.loadRegistry(registryUrls);
+        const registry = await this.loadRegistry(registryUris);
 
         for (const [libName, libVersion] of Object.entries(dependencies)) {
             try {
@@ -272,11 +272,11 @@ export class Project {
         library: string,
         version: string,
         testedDeps: Dependencies,
-        registryUrls: RegistryUris | undefined
+        registryUris: RegistryUris | undefined
     ): Promise<Dependency | null> {
         const newDeps = { ...testedDeps, [library]: version };
         try {
-            await this.resolveDependencies(registryUrls, newDeps);
+            await this.resolveDependencies(registryUris, newDeps);
             return { name: library, version: version };
         } catch (error) {
             this.err.write(`Error adding library '${library}@${version}': ${error}\n`);
@@ -290,7 +290,7 @@ export {
     Dependency,
     Dependencies,
     JacLyFiles,
-    RegistryUris as RegistryUrls,
+    RegistryUris,
     PackageJson,
     parsePackageJson,
     loadPackageJson,
