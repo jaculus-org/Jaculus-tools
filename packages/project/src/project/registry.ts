@@ -1,15 +1,13 @@
 import path from "path";
 import pako from "pako";
-import { createRequire } from "module";
 import semver from "semver";
 import { FSInterface, getRequestJson, RequestFunction } from "../fs/index.js";
 import { PackageJson, parsePackageJson } from "./package.js";
+import TarBrowserify from "@obsidize/tar-browserify";
 
-// there is some bug in the tar-browserify library
-// The requested module '@obsidize/tar-browserify' does not provide an export named 'Archive'
-// solution is to use the createRequire function to require the library
-const require = createRequire(import.meta.url);
-const { Archive } = require("@obsidize/tar-browserify");
+// @obsidize/tar-browserify doesn't properly export named exports when loaded through tsx (used by Mocha).
+// Using default import and destructuring to ensure compatibility with both test environment and runtime.
+const { Archive } = TarBrowserify;
 
 export class Registry {
     public constructor(

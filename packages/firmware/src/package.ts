@@ -1,7 +1,11 @@
 import { getUri } from "get-uri";
-import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import * as espPlatform from "./esp32/esp32.js";
+import TarBrowserify from "@obsidize/tar-browserify";
+
+// @obsidize/tar-browserify doesn't properly export named exports when loaded through tsx (used by Mocha).
+// Using default import and destructuring to ensure compatibility with both test environment and runtime.
+const { Archive } = TarBrowserify;
 
 /**
  * Module for loading and flashing package files
