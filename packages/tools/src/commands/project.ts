@@ -2,16 +2,12 @@ import { Arg, Command, Env, Opt } from "./lib/command.js";
 import { stderr, stdout } from "process";
 import { getDevice } from "./util.js";
 import fs from "fs";
+import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import { getUri } from "get-uri";
 import { Project, ProjectPackage } from "@jaculus/project";
 import { JacDevice } from "@jaculus/device";
 import { logger } from "../logger.js";
-import TarBrowserify from "@obsidize/tar-browserify";
-
-// @obsidize/tar-browserify doesn't properly export named exports when loaded through tsx (used by Mocha).
-// Using default import and destructuring to ensure compatibility with both test environment and runtime.
-const { Archive } = TarBrowserify;
 
 async function loadFromDevice(device: JacDevice): Promise<Uint8Array> {
     await device.controller.lock().catch((err) => {

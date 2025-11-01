@@ -1,6 +1,6 @@
 import path from "path";
 import { Writable } from "stream";
-import { FSInterface, RequestFunction } from "../fs/index.js";
+import { extractTgz, FSInterface } from "../fs/index.js";
 import { Registry } from "./registry.js";
 import {
     parsePackageJson,
@@ -11,9 +11,8 @@ import {
     Dependency,
     JacLyFiles,
     PackageJson,
+    splitLibraryNameVersion,
 } from "./package.js";
-
-export const DefaultRegistryUrl = ["https://f.jaculus.org/libs"];
 
 export interface ProjectPackage {
     dirs: string[];
@@ -26,10 +25,11 @@ export class Project {
         public projectPath: string,
         public out: Writable,
         public err: Writable,
-        public uriRequest?: RequestFunction
+        public pkg?: PackageJson,
+        public registry?: Registry
     ) {}
 
-    async unpackPackage(
+    private async unpackPackage(
         pkg: ProjectPackage,
         filter: (fileName: string) => boolean,
         dryRun: boolean = false
@@ -131,40 +131,41 @@ export class Project {
     }
 
     async install(): Promise<void> {
-        this.out.write("Installing project dependencies...\n");
+        this.out.write("Resolving project dependencies...\n");
 
-        const pkg = await loadPackageJson(this.fs, this.projectPath, "package.json");
-        const resolvedDeps = await this.resolveDependencies(pkg.registry, pkg.dependencies);
-        await this.installDependencies(pkg.registry, resolvedDeps);
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+        await this.installDependencies(resolvedDeps);
     }
 
-    async addLibraryVersion(library: string, version: string): Promise<void> {
-        this.out.write(`Adding library '${library}' to project...\n`);
-        const pkg = await loadPackageJson(this.fs, this.projectPath, "package.json");
-        const addedDep = await this.addLibVersion(library, version, pkg.dependencies, pkg.registry);
-        if (addedDep) {
-            pkg.dependencies[addedDep.name] = addedDep.version;
-            await savePackageJson(this.fs, this.projectPath, "package.json", pkg);
-            this.out.write(`Successfully added library '${library}@${version}' to project\n`);
+    public async addLibraryVersion(library: string, version: string): Promise<void> {
+        this.out.write(`Adding library '${library}@${version}' to project.\n`);
+        if (!(await this.registry?.exists(library))) {
+            throw new Error(`Library '${library}' does not exist in the registry`);
+        }
+
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
+        if (await this.addLibVersion(library, version, pkg.dependencies)) {
+            pkg.dependencies[library] = version;
+            await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
         } else {
             throw new Error(`Failed to add library '${library}@${version}' to project`);
         }
     }
 
     async addLibrary(library: string): Promise<void> {
-        this.out.write(`Adding library '${library}' to project...\n`);
-        const pkg = await loadPackageJson(this.fs, this.projectPath, "package.json");
-        const baseDeps = await this.resolveDependencies(pkg.registry, { ...pkg.dependencies });
+        this.out.write(`Adding library '${library}' to project.\n`);
+        if (!(await this.registry?.exists(library))) {
+            throw new Error(`Library '${library}' does not exist in the registry`);
+        }
 
-        const registry = await this.loadRegistry(pkg.registry);
-        const versions = await registry.listVersions(library);
-
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
+        const baseDeps = await this.resolveDependencies({ ...pkg.dependencies });
+        const versions = (await this.registry?.listVersions(library)) || [];
         for (const version of versions) {
-            const addedDep = await this.addLibVersion(library, version, baseDeps, pkg.registry);
-            if (addedDep) {
-                pkg.dependencies[addedDep.name] = addedDep.version;
-                await savePackageJson(this.fs, this.projectPath, "package.json", pkg);
-                this.out.write(`Successfully added library '${library}@${version}' to project\n`);
+            if (await this.addLibVersion(library, version, baseDeps)) {
+                pkg.dependencies[library] = version;
+                await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
                 return;
             }
         }
@@ -173,26 +174,37 @@ export class Project {
 
     async removeLibrary(library: string): Promise<void> {
         this.out.write(`Removing library '${library}' from project...\n`);
-        const pkg = await loadPackageJson(this.fs, this.projectPath, "package.json");
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
         delete pkg.dependencies[library];
-        await savePackageJson(this.fs, this.projectPath, "package.json", pkg);
+        await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
         this.out.write(`Successfully removed library '${library}' from project\n`);
     }
 
-    /// Private methods //////////////////////////////////////////
-    private async loadRegistry(registryUris: RegistryUris | undefined): Promise<Registry> {
-        if (!this.uriRequest) {
-            throw new Error("URI request function not provided");
+    async getJacLyFiles(): Promise<string[]> {
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
+        const jacLyFiles: string[] = [];
+        if (pkg.jaculus && pkg.jaculus.blocks) {
+            const blocksPath = path.join(this.projectPath, pkg.jaculus.blocks);
+            if (this.fs.existsSync(blocksPath) && this.fs.statSync(blocksPath).isDirectory()) {
+                const files = await this.fs.promises.readdir(blocksPath);
+                for (const file of files) {
+                    if (file.endsWith(".json")) {
+                        jacLyFiles.push(path.join(blocksPath, file));
+                    }
+                }
+            } else {
+                this.err.write(
+                    `Blocks directory '${blocksPath}' does not exist or is not a directory\n`
+                );
+            }
+        } else {
+            this.err.write(`No 'jaculus.blocks' entry found in package.json\n`);
         }
-        return new Registry(registryUris || DefaultRegistryUrl, this.uriRequest);
+        return jacLyFiles;
     }
 
-    private async resolveDependencies(
-        registryUris: RegistryUris | undefined,
-        dependencies: Dependencies
-    ): Promise<Dependencies> {
-        const registry = await this.loadRegistry(registryUris);
-
+    // Private methods
+    private async resolveDependencies(dependencies: Dependencies): Promise<Dependencies> {
         const resolvedDeps = { ...dependencies };
         const processedLibraries = new Set<string>();
         const queue: Array<Dependency> = [];
@@ -212,10 +224,11 @@ export class Project {
             }
             processedLibraries.add(dep.name);
 
-            this.out.write(`Resolving library '${dep.name}' version '${dep.version}'...\n`);
-
             try {
-                const packageJson = await registry.getPackageJson(dep.name, dep.version);
+                const packageJson = await this.registry?.getPackageJson(dep.name, dep.version);
+                if (!packageJson) {
+                    throw new Error(`Registry is not defined or returned no package.json`);
+                }
 
                 // process each transitive dependency
                 for (const [libName, libVersion] of Object.entries(packageJson.dependencies)) {
@@ -242,46 +255,41 @@ export class Project {
             }
         }
 
-        this.out.write("All dependencies resolved successfully.\n");
         return resolvedDeps;
     }
 
-    private async installDependencies(
-        registryUris: RegistryUris | undefined,
-        dependencies: Dependencies
-    ): Promise<void> {
-        const registry = await this.loadRegistry(registryUris);
-
+    private async installDependencies(dependencies: Dependencies): Promise<void> {
         for (const [libName, libVersion] of Object.entries(dependencies)) {
             try {
-                this.out.write(`Installing library '${libName}' version '${libVersion}'...\n`);
-                const packageData = await registry.getPackageTgz(libName, libVersion);
+                this.out.write(` - Installing library '${libName}' version '${libVersion}'\n`);
+                const packageData = await this.registry?.getPackageTgz(libName, libVersion);
+                if (!packageData) {
+                    throw new Error(`Registry is not defined or returned no package data`);
+                }
                 const installPath = path.join(this.projectPath, "node_modules", libName);
-                await registry.extractPackage(packageData, this.fs, installPath);
-                this.out.write(`Successfully installed '${libName}@${libVersion}'\n`);
+                await extractTgz(packageData, this.fs, installPath);
             } catch (error) {
                 const errorMsg = `Failed to install library '${libName}@${libVersion}': ${error}`;
                 this.err.write(`${errorMsg}\n`);
                 throw new Error(errorMsg);
             }
         }
-        this.out.write("All dependencies installed successfully.\n");
+        this.out.write("All dependencies resolved and installed successfully.\n");
     }
 
     private async addLibVersion(
         library: string,
         version: string,
-        testedDeps: Dependencies,
-        registryUris: RegistryUris | undefined
-    ): Promise<Dependency | null> {
+        testedDeps: Dependencies
+    ): Promise<boolean> {
         const newDeps = { ...testedDeps, [library]: version };
         try {
-            await this.resolveDependencies(registryUris, newDeps);
-            return { name: library, version: version };
+            await this.resolveDependencies(newDeps);
+            return true;
         } catch (error) {
             this.err.write(`Error adding library '${library}@${version}': ${error}\n`);
-            return null;
         }
+        return false;
     }
 }
 
@@ -295,4 +303,5 @@ export {
     parsePackageJson,
     loadPackageJson,
     savePackageJson,
+    splitLibraryNameVersion,
 };

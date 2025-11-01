@@ -1,4 +1,5 @@
 import { Registry } from "@jaculus/project";
+import { extractTgz } from "@jaculus/project/fs";
 import {
     createGetRequest,
     createFailingGetRequest,
@@ -196,7 +197,7 @@ describe("Registry", () => {
         });
     });
 
-    describe("extractPackage()", () => {
+    describe("extractTgz()", () => {
         it("should extract library package to specified directory", async () => {
             const tempDir = createTestDir("jaculus-test-");
 
@@ -208,7 +209,7 @@ describe("Registry", () => {
                     for (const version of await registry.listVersions(library)) {
                         const packageData = await registry.getPackageTgz(library, version);
                         const extractDir = `${tempDir}/${library}-${version}`;
-                        await registry.extractPackage(packageData, fs, extractDir);
+                        await extractTgz(packageData, fs, extractDir);
                     }
                 }
             } finally {
@@ -225,7 +226,7 @@ describe("Registry", () => {
                 const packageData = await registry.getPackageTgz("core", "0.0.24");
                 const extractDir = `${tempDir}/nested/directory`;
 
-                await registry.extractPackage(packageData, fs, extractDir);
+                await extractTgz(packageData, fs, extractDir);
             } finally {
                 cleanupTestDir(tempDir);
             }
@@ -235,14 +236,12 @@ describe("Registry", () => {
             const tempDir = createTestDir("jaculus-test-");
 
             try {
-                const getRequest = createGetRequest();
-                const registry = new Registry([registryBasePath], getRequest);
                 const corruptData = new Uint8Array([1, 2, 3, 4, 5]); // Invalid gzip data
                 const extractDir = `${tempDir}/corrupt-test`;
 
                 try {
-                    await registry.extractPackage(corruptData, fs, extractDir);
-                    expect.fail("Expected extractPackage to throw an error for corrupt data");
+                    await extractTgz(corruptData, fs, extractDir);
+                    expect.fail("Expected extractTgz to throw an error for corrupt data");
                 } catch (error) {
                     expect(error).to.exist;
                 }

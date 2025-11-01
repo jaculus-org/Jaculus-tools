@@ -23,14 +23,13 @@ describe("Project - Dependency Management", () => {
                     dependencies: { core: "0.0.24" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.install();
 
                 expectOutput(mockOut, [
-                    "Installing project dependencies",
-                    "Installing library 'core'",
-                    "Successfully installed 'core@0.0.24'",
-                    "All dependencies installed successfully",
+                    "Resolving project dependencies",
+                    "Installing library 'core' version '0.0.24'",
+                    "All dependencies resolved and installed successfully",
                 ]);
             } finally {
                 cleanup();
@@ -46,7 +45,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: { "led-strip": "0.0.5" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.install();
             } finally {
                 cleanup();
@@ -62,12 +61,12 @@ describe("Project - Dependency Management", () => {
                     dependencies: {},
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.install();
 
                 expectOutput(mockOut, [
-                    "Installing project dependencies",
-                    "All dependencies installed successfully",
+                    "Resolving project dependencies",
+                    "All dependencies resolved and installed successfully",
                 ]);
             } finally {
                 cleanup();
@@ -83,14 +82,14 @@ describe("Project - Dependency Management", () => {
                     registry: [],
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr);
+                const project = await createProject(projectPath, mockOut, mockErr);
 
                 try {
                     await project.install();
                     expect.fail("Expected install to throw an error");
                 } catch (error) {
                     expect((error as Error).message).to.include(
-                        "URI request function not provided"
+                        "Dependency resolution failed for 'core"
                     );
                 }
             } finally {
@@ -107,10 +106,10 @@ describe("Project - Dependency Management", () => {
                     dependencies: { color: "0.0.1" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.install();
 
-                expectOutput(mockOut, ["All dependencies installed successfully"]);
+                expectOutput(mockOut, ["All dependencies resolved and installed successfully"]);
             } finally {
                 cleanup();
             }
@@ -127,14 +126,11 @@ describe("Project - Dependency Management", () => {
                     dependencies: {},
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.addLibrary("color");
 
                 expectPackageJson(projectPath, { hasDependency: ["color"] });
-                expectOutput(mockOut, [
-                    "Adding library 'color'",
-                    "Successfully added library 'color@0.0.2' to project",
-                ]);
+                expectOutput(mockOut, ["Adding library 'color'"]);
             } finally {
                 cleanup();
             }
@@ -149,7 +145,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: {},
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.addLibrary("led-strip");
 
                 expectPackageJson(projectPath, { hasDependency: ["led-strip"] });
@@ -167,17 +163,13 @@ describe("Project - Dependency Management", () => {
                     dependencies: {},
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
 
                 try {
                     await project.addLibrary("non-existent-library");
                     expect.fail("Expected addLibrary to throw an error");
                 } catch (error) {
-                    expect((error as Error).message).to.satisfy(
-                        (msg: string) =>
-                            msg.includes("Failed to add library") ||
-                            msg.includes("Failed to fetch versions")
-                    );
+                    expect((error as Error).message).to.include("does not exist in the registry");
                 }
             } finally {
                 cleanup();
@@ -193,7 +185,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: { core: "0.0.24" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.addLibrary("color");
 
                 expectPackageJson(projectPath, { hasDependency: ["core", "0.0.24"] });
@@ -214,14 +206,11 @@ describe("Project - Dependency Management", () => {
                     dependencies: {},
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.addLibraryVersion("color", "0.0.2");
 
                 expectPackageJson(projectPath, { hasDependency: ["color", "0.0.2"] });
-                expectOutput(mockOut, [
-                    "Adding library 'color'",
-                    "Successfully added library 'color@0.0.2' to project",
-                ]);
+                expectOutput(mockOut, ["Adding library 'color@0.0.2'"]);
             } finally {
                 cleanup();
             }
@@ -236,13 +225,13 @@ describe("Project - Dependency Management", () => {
                     dependencies: {},
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
 
                 try {
                     await project.addLibraryVersion("non-existent", "1.0.0");
                     expect.fail("Expected addLibraryVersion to throw an error");
                 } catch (error) {
-                    expect((error as Error).message).to.include("Failed to add library");
+                    expect((error as Error).message).to.include("does not exist");
                 }
             } finally {
                 cleanup();
@@ -258,7 +247,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: { color: "0.0.1" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.addLibraryVersion("color", "0.0.2");
 
                 expectPackageJson(projectPath, { hasDependency: ["color", "0.0.2"] });
@@ -278,7 +267,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: { core: "0.0.24", color: "0.0.2" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.removeLibrary("color");
 
                 expectPackageJson(projectPath, {
@@ -303,7 +292,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: { core: "0.0.24" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.removeLibrary("non-existent");
 
                 expectPackageJson(projectPath, { hasDependency: ["core", "0.0.24"] });
@@ -321,7 +310,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: { core: "0.0.24", color: "0.0.2", "led-strip": "0.0.5" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.removeLibrary("color");
 
                 expectPackageJson(projectPath, {
@@ -343,7 +332,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: { core: "0.0.24" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.removeLibrary("core");
 
                 expectPackageJson(projectPath, { dependencyCount: 0 });
@@ -363,7 +352,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: {},
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
 
                 // Add a library
                 await project.addLibrary("color");
@@ -400,7 +389,7 @@ describe("Project - Dependency Management", () => {
                     dependencies: { core: "0.0.24", "led-strip": "0.0.5" },
                 });
 
-                const project = createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
                 await project.install();
             } finally {
                 cleanup();

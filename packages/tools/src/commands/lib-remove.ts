@@ -1,16 +1,20 @@
 import { stderr, stdout } from "process";
 import { Arg, Command, Opt } from "./lib/command.js";
 import fs from "fs";
-import { Project } from "@jaculus/project";
+import { loadPackageJson, Project, Registry } from "@jaculus/project";
 import { uriRequest } from "../util.js";
+import path from "path/win32";
 
 const cmd = new Command("Remove a library from the project package.json", {
     action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
         const libraryName = args["library"] as string;
-        const projectPath = (options["path"] as string) || "./";
+        const projectPath = options["path"] as string;
 
-        const project = new Project(fs, projectPath, stdout, stderr, uriRequest);
+        const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
+        const registry = new Registry(pkg.registry, uriRequest);
+        const project = new Project(fs, projectPath, stdout, stderr, pkg, registry);
         await project.removeLibrary(libraryName);
+        await project.install();
     },
     args: [new Arg("library", "Library to remove from the project", { required: true })],
     options: {

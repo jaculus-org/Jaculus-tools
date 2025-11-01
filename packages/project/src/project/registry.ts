@@ -1,19 +1,18 @@
-import path from "path";
-import pako from "pako";
 import semver from "semver";
-import { FSInterface, getRequestJson, RequestFunction } from "../fs/index.js";
+import { getRequestJson, RequestFunction } from "../fs/index.js";
 import { PackageJson, parsePackageJson } from "./package.js";
-import TarBrowserify from "@obsidize/tar-browserify";
 
-// @obsidize/tar-browserify doesn't properly export named exports when loaded through tsx (used by Mocha).
-// Using default import and destructuring to ensure compatibility with both test environment and runtime.
-const { Archive } = TarBrowserify;
+export const DefaultRegistryUrl = ["https://f.jaculus.org/libs"];
 
 export class Registry {
+    public registryUri: string[];
+
     public constructor(
-        public registryUri: string[],
+        registryUri: string[] | undefined,
         public getRequest: RequestFunction
-    ) {}
+    ) {
+        this.registryUri = registryUri ? registryUri : DefaultRegistryUrl;
+    }
 
     public async list(): Promise<string[]> {
         try {
@@ -66,43 +65,6 @@ export class Registry {
         }, `Failed to fetch package.tar.gz for library '${library}' version '${version}'`);
     }
 
-    public async extractPackage(
-        packageData: Uint8Array,
-        fs: FSInterface,
-        extractionRoot: string
-    ): Promise<void> {
-        if (!fs.existsSync(extractionRoot)) {
-            fs.mkdirSync(extractionRoot, { recursive: true });
-        }
-
-        for await (const entry of Archive.read(pako.ungzip(packageData))) {
-            // archive entries are prefixed with "package/" -> skip that part
-            if (!entry.fileName.startsWith("package/")) {
-                continue;
-            }
-            const relativePath = entry.fileName.substring("package/".length);
-            if (!relativePath) {
-                continue;
-            }
-
-            const fullPath = path.join(extractionRoot, relativePath);
-
-            if (entry.isDirectory()) {
-                if (!fs.existsSync(fullPath)) {
-                    fs.mkdirSync(fullPath, { recursive: true });
-                }
-            } else if (entry.isFile()) {
-                const dirPath = path.dirname(fullPath);
-                if (!fs.existsSync(dirPath)) {
-                    fs.mkdirSync(dirPath, { recursive: true });
-                }
-                fs.writeFileSync(fullPath, entry.content!);
-            }
-        }
-    }
-
-    // private helper to try registries one by one until one succeeds
-
     private async retrieveSingleResultFromRegistries<T>(
         action: (uri: string) => Promise<T>,
         errorMessage: string
@@ -112,7 +74,7 @@ export class Registry {
                 const result = await action(uri);
                 return result;
             } catch {
-                // ignore errors
+                // Try next registry
             }
         }
         throw new Error(errorMessage);

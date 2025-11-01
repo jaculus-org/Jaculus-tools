@@ -28,6 +28,10 @@ const JacLyFilesSchema = z.array(z.string());
 
 const RegistryUrisSchema = z.array(z.string());
 
+const JaculusSchema = z.object({
+    blocks: z.string().optional(),
+});
+
 const PackageJsonSchema = z.object({
     name: NameSchema.optional(),
     version: VersionSchema.optional(),
@@ -35,6 +39,7 @@ const PackageJsonSchema = z.object({
     dependencies: DependenciesSchema.default({}),
     jacly: JacLyFilesSchema.optional(),
     registry: RegistryUrisSchema.optional(),
+    jaculus: JaculusSchema.optional(),
 });
 
 export type Dependency = {
@@ -55,12 +60,7 @@ export async function parsePackageJson(json: any): Promise<PackageJson> {
     return result.data;
 }
 
-export async function loadPackageJson(
-    fs: FSInterface,
-    projectPath: string,
-    fileName: string
-): Promise<PackageJson> {
-    const filePath = path.join(projectPath, fileName);
+export async function loadPackageJson(fs: FSInterface, filePath: string): Promise<PackageJson> {
     const data = await fs.promises.readFile(filePath, { encoding: "utf-8" });
     const json = JSON.parse(data);
     return parsePackageJson(json);
@@ -68,17 +68,39 @@ export async function loadPackageJson(
 
 export async function savePackageJson(
     fs: FSInterface,
-    projectPath: string,
-    fileName: string,
+    filePath: string,
     pkg: PackageJson
 ): Promise<void> {
-    const filePath = path.join(projectPath, fileName);
     const data = JSON.stringify(pkg, null, 4);
-
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) {
         await fs.promises.mkdir(dir, { recursive: true });
     }
 
     await fs.promises.writeFile(filePath, data, { encoding: "utf-8" });
+}
+
+export async function getBlockFilesFromPackageJson(
+    fs: FSInterface,
+    filePath: string
+): Promise<string[]> {
+    const pkg = await loadPackageJson(fs, filePath);
+    if (pkg.jaculus && pkg.jaculus.blocks) {
+        return [pkg.jaculus.blocks];
+    }
+    return [];
+}
+
+export function splitLibraryNameVersion(library: string): { name: string; version: string | null } {
+    const lastAtIndex = library.lastIndexOf("@");
+
+    // No @ found or @ is at the beginning (scoped package without version)
+    if (lastAtIndex <= 0) {
+        return { name: library, version: null };
+    }
+
+    const name = library.substring(0, lastAtIndex);
+    const version = library.substring(lastAtIndex + 1);
+
+    return { name, version: version || null };
 }

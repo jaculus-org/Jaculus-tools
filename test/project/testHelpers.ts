@@ -2,17 +2,19 @@ import path from "path";
 import fs from "fs";
 import { tmpdir } from "os";
 import { Writable } from "stream";
-import { Project, PackageJson } from "@jaculus/project";
+import { Project, PackageJson, Registry, loadPackageJson } from "@jaculus/project";
 import { RequestFunction } from "@jaculus/project/fs";
 import * as chai from "chai";
+import { Archive } from "@obsidize/tar-browserify";
+import pako from "pako";
 
 export const expect = chai.expect;
 export const registryBasePath = "file://data/test-registry/";
 export { fs, path, fs as mockFs };
 
 export async function createTarGzPackage(sourceDir: string, outFile: string): Promise<void> {
-    const { Archive } = await import("@obsidize/tar-browserify");
-    const pako = await import("pako");
+    // const { Archive } = await import("@obsidize/tar-browserify");
+    // const pako = await import("pako");
     const archive = new Archive();
 
     // Recursively add files from sourceDir with "package/" prefix
@@ -121,13 +123,18 @@ export function createPackageJson(
 }
 
 // Helper function to create project with mocks
-export function createProject(
+export async function createProject(
     projectPath: string,
     mockOut: MockWritable,
     mockErr: MockWritable,
     getRequest?: RequestFunction
-): Project {
-    return new Project(fs, projectPath, mockOut, mockErr, getRequest);
+): Promise<Project> {
+    const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
+    let registry: Registry | undefined = undefined;
+    if (getRequest) {
+        registry = new Registry(pkg.registry, getRequest);
+    }
+    return new Project(fs, projectPath, mockOut, mockErr, pkg, registry);
 }
 
 // Helper function to create test directory

@@ -33,7 +33,7 @@
         "@jaculus/firmware": "workspace:*",
         "@jaculus/link": "workspace:*",
         "@jaculus/project": "workspace:*",
-        "@obsidize/tar-browserify": "^6.1.0",
+        "@obsidize/tar-browserify": "^6.3.2",
         "chalk": "^5.4.1",
         "get-uri": "^6.0.4",
         "pako": "^2.1.0",

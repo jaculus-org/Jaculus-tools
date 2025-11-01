@@ -1,4 +1,6 @@
 import path from "path";
+import { Archive } from "@obsidize/tar-browserify";
+import pako from "pako";
 
 export type FSPromisesInterface = typeof import("fs").promises;
 export type FSInterface = typeof import("fs");
@@ -56,6 +58,41 @@ export function recursivelyPrintFs(fs: FSInterface, dir: string, indent: string 
             recursivelyPrintFs(fs, fullPath, indent + "  ");
         } else {
             console.log(`${indent}[FILE] ${item}`);
+        }
+    }
+}
+
+export async function extractTgz(
+    packageData: Uint8Array,
+    fs: FSInterface,
+    extractionRoot: string
+): Promise<void> {
+    if (!fs.existsSync(extractionRoot)) {
+        fs.mkdirSync(extractionRoot, { recursive: true });
+    }
+
+    for await (const entry of Archive.read(pako.ungzip(packageData))) {
+        // archive entries are prefixed with "package/" -> skip that part
+        if (!entry.fileName.startsWith("package/")) {
+            continue;
+        }
+        const relativePath = entry.fileName.substring("package/".length);
+        if (!relativePath) {
+            continue;
+        }
+
+        const fullPath = path.join(extractionRoot, relativePath);
+
+        if (entry.isDirectory()) {
+            if (!fs.existsSync(fullPath)) {
+                fs.mkdirSync(fullPath, { recursive: true });
+            }
+        } else if (entry.isFile()) {
+            const dirPath = path.dirname(fullPath);
+            if (!fs.existsSync(dirPath)) {
+                fs.mkdirSync(dirPath, { recursive: true });
+            }
+            fs.writeFileSync(fullPath, entry.content!);
         }
     }
 }

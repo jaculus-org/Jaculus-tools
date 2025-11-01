@@ -31,7 +31,7 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-            const loaded = await loadPackageJson(mockFs, tempDir, "package.json");
+            const loaded = await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
 
             expect(loaded).to.deep.equal(packageData);
             expect(loaded.name).to.equal("test-package");
@@ -53,7 +53,7 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-            const loaded = await loadPackageJson(mockFs, tempDir, "package.json");
+            const loaded = await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
 
             expect(loaded).to.deep.equal(packageData);
             expect(loaded.dependencies).to.have.property("core", "0.0.24");
@@ -74,7 +74,7 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-            const loaded = await loadPackageJson(mockFs, tempDir, "package.json");
+            const loaded = await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
 
             expect(loaded).to.deep.equal(packageData);
             expect(loaded.dependencies).to.be.an("object").that.is.empty;
@@ -85,7 +85,7 @@ describe("Package JSON", () => {
             fs.writeFileSync(packagePath, "{ invalid json }");
 
             try {
-                await loadPackageJson(mockFs, tempDir, "package.json");
+                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
                 expect.fail("Expected loadPackageJson to throw an error");
             } catch (error) {
                 expect(error).to.be.an("error");
@@ -94,7 +94,7 @@ describe("Package JSON", () => {
 
         it("should throw error for non-existent file", async () => {
             try {
-                await loadPackageJson(mockFs, tempDir, "non-existent.json");
+                await loadPackageJson(mockFs, path.join(tempDir, "non-existent.json"));
                 expect.fail("Expected loadPackageJson to throw an error");
             } catch (error) {
                 expect(error).to.be.an("error");
@@ -112,7 +112,7 @@ describe("Package JSON", () => {
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
             try {
-                await loadPackageJson(mockFs, tempDir, "package.json");
+                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
                 expect.fail("Expected loadPackageJson to throw an error");
             } catch (error) {
                 expect(error).to.be.an("error");
@@ -131,7 +131,7 @@ describe("Package JSON", () => {
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
             try {
-                await loadPackageJson(mockFs, tempDir, "package.json");
+                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
                 expect.fail("Expected loadPackageJson to throw an error");
             } catch (error) {
                 expect(error).to.be.an("error");
@@ -150,7 +150,7 @@ describe("Package JSON", () => {
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
             try {
-                await loadPackageJson(mockFs, tempDir, "package.json");
+                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
                 expect.fail("Expected loadPackageJson to throw an error");
             } catch (error) {
                 expect(error).to.be.an("error");
@@ -184,8 +184,7 @@ describe("Package JSON", () => {
 
                 const loaded = await loadPackageJson(
                     mockFs,
-                    tempDir,
-                    `package-${version.replace(/[^a-zA-Z0-9]/g, "-")}.json`
+                    path.join(tempDir, `package-${version.replace(/[^a-zA-Z0-9]/g, "-")}.json`)
                 );
                 expect(loaded.version).to.equal(version);
             }
@@ -204,7 +203,7 @@ describe("Package JSON", () => {
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
             try {
-                await loadPackageJson(mockFs, tempDir, "package.json");
+                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
                 expect.fail("Expected loadPackageJson to throw an error");
             } catch (error) {
                 expect(error).to.be.an("error");
@@ -225,7 +224,7 @@ describe("Package JSON", () => {
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
             try {
-                await loadPackageJson(mockFs, tempDir, "package.json");
+                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
                 expect.fail("Expected loadPackageJson to throw an error");
             } catch (error) {
                 expect(error).to.be.an("error");
@@ -248,7 +247,7 @@ describe("Package JSON", () => {
                 registry: ["https://registry.example.com"],
             };
 
-            await savePackageJson(mockFs, tempDir, "package.json", packageData);
+            await savePackageJson(mockFs, path.join(tempDir, "package.json"), packageData);
 
             const packagePath = path.join(tempDir, "package.json");
             expect(fs.existsSync(packagePath)).to.be.true;
@@ -270,7 +269,7 @@ describe("Package JSON", () => {
                 },
             };
 
-            await savePackageJson(mockFs, tempDir, "package.json", packageData);
+            await savePackageJson(mockFs, path.join(tempDir, "package.json"), packageData);
 
             const packagePath = path.join(tempDir, "package.json");
             const fileContent = fs.readFileSync(packagePath, "utf-8");
@@ -288,7 +287,7 @@ describe("Package JSON", () => {
             // Directory shouldn't exist initially
             expect(fs.existsSync(nestedDir)).to.be.false;
 
-            await savePackageJson(mockFs, nestedDir, "package.json", packageData);
+            await savePackageJson(mockFs, path.join(nestedDir, "package.json"), packageData);
 
             const packagePath = path.join(nestedDir, "package.json");
             expect(fs.existsSync(packagePath)).to.be.true;
@@ -305,7 +304,7 @@ describe("Package JSON", () => {
                 name: "initial",
                 dependencies: {},
             };
-            await savePackageJson(mockFs, tempDir, "package.json", initialData);
+            await savePackageJson(mockFs, path.join(tempDir, "package.json"), initialData);
 
             // Overwrite with new data
             const newData: PackageJson = {
@@ -315,7 +314,7 @@ describe("Package JSON", () => {
                     core: "1.0.0",
                 },
             };
-            await savePackageJson(mockFs, tempDir, "package.json", newData);
+            await savePackageJson(mockFs, path.join(tempDir, "package.json"), newData);
 
             const parsedData = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
             expect(parsedData).to.deep.equal(newData);
@@ -329,7 +328,7 @@ describe("Package JSON", () => {
                 dependencies: {},
             };
 
-            await savePackageJson(mockFs, tempDir, "package.json", packageData);
+            await savePackageJson(mockFs, path.join(tempDir, "package.json"), packageData);
 
             const packagePath = path.join(tempDir, "package.json");
             const parsedData = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
@@ -346,7 +345,10 @@ describe("Package JSON", () => {
                 projectBasePath
             );
 
-            const loaded = await loadPackageJson(mockFs, testProjectPath, "package.json");
+            const loaded = await loadPackageJson(
+                mockFs,
+                path.join(testProjectPath, "package.json")
+            );
 
             expect(loaded).to.have.property("dependencies");
             expect(loaded.dependencies).to.have.property("core", "0.0.24");
@@ -366,10 +368,10 @@ describe("Package JSON", () => {
             };
 
             // Save the data
-            await savePackageJson(mockFs, tempDir, "roundtrip.json", originalData);
+            await savePackageJson(mockFs, path.join(tempDir, "roundtrip.json"), originalData);
 
             // Load it back
-            const loadedData = await loadPackageJson(mockFs, tempDir, "roundtrip.json");
+            const loadedData = await loadPackageJson(mockFs, path.join(tempDir, "roundtrip.json"));
 
             // Should be identical
             expect(loadedData).to.deep.equal(originalData);
@@ -406,8 +408,7 @@ describe("Package JSON", () => {
 
                 const loaded = await loadPackageJson(
                     mockFs,
-                    tempDir,
-                    `test-${name.replace(/[^a-zA-Z0-9]/g, "-")}.json`
+                    path.join(tempDir, `test-${name.replace(/[^a-zA-Z0-9]/g, "-")}.json`)
                 );
                 expect(loaded.name).to.equal(name);
             }
@@ -440,7 +441,7 @@ describe("Package JSON", () => {
                 fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
                 try {
-                    await loadPackageJson(mockFs, tempDir, path.basename(packagePath));
+                    await loadPackageJson(mockFs, path.join(tempDir, path.basename(packagePath)));
                     expect.fail(`Expected name "${name}" to be invalid`);
                 } catch (error) {
                     expect(error).to.be.an("error");
@@ -468,7 +469,7 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "complex.json");
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-            const loaded = await loadPackageJson(mockFs, tempDir, "complex.json");
+            const loaded = await loadPackageJson(mockFs, path.join(tempDir, "complex.json"));
             expect(loaded.dependencies).to.deep.equal(packageData.dependencies);
         });
     });
