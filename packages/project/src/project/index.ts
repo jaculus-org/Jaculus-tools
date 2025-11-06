@@ -67,8 +67,12 @@ export class Project {
         }
     }
 
-    async createFromPackage(pkg: ProjectPackage, dryRun: boolean = false): Promise<void> {
-        if (this.fs.existsSync(this.projectPath)) {
+    async createFromPackage(
+        pkg: ProjectPackage,
+        dryRun: boolean = false,
+        validateFolder: boolean = true
+    ): Promise<void> {
+        if (validateFolder && !dryRun && this.fs.existsSync(this.projectPath)) {
             this.err.write(`Directory '${this.projectPath}' already exists\n`);
             throw 1;
         }

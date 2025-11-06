@@ -1,4 +1,3 @@
-import { Logger } from "@jaculus/common";
 import * as tsvfs from "./vfs.js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -26,7 +25,7 @@ function printMessage(message: string | ts.DiagnosticMessageChain, stream: Writa
  * @param inputDir - The input directory containing TypeScript files.
  * @param outDir - The output directory for compiled files.
  * @param err - The writable stream for error messages.
- * @param logger - The logger instance.
+ * @param out - The writable stream for standard output messages.
  * @param tsLibsPath - The path to TypeScript libraries (in Node, it's the directory of the 'typescript' package)
  *                     (in zenfs, it's necessary to provide this path and copy TS files to the virtual FS in advance)
  * @returns A promise that resolves to true if compilation is successful, false otherwise.
@@ -35,8 +34,8 @@ export async function compile(
     fs: FSInterface,
     inputDir: string,
     outDir: string,
+    out: Writable,
     err: Writable,
-    logger?: Logger,
     tsLibsPath: string = path.dirname(
         fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
     )
@@ -81,7 +80,7 @@ export async function compile(
         }
     }
 
-    logger?.verbose("Compiling files:" + fileNames.join(", "));
+    out.write("Compiling files:" + fileNames.join(", "));
 
     const host = tsvfs.createVirtualCompilerHost(system, compilerOptions, tsLibsPath);
 
