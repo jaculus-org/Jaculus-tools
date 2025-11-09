@@ -12,6 +12,8 @@ import {
     JacLyFiles,
     PackageJson,
     splitLibraryNameVersion,
+    getPackagePath,
+    projectJsonSchema,
 } from "./package.js";
 
 export interface ProjectPackage {
@@ -184,27 +186,35 @@ export class Project {
         this.out.write(`Successfully removed library '${library}' from project\n`);
     }
 
+    async getJacLyFolder(): Promise<string | undefined> {
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
+        return pkg.jaculus?.blocks;
+    }
+
+    /**
+     * Get all JacLy files from project dependencies (requires installed dependencies in FS)
+     * @param dependencies
+     * @returns Array of JacLy file paths
+     */
     async getJacLyFiles(): Promise<string[]> {
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
-        const jacLyFiles: string[] = [];
-        if (pkg.jaculus && pkg.jaculus.blocks) {
-            const blocksPath = path.join(this.projectPath, pkg.jaculus.blocks);
-            if (this.fs.existsSync(blocksPath) && this.fs.statSync(blocksPath).isDirectory()) {
-                const files = await this.fs.promises.readdir(blocksPath);
-                for (const file of files) {
-                    if (file.endsWith(".json")) {
-                        jacLyFiles.push(path.join(blocksPath, file));
-                    }
-                }
-            } else {
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+        const jaclyFiles: string[] = [];
+        for (const [libName] of Object.entries(resolvedDeps)) {
+            const pkg = await loadPackageJson(this.fs, path.join(libName, "package.json"));
+            if (!pkg) {
                 this.err.write(
-                    `Blocks directory '${blocksPath}' does not exist or is not a directory\n`
+                    `Failed to load package.json for '${libName}'. Install dependencies before fetching JacLy files.\n`
+                );
+                continue;
+            }
+            if (pkg.jaculus && pkg.jaculus.blocks) {
+                jaclyFiles.push(
+                    path.join(getPackagePath(this.projectPath, libName), pkg.jaculus.blocks)
                 );
             }
-        } else {
-            this.err.write(`No 'jaculus.blocks' entry found in package.json\n`);
         }
-        return jacLyFiles;
+        return jaclyFiles;
     }
 
     // Private methods
@@ -270,7 +280,7 @@ export class Project {
                 if (!packageData) {
                     throw new Error(`Registry is not defined or returned no package data`);
                 }
-                const installPath = path.join(this.projectPath, "node_modules", libName);
+                const installPath = getPackagePath(this.projectPath, libName);
                 await extractTgz(packageData, this.fs, installPath);
             } catch (error) {
                 const errorMsg = `Failed to install library '${libName}@${libVersion}': ${error}`;
@@ -308,4 +318,5 @@ export {
     loadPackageJson,
     savePackageJson,
     splitLibraryNameVersion,
+    projectJsonSchema,
 };

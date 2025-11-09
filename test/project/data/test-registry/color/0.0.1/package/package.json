@@ -6,5 +6,8 @@
     "description": "Color package",
     "type": "module",
     "main": "",
-    "types": "dist/types/index.d.ts"
+    "types": "dist/types/index.d.ts",
+    "jaculus": {
+        "blocks": "blocks"
+    }
 }

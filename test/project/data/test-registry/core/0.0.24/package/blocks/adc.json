@@ -1,0 +1,57 @@
+{
+    "version": "0.0.24",
+    "author": "Jakub Andrysek",
+    "github": "https://github.com/JakubAndrysek",
+    "license": "MIT",
+
+    "title": "ADC",
+    "description": "Analog-to-Digital Converter blocks for reading analog signals.",
+    "docs": "/docs/blocks/adc",
+    "category": "Sensors",
+    "color": "#FF6B35",
+    "blocks": [
+        {
+            "function": "configure",
+            "message": "configure ADC on pin $[PIN] with attenuation $[ATTEN]",
+            "args": [
+                {
+                    "type": "input_number",
+                    "name": "PIN",
+                    "check": "Number",
+                    "defaultType": "int",
+                    "visual": "shadow"
+                },
+                {
+                    "type": "field_dropdown",
+                    "name": "ATTEN",
+                    "options": [
+                        ["0 dB", "0"],
+                        ["2.5 dB", "2.5"],
+                        ["6 dB", "6"],
+                        ["11 dB", "11"]
+                    ]
+                }
+            ],
+            "tooltip": "Configure the ADC on the specified pin with optional attenuation",
+            "code": "adc.configure($[PIN], $[ATTEN])",
+            "previousStatement": null,
+            "nextStatement": null
+        },
+        {
+            "function": "read",
+            "message": "read ADC value from pin $[PIN]",
+            "args": [
+                {
+                    "type": "input_number",
+                    "name": "PIN",
+                    "check": "Number",
+                    "defaultType": "int",
+                    "visual": "shadow"
+                }
+            ],
+            "tooltip": "Read the ADC value from the specified pin (0-1023)",
+            "code": "adc.read($[PIN])",
+            "output": "Number"
+        }
+    ]
+}

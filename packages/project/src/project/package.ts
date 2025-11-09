@@ -1,6 +1,7 @@
 import * as z from "zod";
 import path from "path";
 import { FSInterface } from "../fs/index.js";
+import { zodToJsonSchema } from "@alcyone-labs/zod-to-json-schema";
 
 // package.json like definition for libraries
 
@@ -51,10 +52,14 @@ export type JacLyFiles = z.infer<typeof JacLyFilesSchema>;
 export type RegistryUris = z.infer<typeof RegistryUrisSchema>;
 export type PackageJson = z.infer<typeof PackageJsonSchema>;
 
+export function projectJsonSchema() {
+    return zodToJsonSchema(PackageJsonSchema, "jaculus-project");
+}
+
 export async function parsePackageJson(json: any): Promise<PackageJson> {
     const result = await PackageJsonSchema.safeParseAsync(json);
     if (!result.success) {
-        const pretty = z.prettifyError(result.error);
+        const pretty = result.error.format();
         throw new Error(`Invalid package.json format:\n${pretty}`);
     }
     return result.data;
@@ -103,4 +108,8 @@ export function splitLibraryNameVersion(library: string): { name: string; versio
     const version = library.substring(lastAtIndex + 1);
 
     return { name, version: version || null };
+}
+
+export function getPackagePath(projectPath: string, name: string): string {
+    return path.join(projectPath, "node_modules", name);
 }

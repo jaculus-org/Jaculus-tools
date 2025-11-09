@@ -1,0 +1,135 @@
+{
+    "version": "0.0.24",
+    "author": "Jakub Andrysek",
+    "github": "https://github.com/JakubAndrysek",
+    "license": "MIT",
+
+    "title": "GPIO",
+    "description": "General Purpose Input/Output blocks for pin control.",
+    "docs": "/docs/blocks/gpio",
+    "category": "GPIO",
+    "color": "#FF6B35",
+    "blocks": [
+        {
+            "function": "pinMode",
+            "message": "set pin $[PIN] mode $[MODE]",
+            "args": [
+                {
+                    "type": "input_number",
+                    "name": "PIN",
+                    "check": "Number",
+                    "defaultType": "int",
+                    "visual": "shadow"
+                },
+                {
+                    "type": "field_dropdown",
+                    "name": "MODE",
+                    "options": [
+                        ["DISABLE", "DISABLE"],
+                        ["OUTPUT", "OUTPUT"],
+                        ["INPUT", "INPUT"],
+                        ["INPUT_PULLUP", "INPUT_PULLUP"],
+                        ["INPUT_PULLDOWN", "INPUT_PULLDOWN"]
+                    ]
+                }
+            ],
+            "tooltip": "Configure the given pin with the specified mode",
+            "template": "gpio.pinMode($[PIN], gpio.PinMode.$[MODE])",
+            "previousStatement": null,
+            "nextStatement": null
+        },
+        {
+            "function": "write",
+            "message": "write value $[VALUE] to pin $[PIN]",
+            "args": [
+                {
+                    "type": "input_number",
+                    "name": "PIN",
+                    "check": "Number",
+                    "defaultType": "int",
+                    "visual": "shadow"
+                },
+                {
+                    "type": "input_number",
+                    "name": "VALUE",
+                    "check": "Number",
+                    "defaultType": "int",
+                    "visual": "shadow"
+                }
+            ],
+            "tooltip": "Write digital value to the given pin",
+            "template": "gpio.write($[PIN], $[VALUE])",
+            "previousStatement": null,
+            "nextStatement": null
+        },
+        {
+            "function": "read",
+            "message": "read value from pin $[PIN]",
+            "args": [
+                {
+                    "type": "input_number",
+                    "name": "PIN",
+                    "check": "Number",
+                    "defaultType": "int",
+                    "visual": "shadow"
+                }
+            ],
+            "tooltip": "Read digital value from the given pin",
+            "template": "gpio.read($[PIN])",
+            "output": "Number"
+        },
+        {
+            "function": "on",
+            "message": "on $[EVENT] pin $[PIN] do",
+            "args": [
+                {
+                    "type": "field_dropdown",
+                    "name": "EVENT",
+                    "options": [
+                        ["rising", "rising"],
+                        ["falling", "falling"],
+                        ["change", "change"]
+                    ]
+                },
+                {
+                    "type": "input_number",
+                    "name": "PIN",
+                    "check": "Number",
+                    "defaultType": "int",
+                    "visual": "shadow"
+                }
+            ],
+            "tooltip": "Set event handler for the given pin and event",
+            "template": "gpio.on('$[EVENT]', $[PIN], function(info) {\n  $STATEMENTS$\n})",
+            "previousStatement": null,
+            "nextStatement": null,
+            "statements": true
+        },
+        {
+            "function": "off",
+            "message": "remove $[EVENT] handler from pin $[PIN]",
+            "args": [
+                {
+                    "type": "field_dropdown",
+                    "name": "EVENT",
+                    "options": [
+                        ["rising", "rising"],
+                        ["falling", "falling"],
+                        ["change", "change"]
+                    ]
+                },
+                {
+                    "type": "input_number",
+                    "name": "PIN",
+                    "check": "Number",
+                    "defaultType": "int",
+                    "visual": "shadow"
+                }
+            ],
+            "tooltip": "Remove event handler for the given pin and event",
+            "template": "gpio.off('$[EVENT]', $[PIN])",
+            "previousStatement": null,
+            "nextStatement": null
+        }
+    ]
+}

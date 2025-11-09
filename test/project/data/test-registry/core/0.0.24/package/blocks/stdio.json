@@ -1,0 +1,40 @@
+{
+    "version": "0.0.24",
+    "author": "Jakub Andrysek",
+    "github": "https://github.com/JakubAndrysek",
+    "license": "MIT",
+
+    "title": "STDIO",
+    "description": "Standard Input/Output blocks for reading and writing data.",
+    "docs": "/docs/blocks/stdio",
+    "category": "I/O",
+    "color": "#FF6B35",
+    "blocks": [
+        {
+            "function": "console_log",
+            "message": "log message to console",
+            "args": [
+                {
+                    "type": "input_value",
+                    "name": "MESSAGE",
+                    "check": "String"
+                },
+                {
+                    "type": "field_dropdown",
+                    "name": "METHOD",
+                    "options": [
+                        ["log", "log"],
+                        ["debug", "debug"],
+                        ["warn", "warn"],
+                        ["error", "error"],
+                        ["info", "info"]
+                    ]
+                }
+            ],
+            "tooltip": "Log a message to the console using the selected method",
+            "template": "console.$[METHOD]($[MESSAGE])",
+            "previousStatement": null,
+            "nextStatement": null
+        }
+    ]
+}
