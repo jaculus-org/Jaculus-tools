@@ -56,10 +56,10 @@ export function projectJsonSchema() {
     return zodToJsonSchema(PackageJsonSchema, "jaculus-project");
 }
 
-export async function parsePackageJson(json: any): Promise<PackageJson> {
-    const result = await PackageJsonSchema.safeParseAsync(json);
+export function parsePackageJson(json: any): PackageJson {
+    const result = PackageJsonSchema.safeParse(json);
     if (!result.success) {
-        const pretty = result.error.format();
+        const pretty = z.prettifyError(result.error);
         throw new Error(`Invalid package.json format:\n${pretty}`);
     }
     return result.data;
@@ -67,6 +67,12 @@ export async function parsePackageJson(json: any): Promise<PackageJson> {
 
 export async function loadPackageJson(fs: FSInterface, filePath: string): Promise<PackageJson> {
     const data = await fs.promises.readFile(filePath, { encoding: "utf-8" });
+    const json = JSON.parse(data);
+    return parsePackageJson(json);
+}
+
+export function loadPackageJsonSync(fs: FSInterface, filePath: string): PackageJson {
+    const data = fs.readFileSync(filePath, { encoding: "utf-8" });
     const json = JSON.parse(data);
     return parsePackageJson(json);
 }

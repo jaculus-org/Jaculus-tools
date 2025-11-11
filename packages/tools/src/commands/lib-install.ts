@@ -12,7 +12,7 @@ const cmd = new Command("Install Jaculus libraries base on project's package.jso
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
         const registry = new Registry(pkg?.registry || [], uriRequest);
-        const project = new Project(fs, projectPath, stdout, stderr, pkg, registry);
+        const project = new Project(fs, projectPath, stdout, stderr, registry);
 
         const { name, version } = splitLibraryNameVersion(libraryName);
         if (name && version) {

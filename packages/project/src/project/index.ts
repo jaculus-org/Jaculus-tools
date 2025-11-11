@@ -5,6 +5,7 @@ import { Registry } from "./registry.js";
 import {
     parsePackageJson,
     loadPackageJson,
+    loadPackageJsonSync,
     savePackageJson,
     RegistryUris,
     Dependencies,
@@ -27,7 +28,6 @@ export class Project {
         public projectPath: string,
         public out: Writable,
         public err: Writable,
-        public pkg?: PackageJson,
         public registry?: Registry
     ) {}
 
@@ -136,9 +136,17 @@ export class Project {
         await this.unpackPackage(pkg, filter, dryRun);
     }
 
+    async installedLibraries(returnResolved: boolean = false): Promise<Dependencies> {
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
+        if (returnResolved) {
+            const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+            return resolvedDeps;
+        }
+        return pkg.dependencies;
+    }
+
     async install(): Promise<void> {
         this.out.write("Resolving project dependencies...\n");
-
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
         await this.installDependencies(resolvedDeps);
@@ -151,9 +159,11 @@ export class Project {
         }
 
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
-        if (await this.addLibVersion(library, version, pkg.dependencies)) {
+        const resolvedDeps = await this.addLibVersion(library, version, pkg.dependencies);
+        if (resolvedDeps) {
             pkg.dependencies[library] = version;
             await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
+            await this.installDependencies(resolvedDeps);
         } else {
             throw new Error(`Failed to add library '${library}@${version}' to project`);
         }
@@ -169,52 +179,25 @@ export class Project {
         const baseDeps = await this.resolveDependencies({ ...pkg.dependencies });
         const versions = (await this.registry?.listVersions(library)) || [];
         for (const version of versions) {
-            if (await this.addLibVersion(library, version, baseDeps)) {
+            const resolvedDeps = await this.addLibVersion(library, version, baseDeps);
+            if (resolvedDeps) {
                 pkg.dependencies[library] = version;
                 await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
+                await this.installDependencies(resolvedDeps);
                 return;
             }
         }
         throw new Error(`Failed to add library '${library}' to project with any available version`);
     }
 
-    async removeLibrary(library: string): Promise<void> {
-        this.out.write(`Removing library '${library}' from project...\n`);
+    async removeLibrary(libName: string): Promise<void> {
+        this.out.write(`Removing library '${libName}' from project...\n`);
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
-        delete pkg.dependencies[library];
+        delete pkg.dependencies[libName];
         await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
-        this.out.write(`Successfully removed library '${library}' from project\n`);
-    }
-
-    async getJacLyFolder(): Promise<string | undefined> {
-        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
-        return pkg.jaculus?.blocks;
-    }
-
-    /**
-     * Get all JacLy files from project dependencies (requires installed dependencies in FS)
-     * @param dependencies
-     * @returns Array of JacLy file paths
-     */
-    async getJacLyFiles(): Promise<string[]> {
-        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
-        const jaclyFiles: string[] = [];
-        for (const [libName] of Object.entries(resolvedDeps)) {
-            const pkg = await loadPackageJson(this.fs, path.join(libName, "package.json"));
-            if (!pkg) {
-                this.err.write(
-                    `Failed to load package.json for '${libName}'. Install dependencies before fetching JacLy files.\n`
-                );
-                continue;
-            }
-            if (pkg.jaculus && pkg.jaculus.blocks) {
-                jaclyFiles.push(
-                    path.join(getPackagePath(this.projectPath, libName), pkg.jaculus.blocks)
-                );
-            }
-        }
-        return jaclyFiles;
+        await this.installDependencies(resolvedDeps);
+        this.out.write(`Successfully removed library '${libName}' from project\n`);
     }
 
     // Private methods
@@ -273,6 +256,13 @@ export class Project {
     }
 
     private async installDependencies(dependencies: Dependencies): Promise<void> {
+        // remove all existing installed libraries
+        const projectPackages = getPackagePath(this.projectPath, "");
+        if (this.fs.existsSync(projectPackages)) {
+            await this.fs.promises.rm(projectPackages, { recursive: true, force: true });
+        }
+
+        // install all resolved dependencies
         for (const [libName, libVersion] of Object.entries(dependencies)) {
             try {
                 this.out.write(` - Installing library '${libName}' version '${libVersion}'\n`);
@@ -295,15 +285,45 @@ export class Project {
         library: string,
         version: string,
         testedDeps: Dependencies
-    ): Promise<boolean> {
+    ): Promise<Dependencies | null> {
         const newDeps = { ...testedDeps, [library]: version };
         try {
-            await this.resolveDependencies(newDeps);
-            return true;
+            return this.resolveDependencies(newDeps);
         } catch (error) {
             this.err.write(`Error adding library '${library}@${version}': ${error}\n`);
         }
-        return false;
+        return null;
+    }
+
+    async getJacLyFolder(): Promise<string | undefined> {
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
+        return pkg.jaculus?.blocks;
+    }
+
+    /**
+     * Get all JacLy files from project dependencies (requires installed dependencies in FS)
+     * @param dependencies
+     * @returns Array of JacLy file paths
+     */
+    async getJacLyFiles(): Promise<string[]> {
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+        const jaclyFiles: string[] = [];
+        for (const [libName] of Object.entries(resolvedDeps)) {
+            const pkg = await loadPackageJson(this.fs, path.join(libName, "package.json"));
+            if (!pkg) {
+                this.err.write(
+                    `Failed to load package.json for '${libName}'. Install dependencies before fetching JacLy files.\n`
+                );
+                continue;
+            }
+            if (pkg.jaculus && pkg.jaculus.blocks) {
+                jaclyFiles.push(
+                    path.join(getPackagePath(this.projectPath, libName), pkg.jaculus.blocks)
+                );
+            }
+        }
+        return jaclyFiles;
     }
 }
 
@@ -316,6 +336,7 @@ export {
     PackageJson,
     parsePackageJson,
     loadPackageJson,
+    loadPackageJsonSync,
     savePackageJson,
     splitLibraryNameVersion,
     projectJsonSchema,

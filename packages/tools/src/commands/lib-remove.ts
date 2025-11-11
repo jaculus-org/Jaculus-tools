@@ -12,7 +12,7 @@ const cmd = new Command("Remove a library from the project package.json", {
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
         const registry = new Registry(pkg.registry, uriRequest);
-        const project = new Project(fs, projectPath, stdout, stderr, pkg, registry);
+        const project = new Project(fs, projectPath, stdout, stderr, registry);
         await project.removeLibrary(libraryName);
         await project.install();
     },
