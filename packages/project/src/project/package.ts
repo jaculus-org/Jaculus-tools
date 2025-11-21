@@ -25,8 +25,6 @@ const DescriptionSchema = z.string();
 // - in first version, only exact versions are supported
 const DependenciesSchema = z.record(NameSchema, VersionSchema);
 
-const JacLyFilesSchema = z.array(z.string());
-
 const RegistryUrisSchema = z.array(z.string());
 
 const JaculusSchema = z.object({
@@ -34,11 +32,10 @@ const JaculusSchema = z.object({
 });
 
 const PackageJsonSchema = z.object({
-    name: NameSchema.optional(),
-    version: VersionSchema.optional(),
+    name: NameSchema,
+    version: VersionSchema,
     description: DescriptionSchema.optional(),
     dependencies: DependenciesSchema.default({}),
-    jacly: JacLyFilesSchema.optional(),
     registry: RegistryUrisSchema.optional(),
     jaculus: JaculusSchema.optional(),
 });
@@ -48,7 +45,6 @@ export type Dependency = {
     version: string;
 };
 export type Dependencies = z.infer<typeof DependenciesSchema>;
-export type JacLyFiles = z.infer<typeof JacLyFilesSchema>;
 export type RegistryUris = z.infer<typeof RegistryUrisSchema>;
 export type PackageJson = z.infer<typeof PackageJsonSchema>;
 

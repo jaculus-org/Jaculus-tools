@@ -10,7 +10,6 @@ import {
     RegistryUris,
     Dependencies,
     Dependency,
-    JacLyFiles,
     PackageJson,
     splitLibraryNameVersion,
     getPackagePath,
@@ -310,7 +309,7 @@ export class Project {
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
         const jaclyFiles: string[] = [];
         for (const [libName] of Object.entries(resolvedDeps)) {
-            const pkg = await loadPackageJson(this.fs, path.join(libName, "package.json"));
+            const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "node_modules", libName, "package.json"));
             if (!pkg) {
                 this.err.write(
                     `Failed to load package.json for '${libName}'. Install dependencies before fetching JacLy files.\n`
@@ -318,9 +317,22 @@ export class Project {
                 continue;
             }
             if (pkg.jaculus && pkg.jaculus.blocks) {
-                jaclyFiles.push(
-                    path.join(getPackagePath(this.projectPath, libName), pkg.jaculus.blocks)
-                );
+                const blockFilePath = path.join(this.projectPath, "node_modules", libName, pkg.jaculus.blocks);
+                // read folder and add all .json file
+                if (this.fs.existsSync(blockFilePath)) {
+                    const files = this.fs.readdirSync(blockFilePath);
+                    for (const file of files) {
+                        const justFilename = path.basename(file);
+                        if (file.endsWith(".json") && !justFilename.startsWith(".")) {
+                            const fullPath = path.join(blockFilePath, file);
+                            jaclyFiles.push(fullPath);
+                        }
+                    }
+                } else {
+                    this.err.write(
+                        `JacLy blocks folder '${blockFilePath}' does not exist for library '${libName}'.\n`
+                    );
+                }
             }
         }
         return jaclyFiles;
@@ -331,7 +343,6 @@ export {
     Registry,
     Dependency,
     Dependencies,
-    JacLyFiles,
     RegistryUris,
     PackageJson,
     parsePackageJson,
