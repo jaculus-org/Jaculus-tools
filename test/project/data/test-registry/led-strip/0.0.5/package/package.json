@@ -8,6 +8,6 @@
     "main": "",
     "types": "dist/types/index.d.ts",
     "dependencies": {
-        "color": "0.0.2"
+        "colour": "0.0.2"
     }
 }

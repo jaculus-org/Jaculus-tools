@@ -127,9 +127,9 @@ describe("Project - Dependency Management", () => {
                 });
 
                 const project = await createProject(projectPath, mockOut, mockErr, getRequest);
-                await project.addLibrary("color");
+                await project.addLibrary("colour");
 
-                expectPackageJson(projectPath, { hasDependency: ["color"] });
+                expectPackageJson(projectPath, { hasDependency: ["colour"] });
                 expectOutput(mockOut, ["Adding library 'color'"]);
             } finally {
                 cleanup();
@@ -186,10 +186,10 @@ describe("Project - Dependency Management", () => {
                 });
 
                 const project = await createProject(projectPath, mockOut, mockErr, getRequest);
-                await project.addLibrary("color");
+                await project.addLibrary("colour");
 
                 expectPackageJson(projectPath, { hasDependency: ["core", "0.0.24"] });
-                expectPackageJson(projectPath, { hasDependency: ["color"] });
+                expectPackageJson(projectPath, { hasDependency: ["colour"] });
             } finally {
                 cleanup();
             }
@@ -207,9 +207,9 @@ describe("Project - Dependency Management", () => {
                 });
 
                 const project = await createProject(projectPath, mockOut, mockErr, getRequest);
-                await project.addLibraryVersion("color", "0.0.2");
+                await project.addLibraryVersion("colour", "0.0.2");
 
-                expectPackageJson(projectPath, { hasDependency: ["color", "0.0.2"] });
+                expectPackageJson(projectPath, { hasDependency: ["colour", "0.0.2"] });
                 expectOutput(mockOut, ["Adding library 'color@0.0.2'"]);
             } finally {
                 cleanup();
@@ -248,9 +248,9 @@ describe("Project - Dependency Management", () => {
                 });
 
                 const project = await createProject(projectPath, mockOut, mockErr, getRequest);
-                await project.addLibraryVersion("color", "0.0.2");
+                await project.addLibraryVersion("colour", "0.0.2");
 
-                expectPackageJson(projectPath, { hasDependency: ["color", "0.0.2"] });
+                expectPackageJson(projectPath, { hasDependency: ["colour", "0.0.2"] });
             } finally {
                 cleanup();
             }
@@ -268,10 +268,10 @@ describe("Project - Dependency Management", () => {
                 });
 
                 const project = await createProject(projectPath, mockOut, mockErr, getRequest);
-                await project.removeLibrary("color");
+                await project.removeLibrary("colour");
 
                 expectPackageJson(projectPath, {
-                    noDependency: "color",
+                    noDependency: "colour",
                     hasDependency: ["core", "0.0.24"],
                 });
                 expectOutput(mockOut, [
@@ -311,10 +311,10 @@ describe("Project - Dependency Management", () => {
                 });
 
                 const project = await createProject(projectPath, mockOut, mockErr, getRequest);
-                await project.removeLibrary("color");
+                await project.removeLibrary("colour");
 
                 expectPackageJson(projectPath, {
-                    noDependency: "color",
+                    noDependency: "colour",
                     hasDependency: ["core", "0.0.24"],
                 });
                 expectPackageJson(projectPath, { hasDependency: ["led-strip", "0.0.5"] });
@@ -355,8 +355,8 @@ describe("Project - Dependency Management", () => {
                 const project = await createProject(projectPath, mockOut, mockErr, getRequest);
 
                 // Add a library
-                await project.addLibrary("color");
-                expectPackageJson(projectPath, { hasDependency: ["color"] });
+                await project.addLibrary("colour");
+                expectPackageJson(projectPath, { hasDependency: ["colour"] });
 
                 // Install dependencies
                 mockOut.clear();
@@ -366,13 +366,13 @@ describe("Project - Dependency Management", () => {
                 mockOut.clear();
                 await project.addLibrary("core");
                 expectPackageJson(projectPath, { hasDependency: ["core"] });
-                expectPackageJson(projectPath, { hasDependency: ["color"] });
+                expectPackageJson(projectPath, { hasDependency: ["colour"] });
 
                 // Remove a library
                 mockOut.clear();
-                await project.removeLibrary("color");
+                await project.removeLibrary("colour");
                 expectPackageJson(projectPath, {
-                    noDependency: "color",
+                    noDependency: "colour",
                     hasDependency: ["core"],
                 });
             } finally {

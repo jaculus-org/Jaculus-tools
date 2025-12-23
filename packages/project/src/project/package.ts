@@ -14,10 +14,23 @@ const NameSchema = z
     .regex(/^(?:(?:@(?:[a-z0-9-*~][a-z0-9-*._~]*)?\/[a-z0-9-._~])|[a-z0-9-~])[a-z0-9-._~]*$/);
 
 // version: semver (1.0.0, 0.1.0, 0.0.1, 1.0.0-beta, etc)
-const VersionSchema = z
+const VersionFormat = z
     .string()
     .min(1)
     .regex(/^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?$/);
+
+// VersionFormat or "workspace:<VersionFormat>"
+const VersionSchema = z.string().refine(
+    (val) => {
+        if (val.startsWith("workspace:")) {
+            const versionPart = val.substring("workspace:".length);
+            return VersionFormat.safeParse(versionPart).success;
+        } else {
+            return VersionFormat.safeParse(val).success;
+        }
+    },
+    { message: "Invalid version format" }
+);
 
 const DescriptionSchema = z.string();
 
@@ -27,8 +40,10 @@ const DependenciesSchema = z.record(NameSchema, VersionSchema);
 
 const RegistryUrisSchema = z.array(z.string());
 
+const JaculusProjectTypeSchema = z.enum(["code", "jacly"]);
 const JaculusSchema = z.object({
     blocks: z.string().optional(),
+    template: JaculusProjectTypeSchema.optional(),
 });
 
 const PackageJsonSchema = z.object({
@@ -47,16 +62,18 @@ export type Dependency = {
 export type Dependencies = z.infer<typeof DependenciesSchema>;
 export type RegistryUris = z.infer<typeof RegistryUrisSchema>;
 export type PackageJson = z.infer<typeof PackageJsonSchema>;
+export type JaculusProjectType = z.infer<typeof JaculusProjectTypeSchema>;
+export type JaculusConfig = z.infer<typeof JaculusSchema>;
 
 export function projectJsonSchema() {
     return zodToJsonSchema(PackageJsonSchema, "jaculus-project");
 }
 
-export function parsePackageJson(json: any): PackageJson {
+export function parsePackageJson(json: any, file: string): PackageJson {
     const result = PackageJsonSchema.safeParse(json);
     if (!result.success) {
         const pretty = z.prettifyError(result.error);
-        throw new Error(`Invalid package.json format:\n${pretty}`);
+        throw new Error(`Invalid package.json format in file '${file}':\n${pretty}`);
     }
     return result.data;
 }
@@ -64,13 +81,13 @@ export function parsePackageJson(json: any): PackageJson {
 export async function loadPackageJson(fs: FSInterface, filePath: string): Promise<PackageJson> {
     const data = await fs.promises.readFile(filePath, { encoding: "utf-8" });
     const json = JSON.parse(data);
-    return parsePackageJson(json);
+    return parsePackageJson(json, filePath);
 }
 
 export function loadPackageJsonSync(fs: FSInterface, filePath: string): PackageJson {
     const data = fs.readFileSync(filePath, { encoding: "utf-8" });
     const json = JSON.parse(data);
-    return parsePackageJson(json);
+    return parsePackageJson(json, filePath);
 }
 
 export async function savePackageJson(

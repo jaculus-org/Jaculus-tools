@@ -25,7 +25,7 @@ describe("Registry", () => {
                 .to.be.an("array")
                 .that.includes("core")
                 .and.includes("led-strip")
-                .and.includes("color");
+                .and.includes("colour");
         });
 
         it("should handle multiple registries", async () => {
@@ -95,7 +95,7 @@ describe("Registry", () => {
         it("should list all versions for a library", async () => {
             const getRequest = createGetRequest();
             const registry = new Registry([registryBasePath], getRequest);
-            const versions = await registry.listVersions("color");
+            const versions = await registry.listVersions("colour");
             expect(versions).to.be.an("array").that.includes("0.0.1").and.includes("0.0.2");
         });
 
@@ -115,7 +115,7 @@ describe("Registry", () => {
             const getRequestFailure = createFailingGetRequest();
             const registry = new Registry([registryBasePath], getRequestFailure);
             try {
-                await registry.listVersions("color");
+                await registry.listVersions("colour");
                 expect.fail("Expected registry.listVersions() to throw an error");
             } catch (error) {
                 expect(error).to.be.an("error");

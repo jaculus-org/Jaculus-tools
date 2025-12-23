@@ -3,8 +3,7 @@ import { getRequestJson, RequestFunction } from "../fs/index.js";
 import { PackageJson, parsePackageJson } from "./package.js";
 import * as z from "zod";
 
-export const DefaultRegistryUrl = ["https://f.jaculus.org/libs"];
-
+export const DefaultRegistryUrl = ["https://registry.jaculus.org"];
 
 /**
  *
@@ -15,7 +14,7 @@ export const DefaultRegistryUrl = ["https://f.jaculus.org/libs"];
  *   |    |   |-- package.tar.gz
  *   |    |   |-- package.json (same as in package)
  *	 |-- versions.json (list of versions) [{"version":"0.0.24"},{"version":"0.0.25"}]
-* 	 |-- list.json (list of packages) [{"id":"core"},{"id":"smart-led"}]
+ * 	 |-- list.json (list of packages) [{"id":"core"},{"id":"smart-led"}]
  *
  *
  * package.tar.gz contains:
@@ -25,7 +24,6 @@ export const DefaultRegistryUrl = ["https://f.jaculus.org/libs"];
  *     |-- package.json
  *     |-- README.md
  */
-
 
 const RegistryListSchema = z.array(
     z.object({
@@ -60,7 +58,6 @@ export function parseRegistryVersions(json: object): RegistryVersions {
     return result.data;
 }
 
-
 export class Registry {
     public registryUri: string[];
 
@@ -77,14 +74,13 @@ export class Registry {
             const allLibraries: Map<string, string> = new Map();
 
             for (const uri of this.registryUri) {
-                const libraries = parseRegistryList(await getRequestJson(this.getRequest, uri, "list.json"));
+                const libraries = parseRegistryList(
+                    await getRequestJson(this.getRequest, uri, "list.json")
+                );
                 for (const item of libraries) {
-                    if (allLibraries.has(item.id)) {
-                        throw new Error(
-                            `Duplicate library ID '${item.id}' found in registry '${uri}'. Previously defined in registry '${allLibraries.get(item.id)}'`
-                        );
+                    if (!allLibraries.has(item.id)) {
+                        allLibraries.set(item.id, uri);
                     }
-                    allLibraries.set(item.id, uri);
                 }
             }
 
@@ -106,14 +102,17 @@ export class Registry {
         const versions = await this.retrieveSingleResultFromRegistries(async (uri) => {
             return getRequestJson(this.getRequest, uri, `${library}/versions.json`);
         }, `Failed to fetch versions for library '${library}'`);
-        return parseRegistryVersions(versions).map((item) => item.version).sort(semver.rcompare);
+        return parseRegistryVersions(versions)
+            .map((item) => item.version)
+            .sort(semver.rcompare);
     }
 
     public async getPackageJson(library: string, version: string): Promise<PackageJson> {
+        const path = `${library}/${version}/package.json`;
         const json = await this.retrieveSingleResultFromRegistries(async (uri) => {
-            return getRequestJson(this.getRequest, uri, `${library}/${version}/package.json`);
+            return getRequestJson(this.getRequest, uri, path);
         }, `Failed to fetch package.json for library '${library}' version '${version}'`);
-        return parsePackageJson(json);
+        return parsePackageJson(json, path);
     }
 
     public async getPackageTgz(library: string, version: string): Promise<Uint8Array> {

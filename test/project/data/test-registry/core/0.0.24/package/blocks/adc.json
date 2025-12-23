@@ -8,7 +8,7 @@
     "description": "Analog-to-Digital Converter blocks for reading analog signals.",
     "docs": "/docs/blocks/adc",
     "category": "Sensors",
-    "color": "#FF6B35",
+    "colour": "#FF6B35",
     "blocks": [
         {
             "function": "configure",

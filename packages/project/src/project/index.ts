@@ -14,6 +14,8 @@ import {
     splitLibraryNameVersion,
     getPackagePath,
     projectJsonSchema,
+    JaculusProjectType,
+    JaculusConfig,
 } from "./package.js";
 
 export interface ProjectPackage {
@@ -309,7 +311,10 @@ export class Project {
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
         const jaclyFiles: string[] = [];
         for (const [libName] of Object.entries(resolvedDeps)) {
-            const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "node_modules", libName, "package.json"));
+            const pkg = await loadPackageJson(
+                this.fs,
+                path.join(this.projectPath, "node_modules", libName, "package.json")
+            );
             if (!pkg) {
                 this.err.write(
                     `Failed to load package.json for '${libName}'. Install dependencies before fetching JacLy files.\n`
@@ -317,7 +322,12 @@ export class Project {
                 continue;
             }
             if (pkg.jaculus && pkg.jaculus.blocks) {
-                const blockFilePath = path.join(this.projectPath, "node_modules", libName, pkg.jaculus.blocks);
+                const blockFilePath = path.join(
+                    this.projectPath,
+                    "node_modules",
+                    libName,
+                    pkg.jaculus.blocks
+                );
                 // read folder and add all .json file
                 if (this.fs.existsSync(blockFilePath)) {
                     const files = this.fs.readdirSync(blockFilePath);
@@ -351,4 +361,6 @@ export {
     savePackageJson,
     splitLibraryNameVersion,
     projectJsonSchema,
+    JaculusProjectType,
+    JaculusConfig,
 };

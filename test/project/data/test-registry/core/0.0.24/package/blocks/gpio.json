@@ -8,7 +8,7 @@
     "description": "General Purpose Input/Output blocks for pin control.",
     "docs": "/docs/blocks/gpio",
     "category": "GPIO",
-    "color": "#FF6B35",
+    "colour": "#FF6B35",
     "blocks": [
         {
             "function": "pinMode",
