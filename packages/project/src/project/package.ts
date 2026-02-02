@@ -1,7 +1,6 @@
 import * as z from "zod";
 import path from "path";
 import { FSInterface } from "../fs/index.js";
-import { zodToJsonSchema } from "@alcyone-labs/zod-to-json-schema";
 
 // package.json like definition for libraries
 
@@ -46,6 +45,20 @@ const JaculusSchema = z.object({
     template: JaculusProjectTypeSchema.optional(),
 });
 
+const ExportKeyValueSchema = z.record(z.string(), z.string());
+// const ExportsAdvancedSchema = z.union([z.string(), ExportKeyValueSchema]).optional();
+
+const ExportsSchema = z.union([
+    z.string(),
+    ExportKeyValueSchema,
+    // z.object({
+    //     import: ExportsAdvancedSchema,
+    //     require: ExportsAdvancedSchema,
+    //     default: ExportsAdvancedSchema,
+    //     types: ExportsAdvancedSchema,
+    // }),
+]);
+
 const PackageJsonSchema = z.object({
     name: NameSchema,
     version: VersionSchema,
@@ -53,6 +66,10 @@ const PackageJsonSchema = z.object({
     dependencies: DependenciesSchema.default({}),
     registry: RegistryUrisSchema.optional(),
     jaculus: JaculusSchema.optional(),
+    type: z.enum(["module"]).optional(),
+    main: z.string().optional(),
+    exports: ExportsSchema.optional(),
+    types: z.string().optional(),
 });
 
 export type Dependency = {
@@ -66,7 +83,7 @@ export type JaculusProjectType = z.infer<typeof JaculusProjectTypeSchema>;
 export type JaculusConfig = z.infer<typeof JaculusSchema>;
 
 export function projectJsonSchema() {
-    return zodToJsonSchema(PackageJsonSchema, "jaculus-project");
+    return z.toJSONSchema(PackageJsonSchema, {});
 }
 
 export function parsePackageJson(json: any, file: string): PackageJson {

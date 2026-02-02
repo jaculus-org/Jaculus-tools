@@ -80,7 +80,7 @@ export async function compile(
         }
     }
 
-    out.write("Compiling files:" + fileNames.join(", "));
+    out.write("Compiling files: " + fileNames.join(", ") + "\n");
 
     const host = tsvfs.createVirtualCompilerHost(system, compilerOptions, tsLibsPath);
 

@@ -3,7 +3,7 @@ import { Arg, Command, Opt } from "./lib/command.js";
 import fs from "fs";
 import { loadPackageJson, Project, Registry, splitLibraryNameVersion } from "@jaculus/project";
 import { uriRequest } from "../util.js";
-import path from "path/win32";
+import path from "path";
 
 const cmd = new Command("Install Jaculus libraries base on project's package.json", {
     action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {

@@ -130,7 +130,7 @@ export class Registry {
                 const result = await action(uri);
                 return result;
             } catch {
-                // Try next registry
+                // try next registry
             }
         }
         throw new Error(errorMessage);

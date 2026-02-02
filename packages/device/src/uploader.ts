@@ -2,6 +2,7 @@ import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link
 import { Packet } from "@jaculus/link/linkTypes";
 import { Logger } from "@jaculus/common";
 import { encodePath } from "./util.js";
+import crypto from "crypto";
 
 export enum UploaderCommand {
     READ_FILE = 0x01,
@@ -42,6 +43,17 @@ export const UploaderCommandStrings: Record<UploaderCommand, string> = {
     [UploaderCommand.LOCK_NOT_OWNED]: "LOCK_NOT_OWNED",
     [UploaderCommand.GET_DIR_HASHES]: "GET_DIR_HASHES",
 };
+
+enum SyncAction {
+    Noop,
+    Delete,
+    Upload,
+}
+
+interface RemoteFileInfo {
+    sha1: string;
+    action: SyncAction;
+}
 
 export class Uploader {
     private _in: InputPacketCommunicator;
@@ -488,5 +500,93 @@ export class Uploader {
             }
             packet.send();
         });
+    }
+
+    public async uploadIfDifferent(
+        remoteHashes: [string, string][],
+        files: Record<string, Uint8Array>,
+        to: string
+    ) {
+        const filesInfo: Record<string, RemoteFileInfo> = Object.fromEntries(
+            remoteHashes.map(([name, sha1]) => {
+                return [
+                    name,
+                    {
+                        sha1: sha1,
+                        action: SyncAction.Delete,
+                    },
+                ];
+            })
+        );
+
+        for (const [filePath, data] of Object.entries(files)) {
+            const sha1 = crypto.createHash("sha1").update(data).digest("hex");
+            const info = filesInfo[filePath];
+            if (info === undefined) {
+                filesInfo[filePath] = {
+                    sha1: sha1,
+                    action: SyncAction.Upload,
+                };
+                this._logger?.verbose(`${filePath} is new, will upload`);
+            } else if (info.sha1 === sha1) {
+                info.action = SyncAction.Noop;
+                this._logger?.verbose(`${filePath} has same sha1 on device and on disk, skipping`);
+            } else {
+                info.action = SyncAction.Upload;
+                this._logger?.verbose(`${filePath} is different, will upload`);
+            }
+        }
+
+        const existingFolders = new Set<string>();
+        let countUploaded = 0;
+        let countDeleted = 0;
+
+        for (const [rel_path, info] of Object.entries(filesInfo)) {
+            const dest_path = `${to}/${rel_path}`;
+            switch (info.action) {
+                case SyncAction.Noop:
+                    break;
+                case SyncAction.Delete:
+                    try {
+                        await this.deleteFile(dest_path);
+                    } catch (err) {
+                        this._logger?.verbose(`Error deleting file ${dest_path}: ${err}`);
+                    }
+                    ++countDeleted;
+                    break;
+                case SyncAction.Upload: {
+                    const parts = dest_path.split("/");
+                    let cur_dir_part = "";
+                    for (const p of parts.slice(0, parts.length - 1)) {
+                        if (p === "") {
+                            continue;
+                        }
+                        const abs_p = cur_dir_part + p;
+                        if (!existingFolders.has(abs_p)) {
+                            await this.createDirectory(abs_p).catch((err: unknown) => {
+                                this._logger?.error("Error creating directory: " + err);
+                            });
+                            existingFolders.add(abs_p);
+                        }
+                        cur_dir_part += `${p}/`;
+                    }
+
+                    const data = files[rel_path];
+                    await this.writeFile(dest_path, data).catch((cmd: UploaderCommand) => {
+                        throw (
+                            "Failed to write file (" +
+                            dest_path +
+                            "): " +
+                            UploaderCommandStrings[cmd]
+                        );
+                    });
+
+                    ++countUploaded;
+                    break;
+                }
+            }
+        }
+
+        this._logger?.info(`Files synced, ${countUploaded} uploaded, ${countDeleted} deleted`);
     }
 }

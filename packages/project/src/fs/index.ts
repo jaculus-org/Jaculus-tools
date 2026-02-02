@@ -96,3 +96,27 @@ export async function extractTgz(
         }
     }
 }
+
+export async function traverseDirectory(
+    fsp: FSPromisesInterface,
+    dir: string,
+    callback: (filePath: string, content: Uint8Array) => Promise<void>,
+    filterFiles?: (filePath: string) => boolean,
+    filterDirs?: (dirPath: string) => boolean
+) {
+    const entries = await fsp.readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            if (!filterDirs || filterDirs(fullPath)) {
+                await traverseDirectory(fsp, fullPath, callback, filterFiles, filterDirs);
+            }
+        } else if (entry.isFile()) {
+            if (!filterFiles || filterFiles(fullPath)) {
+                const content = await fsp.readFile(fullPath);
+
+                await callback(fullPath, content);
+            }
+        }
+    }
+}

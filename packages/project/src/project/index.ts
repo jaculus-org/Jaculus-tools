@@ -1,6 +1,6 @@
 import path from "path";
 import { Writable } from "stream";
-import { extractTgz, FSInterface } from "../fs/index.js";
+import { extractTgz, FSInterface, traverseDirectory } from "../fs/index.js";
 import { Registry } from "./registry.js";
 import {
     parsePackageJson,
@@ -21,6 +21,15 @@ import {
 export interface ProjectPackage {
     dirs: string[];
     files: Record<string, Uint8Array>;
+}
+
+export interface JaclyBlocksFiles {
+    [filePath: string]: object;
+}
+
+export interface JaclyData {
+    blockFiles: JaclyBlocksFiles;
+    translations: Record<string, string>;
 }
 
 export class Project {
@@ -201,7 +210,6 @@ export class Project {
         this.out.write(`Successfully removed library '${libName}' from project\n`);
     }
 
-    // Private methods
     private async resolveDependencies(dependencies: Dependencies): Promise<Dependencies> {
         const resolvedDeps = { ...dependencies };
         const processedLibraries = new Set<string>();
@@ -302,14 +310,14 @@ export class Project {
     }
 
     /**
-     * Get all JacLy files from project dependencies (requires installed dependencies in FS)
+     * Get all JacLy block files from installed libraries
      * @param dependencies
-     * @returns Array of JacLy file paths
+     * @returns JaclyBlocksFiles - key is file path, value is parsed JSON content
      */
-    async getJacLyFiles(): Promise<string[]> {
+    async getJaclyBlockFiles(): Promise<JaclyBlocksFiles> {
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
-        const jaclyFiles: string[] = [];
+        const jaclyBlockFiles: JaclyBlocksFiles = {};
         for (const [libName] of Object.entries(resolvedDeps)) {
             const pkg = await loadPackageJson(
                 this.fs,
@@ -328,14 +336,22 @@ export class Project {
                     libName,
                     pkg.jaculus.blocks
                 );
-                // read folder and add all .json file
+                // read folder and add all .jacly.json file
                 if (this.fs.existsSync(blockFilePath)) {
                     const files = this.fs.readdirSync(blockFilePath);
                     for (const file of files) {
                         const justFilename = path.basename(file);
-                        if (file.endsWith(".json") && !justFilename.startsWith(".")) {
+                        if (file.endsWith(".jacly.json") && !justFilename.startsWith(".")) {
                             const fullPath = path.join(blockFilePath, file);
-                            jaclyFiles.push(fullPath);
+                            try {
+                                const fileContent = this.fs.readFileSync(fullPath, "utf-8");
+                                jaclyBlockFiles[fullPath] = JSON.parse(fileContent);
+                            } catch (e) {
+                                this.err.write(
+                                    `Failed to read/parse JacLy block file '${fullPath}': ${e}\n`
+                                );
+                                throw e;
+                            }
                         }
                     }
                 } else {
@@ -345,7 +361,101 @@ export class Project {
                 }
             }
         }
-        return jaclyFiles;
+        return jaclyBlockFiles;
+    }
+
+    /**
+     * Get all JacLy block files and translations from installed libraries in one pass.
+     * @param locale - The locale for translations (e.g., "en", "cs")
+     * @returns JaclyData
+     */
+    async getJaclyData(locale: string): Promise<JaclyData> {
+        const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+        const blockFiles: JaclyBlocksFiles = {};
+        const translations: Record<string, string> = {};
+
+        for (const [libName] of Object.entries(resolvedDeps)) {
+            const libPkg = await loadPackageJson(
+                this.fs,
+                path.join(this.projectPath, "node_modules", libName, "package.json")
+            );
+            if (!libPkg) {
+                this.err.write(
+                    `Failed to load package.json for '${libName}'. Install dependencies before fetching JacLy files.\n`
+                );
+                continue;
+            }
+
+            if (libPkg.jaculus && libPkg.jaculus.blocks) {
+                const blocksDir = path.join(
+                    this.projectPath,
+                    "node_modules",
+                    libName,
+                    libPkg.jaculus.blocks
+                );
+
+                if (this.fs.existsSync(blocksDir)) {
+                    const files = this.fs.readdirSync(blocksDir);
+                    for (const file of files) {
+                        const justFilename = path.basename(file);
+                        if (file.endsWith(".jacly.json") && !justFilename.startsWith(".")) {
+                            const fullPath = path.join(blocksDir, file);
+                            try {
+                                const fileContent = this.fs.readFileSync(fullPath, "utf-8");
+                                blockFiles[fullPath] = JSON.parse(fileContent);
+                            } catch (e) {
+                                this.err.write(
+                                    `Failed to read/parse JacLy block file '${fullPath}': ${e}\n`
+                                );
+                                throw e;
+                            }
+                        }
+                    }
+                }
+
+                const translationFile = path.join(blocksDir, "translations", `${locale}.lang.json`);
+                if (this.fs.existsSync(translationFile)) {
+                    try {
+                        const fileContent = this.fs.readFileSync(translationFile, "utf-8");
+                        const localeTranslations = JSON.parse(fileContent);
+                        Object.assign(translations, localeTranslations);
+                    } catch (e) {
+                        this.err.write(
+                            `Failed to read/parse JacLy translation file '${translationFile}': ${e}\n`
+                        );
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        return { blockFiles, translations };
+    }
+
+    async getFlashFiles(): Promise<Record<string, Uint8Array>> {
+        const jaculusFiles: Record<string, Uint8Array> = {};
+
+        const collectJavaScriptFiles = async (dirPath: string, prefix: string = "") => {
+            if (!this.fs.existsSync(dirPath)) return;
+            await traverseDirectory(
+                this.fs.promises,
+                dirPath,
+                async (filePath: string, content: Uint8Array) => {
+                    const relativePath = path.relative(dirPath, filePath).replace(/\\/g, "/");
+                    jaculusFiles[path.join(prefix, relativePath)] = content;
+                },
+                (filePath: string) =>
+                    path.extname(filePath) === ".js" || path.basename(filePath) === "package.json"
+            );
+        };
+
+        jaculusFiles["package.json"] = this.fs.readFileSync(
+            path.join(this.projectPath, "package.json")
+        );
+        await collectJavaScriptFiles(path.join(this.projectPath, "build"));
+        await collectJavaScriptFiles(path.join(this.projectPath, "node_modules"), "node_modules");
+        return jaculusFiles;
     }
 }
 
