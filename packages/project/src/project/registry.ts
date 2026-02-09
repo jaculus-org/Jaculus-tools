@@ -25,9 +25,14 @@ export const DefaultRegistryUrl = ["https://registry.jaculus.org"];
  *     |-- README.md
  */
 
+const ProjectTypeSchema = z.enum(["code", "jacly"]);
+export type ProjectType = z.infer<typeof ProjectTypeSchema>;
+
 const RegistryListSchema = z.array(
     z.object({
         id: z.string(),
+        projectType: ProjectTypeSchema.optional(),
+        isTemplate: z.boolean().optional(),
     })
 );
 

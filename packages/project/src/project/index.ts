@@ -18,6 +18,8 @@ import {
     JaculusConfig,
 } from "./package.js";
 
+export type ResolvedDependencies = Dependencies;
+
 export interface ProjectPackage {
     dirs: string[];
     files: Record<string, Uint8Array>;
@@ -155,14 +157,15 @@ export class Project {
         return pkg.dependencies;
     }
 
-    async install(): Promise<void> {
+    async install(): Promise<Dependencies> {
         this.out.write("Resolving project dependencies...\n");
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
         await this.installDependencies(resolvedDeps);
+        return pkg.dependencies;
     }
 
-    public async addLibraryVersion(library: string, version: string): Promise<void> {
+    public async addLibraryVersion(library: string, version: string): Promise<Dependencies> {
         this.out.write(`Adding library '${library}@${version}' to project.\n`);
         if (!(await this.registry?.exists(library))) {
             throw new Error(`Library '${library}' does not exist in the registry`);
@@ -174,12 +177,13 @@ export class Project {
             pkg.dependencies[library] = version;
             await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
             await this.installDependencies(resolvedDeps);
+            return pkg.dependencies;
         } else {
             throw new Error(`Failed to add library '${library}@${version}' to project`);
         }
     }
 
-    async addLibrary(library: string): Promise<void> {
+    async addLibrary(library: string): Promise<Dependencies> {
         this.out.write(`Adding library '${library}' to project.\n`);
         if (!(await this.registry?.exists(library))) {
             throw new Error(`Library '${library}' does not exist in the registry`);
@@ -194,13 +198,13 @@ export class Project {
                 pkg.dependencies[library] = version;
                 await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
                 await this.installDependencies(resolvedDeps);
-                return;
+                return pkg.dependencies;
             }
         }
         throw new Error(`Failed to add library '${library}' to project with any available version`);
     }
 
-    async removeLibrary(libName: string): Promise<void> {
+    async removeLibrary(libName: string): Promise<Dependencies> {
         this.out.write(`Removing library '${libName}' from project...\n`);
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
         delete pkg.dependencies[libName];
@@ -208,9 +212,11 @@ export class Project {
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
         await this.installDependencies(resolvedDeps);
         this.out.write(`Successfully removed library '${libName}' from project\n`);
+        console.log(`Project ${pkg.dependencies} resolved dependencies:`, resolvedDeps);
+        return pkg.dependencies;
     }
 
-    private async resolveDependencies(dependencies: Dependencies): Promise<Dependencies> {
+    private async resolveDependencies(dependencies: Dependencies): Promise<ResolvedDependencies> {
         const resolvedDeps = { ...dependencies };
         const processedLibraries = new Set<string>();
         const queue: Array<Dependency> = [];
@@ -376,10 +382,20 @@ export class Project {
         const translations: Record<string, string> = {};
 
         for (const [libName] of Object.entries(resolvedDeps)) {
-            const libPkg = await loadPackageJson(
-                this.fs,
-                path.join(this.projectPath, "node_modules", libName, "package.json")
-            );
+            const pkgPath = path.join(this.projectPath, "node_modules", libName, "package.json");
+
+            // Skip packages that don't have a package.json (e.g., @types packages that are part of the project structure)
+            if (!this.fs.existsSync(pkgPath)) {
+                continue;
+            }
+
+            let libPkg;
+            try {
+                libPkg = await loadPackageJson(this.fs, pkgPath);
+            } catch (e) {
+                this.err.write(`Failed to load package.json for '${libName}': ${e}. Skipping.\n`);
+                continue;
+            }
             if (!libPkg) {
                 this.err.write(
                     `Failed to load package.json for '${libName}'. Install dependencies before fetching JacLy files.\n`

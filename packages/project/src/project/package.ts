@@ -42,7 +42,8 @@ const RegistryUrisSchema = z.array(z.string());
 const JaculusProjectTypeSchema = z.enum(["code", "jacly"]);
 const JaculusSchema = z.object({
     blocks: z.string().optional(),
-    template: JaculusProjectTypeSchema.optional(),
+    projectType: JaculusProjectTypeSchema.optional(),
+    template: z.boolean().optional(),
 });
 
 const ExportKeyValueSchema = z.record(z.string(), z.string());
