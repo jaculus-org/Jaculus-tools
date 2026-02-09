@@ -21,7 +21,7 @@ const cmd = new Command("Flash code to device (replace contents of ./code)", {
         const device = await getDevice(port, baudrate, socket, env);
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
-        const registry = new Registry(pkg?.registry || [], uriRequest);
+        const registry = await Registry.create(pkg?.registry, uriRequest);
         const project = new Project(fs, projectPath, stdout, stderr, registry);
 
         const files = await project.getFlashFiles();
