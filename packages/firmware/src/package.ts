@@ -2,6 +2,7 @@ import { getUri } from "get-uri";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import * as espPlatform from "./esp32/esp32.js";
+import { Manifest, parseManifest } from "./manifest.js";
 
 /**
  * Module for loading and flashing package files
@@ -17,67 +18,6 @@ import * as espPlatform from "./esp32/esp32.js";
  *
  * Example manifest.json can be found in the flasher module.
  */
-
-export class Manifest {
-    private board: string;
-    private version: string;
-    private platform: string;
-    private config: Record<string, any>;
-
-    constructor(board: string, version: string, platform: string, config: Record<string, any>) {
-        this.board = board;
-        this.version = version;
-        this.platform = platform;
-        this.config = config;
-    }
-
-    public getBoard(): string {
-        return this.board;
-    }
-
-    public getVersion(): string {
-        return this.version;
-    }
-
-    public getPlatform(): string {
-        return this.platform;
-    }
-
-    public getConfig(): Record<string, any> {
-        return this.config;
-    }
-}
-
-/**
- * Parse the manifest file
- * @param data Manifest file data
- * @returns The manifest
- */
-function parseManifest(data: string) {
-    const manifest = JSON.parse(data);
-
-    const board = manifest["board"];
-    if (!board) {
-        throw new Error("No board defined in manifest");
-    }
-
-    const version = manifest["version"];
-    if (!version) {
-        throw new Error("No version defined in manifest");
-    }
-
-    const platform = manifest["platform"];
-    if (!platform) {
-        throw new Error("No platform defined in manifest");
-    }
-
-    const config = manifest["config"];
-    if (!config) {
-        throw new Error("No config defined in manifest");
-    }
-
-    return new Manifest(board, version, platform, config);
-}
 
 export class Package {
     private manifest: Manifest;
@@ -129,7 +69,7 @@ export async function loadPackage(uri: string): Promise<Package> {
     }
     const archive = Buffer.concat(chunks);
 
-    let manifest: Manifest = new Manifest("", "", "", {});
+    let manifest: Manifest = new Manifest("", "", "", { chip: "", partitions: [] });
     const files: Record<string, Uint8Array> = {};
 
     for await (const entry of Archive.read(pako.ungzip(archive))) {

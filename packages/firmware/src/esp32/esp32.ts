@@ -83,7 +83,7 @@ class UploadReporter {
 export async function flash(Package: Package, path: string, noErase: boolean): Promise<void> {
     const config = Package.getManifest().getConfig();
 
-    const flashBaud = parseInt(config["flashBaud"] ?? 921600);
+    const flashBaud = parseInt((config.flashBaud as string | undefined) ?? "921600");
 
     const partitions = config["partitions"];
     if (!partitions) {

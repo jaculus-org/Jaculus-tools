@@ -11,8 +11,24 @@
     },
     "license": "GPL-3.0-only",
     "type": "module",
-    "main": "./dist/package.js",
-    "types": "./dist/package.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/package.d.ts",
+            "import": "./dist/package.js"
+        },
+        "./boards": {
+            "types": "./dist/boards.d.ts",
+            "import": "./dist/boards.js"
+        },
+        "./config": {
+            "types": "./dist/config.d.ts",
+            "import": "./dist/config.js"
+        },
+        "./manifest": {
+            "types": "./dist/manifest.d.ts",
+            "import": "./dist/manifest.js"
+        }
+    },
     "files": [
         "dist"
     ],

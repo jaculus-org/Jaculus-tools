@@ -1,34 +1,7 @@
 import { Arg, Opt, Command, Env } from "./lib/command.js";
 import { stdout, stderr } from "process";
 import { getDevice, readPassword } from "./util.js";
-
-enum WifiKvNs {
-    Ssids = "wifi_net",
-    Main = "wifi_cfg",
-}
-
-enum WifiKeys {
-    Mode = "mode",
-    StaMode = "sta_mode",
-    StaSpecific = "sta_ssid",
-    StaApFallback = "sta_ap_fallback",
-    ApSsid = "ap_ssid",
-    ApPass = "ap_pass",
-    CurrentIp = "current_ip",
-}
-
-enum WifiMode {
-    DISABLED,
-    STATION,
-    AP,
-}
-
-enum StaMode {
-    // Connect to any known network, pick the one with better signal if multiple found
-    BEST_SIGNAL,
-    // Connect to SSID specified in sta_ssid only
-    SPECIFIC_SSID,
-}
+import { WifiMode, WifiStaMode } from "@jaculus/device";
 
 export const wifiAdd = new Command("Add a WiFi network", {
     action: async (
@@ -50,7 +23,7 @@ export const wifiAdd = new Command("Add a WiFi network", {
             throw 1;
         });
 
-        await device.controller.configSetString("wifi_net", ssid.substring(0, 15), password);
+        await device.controller.addWifiNetwork(ssid, password);
 
         await device.controller.unlock().catch((err) => {
             stderr.write("Error unlocking device: " + err + "\n");
@@ -81,7 +54,7 @@ export const wifiRemove = new Command("Remove a WiFi network", {
             throw 1;
         });
 
-        await device.controller.configErase("wifi_net", ssid);
+        await device.controller.removeWifiNetwork(ssid);
 
         await device.controller.unlock().catch((err) => {
             stderr.write("Error unlocking device: " + err + "\n");
@@ -121,23 +94,17 @@ export const wifiGet = new Command("Display current WiFi config", {
                 throw 1;
             });
 
-            const mode = await device.controller.configGetInt(WifiKvNs.Main, WifiKeys.Mode);
-            const staMode = await device.controller.configGetInt(WifiKvNs.Main, WifiKeys.StaMode);
-            const staSpecific = await device.controller.configGetString(
-                WifiKvNs.Main,
-                WifiKeys.StaSpecific
-            );
-            const apSsid = await device.controller.configGetString(WifiKvNs.Main, WifiKeys.ApSsid);
-            const currentIp = await device.controller.configGetString(
-                WifiKvNs.Main,
-                WifiKeys.CurrentIp
-            );
+            const mode = await device.controller.getWifiMode();
+            const staMode = await device.controller.getWifiStaMode();
+            const staSpecific = await device.controller.getWifiStaSpecific();
+            const apSsid = await device.controller.getWifiApSsid();
+            const currentIp = await device.controller.getCurrentWifiIp();
 
             stdout.write(`Current IP: ${currentIp}
 
 WiFi Mode: ${WifiMode[mode]}
 
-Station Mode: ${StaMode[staMode]}
+Station Mode: ${WifiStaMode[staMode]}
 Station Specific SSID: ${staSpecific}
 
 AP SSID: ${apSsid}
@@ -171,7 +138,7 @@ export const wifiDisable = new Command("Disable WiFi", {
             throw 1;
         });
 
-        await device.controller.configSetInt(WifiKvNs.Main, WifiKeys.Mode, WifiMode.DISABLED);
+        await device.controller.setWifiMode(WifiMode.DISABLED);
 
         await device.controller.unlock().catch((err) => {
             stderr.write("Error unlocking device: " + err + "\n");
@@ -213,12 +180,12 @@ export const wifiSetAp = new Command("Set WiFi to AP mode (create a hotspot)", {
             throw 1;
         });
 
-        await device.controller.configSetInt(WifiKvNs.Main, WifiKeys.Mode, WifiMode.AP);
+        await device.controller.setWifiMode(WifiMode.AP);
         if (ssid !== undefined) {
-            await device.controller.configSetString(WifiKvNs.Main, WifiKeys.ApSsid, ssid);
+            await device.controller.setWifiApSsid(ssid);
         }
         if (pass !== undefined) {
-            await device.controller.configSetString(WifiKvNs.Main, WifiKeys.ApPass, pass);
+            await device.controller.setWifiApPassword(pass);
         }
 
         await device.controller.unlock().catch((err) => {
@@ -256,32 +223,16 @@ export const wifiSetSta = new Command("Set WiFi to Station mode (connect to a wi
             throw 1;
         });
 
-        await device.controller.configSetInt(WifiKvNs.Main, WifiKeys.Mode, WifiMode.STATION);
+        await device.controller.setWifiMode(WifiMode.STATION);
 
         if (!specificSsid) {
-            await device.controller.configSetInt(
-                WifiKvNs.Main,
-                WifiKeys.StaMode,
-                StaMode.BEST_SIGNAL
-            );
+            await device.controller.setWifiStaMode(WifiStaMode.BEST_SIGNAL);
         } else {
-            await device.controller.configSetInt(
-                WifiKvNs.Main,
-                WifiKeys.StaMode,
-                specificSsid ? StaMode.SPECIFIC_SSID : StaMode.BEST_SIGNAL
-            );
-            await device.controller.configSetString(
-                WifiKvNs.Main,
-                WifiKeys.StaSpecific,
-                specificSsid
-            );
+            await device.controller.setWifiStaMode(WifiStaMode.SPECIFIC_SSID);
+            await device.controller.setWifiStaSpecific(specificSsid);
         }
 
-        await device.controller.configSetInt(
-            WifiKvNs.Main,
-            WifiKeys.StaApFallback,
-            !noApFallback ? 1 : 0
-        );
+        await device.controller.setWifiStaApFallback(!noApFallback);
 
         await device.controller.unlock().catch((err) => {
             stderr.write("Error unlocking device: " + err + "\n");

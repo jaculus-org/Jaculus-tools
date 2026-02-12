@@ -38,6 +38,32 @@ export const ControllerCommandStrings: Record<ControllerCommand, string> = {
     [ControllerCommand.CONFIG_ERASE]: "CONFIG_ERASE",
 };
 
+enum WifiKvNs {
+    Ssids = "wifi_net",
+    Main = "wifi_cfg",
+}
+
+enum WifiKeys {
+    Mode = "mode",
+    StaMode = "sta_mode",
+    StaSpecific = "sta_ssid",
+    StaApFallback = "sta_ap_fallback",
+    ApSsid = "ap_ssid",
+    ApPass = "ap_pass",
+    CurrentIp = "current_ip",
+}
+
+export enum WifiMode {
+    DISABLED = 0,
+    STATION = 1,
+    AP = 2,
+}
+
+export enum WifiStaMode {
+    BEST_SIGNAL = 0,
+    SPECIFIC_SSID = 1,
+}
+
 enum KeyValueDataType {
     INT64 = 0,
     FLOAT32 = 1,
@@ -448,5 +474,68 @@ export class Controller {
                 this.cancel();
             }
         );
+    }
+
+    // WiFi Configuration Methods
+    public async addWifiNetwork(ssid: string, password: string): Promise<void> {
+        this._logger?.verbose(`Adding WiFi network: ${ssid}`);
+        return this.configSetString(WifiKvNs.Ssids, ssid.substring(0, 15), password);
+    }
+
+    public async removeWifiNetwork(ssid: string): Promise<void> {
+        this._logger?.verbose(`Removing WiFi network: ${ssid}`);
+        return this.configErase(WifiKvNs.Ssids, ssid);
+    }
+
+    public getWifiMode(): Promise<WifiMode> {
+        return this.configGetInt(WifiKvNs.Main, WifiKeys.Mode) as Promise<WifiMode>;
+    }
+
+    public setWifiMode(mode: WifiMode): Promise<void> {
+        return this.configSetInt(WifiKvNs.Main, WifiKeys.Mode, mode);
+    }
+
+    public getWifiStaMode(): Promise<WifiStaMode> {
+        return this.configGetInt(WifiKvNs.Main, WifiKeys.StaMode) as Promise<WifiStaMode>;
+    }
+
+    public setWifiStaMode(mode: WifiStaMode): Promise<void> {
+        return this.configSetInt(WifiKvNs.Main, WifiKeys.StaMode, mode);
+    }
+
+    public getWifiStaSpecific(): Promise<string> {
+        return this.configGetString(WifiKvNs.Main, WifiKeys.StaSpecific);
+    }
+
+    public setWifiStaSpecific(ssid: string): Promise<void> {
+        return this.configSetString(WifiKvNs.Main, WifiKeys.StaSpecific, ssid);
+    }
+
+    public getWifiStaApFallback(): Promise<number> {
+        return this.configGetInt(WifiKvNs.Main, WifiKeys.StaApFallback);
+    }
+
+    public setWifiStaApFallback(enabled: boolean): Promise<void> {
+        return this.configSetInt(WifiKvNs.Main, WifiKeys.StaApFallback, enabled ? 1 : 0);
+    }
+
+    public getWifiApSsid(): Promise<string> {
+        return this.configGetString(WifiKvNs.Main, WifiKeys.ApSsid);
+    }
+
+    public setWifiApSsid(ssid: string): Promise<void> {
+        return this.configSetString(WifiKvNs.Main, WifiKeys.ApSsid, ssid);
+    }
+
+    public getWifiApPassword(): Promise<string> {
+        return this.configGetString(WifiKvNs.Main, WifiKeys.ApPass);
+    }
+
+    public setWifiApPassword(password: string): Promise<void> {
+        return this.configSetString(WifiKvNs.Main, WifiKeys.ApPass, password);
+    }
+
+    public getCurrentWifiIp(): Promise<string> {
+        return this.configGetString(WifiKvNs.Main, WifiKeys.CurrentIp);
     }
 }
