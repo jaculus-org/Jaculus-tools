@@ -37,7 +37,7 @@ export class Package {
     }
 
     public async flash(port: string, noErase: boolean): Promise<void> {
-        switch (this.manifest.getPlatform()) {
+        switch (this.manifest.platform) {
             case "esp32":
                 await espPlatform.flash(this, port, noErase);
                 break;
@@ -47,7 +47,7 @@ export class Package {
     }
 
     public info(): string {
-        switch (this.manifest.getPlatform()) {
+        switch (this.manifest.platform) {
             case "esp32":
                 return espPlatform.info(this);
             default:
@@ -69,7 +69,7 @@ export async function loadPackage(uri: string): Promise<Package> {
     }
     const archive = Buffer.concat(chunks);
 
-    let manifest: Manifest = new Manifest("", "", "", { chip: "", partitions: [] });
+    let manifest: Manifest | null = null;
     const files: Record<string, Uint8Array> = {};
 
     for await (const entry of Archive.read(pako.ungzip(archive))) {
@@ -83,5 +83,8 @@ export async function loadPackage(uri: string): Promise<Package> {
         }
     }
 
+    if (!manifest) {
+        throw new Error("No manifest.json found in package");
+    }
     return new Package(manifest, files);
 }

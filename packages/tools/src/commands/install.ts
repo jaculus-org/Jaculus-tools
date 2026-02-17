@@ -18,9 +18,9 @@ const cmd = new Command("Install Jaculus to device", {
 
         const pkg = await loadPackage(pkgUri);
 
-        stdout.write("Version: " + pkg.getManifest().getVersion() + "\n");
-        stdout.write("Board: " + pkg.getManifest().getBoard() + "\n");
-        stdout.write("Platform: " + pkg.getManifest().getPlatform() + "\n");
+        stdout.write("Version: " + pkg.getManifest().version + "\n");
+        stdout.write("Board: " + pkg.getManifest().board + "\n");
+        stdout.write("Platform: " + pkg.getManifest().platform + "\n");
         stdout.write("\n");
 
         if (info) {

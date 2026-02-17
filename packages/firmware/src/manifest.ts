@@ -1,73 +1,41 @@
-export interface Partition {
-    name: string;
-    address: string;
-    file: string;
-    isStorage?: boolean;
-}
+import { z } from "zod";
 
-export interface ManifestConfig {
-    chip: string;
-    flashBaud?: number;
-    partitions: Partition[];
-}
+const PartitionSchema = z.object({
+    name: z.string(),
+    address: z.string(),
+    file: z.string(),
+    isStorage: z.boolean().optional(),
+});
 
-export class Manifest {
-    private readonly board: string;
-    private readonly version: string;
-    private readonly platform: string;
-    private readonly config: ManifestConfig;
+const ManifestConfigSchema = z.object({
+    chip: z.string(),
+    flashBaud: z.number().optional(),
+    partitions: z.array(PartitionSchema),
+});
 
-    constructor(board: string, version: string, platform: string, config: ManifestConfig) {
-        this.board = board;
-        this.version = version;
-        this.platform = platform;
-        this.config = config;
-    }
+const ManifestDataSchema = z.object({
+    board: z.string(),
+    version: z.string(),
+    platform: z.string(),
+    config: ManifestConfigSchema,
+});
 
-    public getBoard(): string {
-        return this.board;
-    }
+export type Partition = z.infer<typeof PartitionSchema>;
+export type ManifestConfig = z.infer<typeof ManifestConfigSchema>;
 
-    public getVersion(): string {
-        return this.version;
-    }
-
-    public getPlatform(): string {
-        return this.platform;
-    }
-
-    public getConfig(): ManifestConfig {
-        return this.config;
-    }
-}
+export type Manifest = Readonly<{
+    board: string;
+    version: string;
+    platform: string;
+    config: ManifestConfig;
+}>;
 
 /**
  * Parse the manifest file
  * @param data Manifest file data
  * @returns The manifest
  */
-export function parseManifest(data: string) {
-    const manifest = JSON.parse(data);
-
-    const board = manifest["board"];
-    if (!board) {
-        throw new Error("No board defined in manifest");
-    }
-
-    const version = manifest["version"];
-    if (!version) {
-        throw new Error("No version defined in manifest");
-    }
-
-    const platform = manifest["platform"];
-    if (!platform) {
-        throw new Error("No platform defined in manifest");
-    }
-
-    const config = manifest["config"];
-    if (!config) {
-        throw new Error("No config defined in manifest");
-    }
-
-    return new Manifest(board, version, platform, config);
+export function parseManifest(data: string): Manifest {
+    const parsed = ManifestDataSchema.parse(JSON.parse(data));
+    return Object.freeze(parsed);
 }

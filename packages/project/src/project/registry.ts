@@ -1,9 +1,11 @@
 import semver from "semver";
 import { getRequestJson, RequestFunction } from "../fs/index.js";
 import { PackageJson, parsePackageJson } from "./package.js";
+import { ProjectFetchError } from "./errors.js";
 import * as z from "zod";
+import { Logger } from "@jaculus/common";
 
-export const DefaultRegistryUrl = ["https://registry.jaculus.org"];
+export const DefaultRegistryUrl = ["http://127.0.0.1:3737/", "https://registry.jaculus.org"];
 
 /**
  *
@@ -65,14 +67,17 @@ export function parseRegistryVersions(json: object): RegistryVersions {
 
 export class Registry {
     public registryUri: string[];
+    private _logger?: Logger;
     private packageJsonCache: Map<string, PackageJson> = new Map();
     private pendingRequests: Map<string, Promise<PackageJson>> = new Map();
 
     private constructor(
         registryUri: string[],
-        public getRequest: RequestFunction
+        public getRequest: RequestFunction,
+        logger?: Logger
     ) {
         this.registryUri = registryUri;
+        this._logger = logger;
     }
 
     /**
@@ -81,13 +86,28 @@ export class Registry {
      */
     public static async create(
         registryUri: string[] | undefined,
-        getRequest: RequestFunction
+        getRequest: RequestFunction,
+        logger?: Logger
     ): Promise<Registry> {
         const validatedUri = await Registry.validateRegistry(
             registryUri ?? DefaultRegistryUrl,
-            getRequest
+            getRequest,
+            logger
         );
-        return new Registry(validatedUri, getRequest);
+        return new Registry(validatedUri, getRequest, logger);
+    }
+
+    /**
+     * Create a Registry instance without validating URIs.
+     * Useful when offline operations are the primary use case
+     * and online validation can happen lazily on first network request.
+     */
+    public static createWithoutValidation(
+        registryUri: string[] | undefined,
+        getRequest: RequestFunction,
+        logger?: Logger
+    ): Registry {
+        return new Registry(registryUri ?? DefaultRegistryUrl, getRequest, logger);
     }
 
     /**
@@ -96,7 +116,8 @@ export class Registry {
      */
     private static async validateRegistry(
         registryUri: string[],
-        getRequest: RequestFunction
+        getRequest: RequestFunction,
+        logger?: Logger
     ): Promise<string[]> {
         const validRegistryUri: string[] = [];
         for (const uri of registryUri) {
@@ -104,7 +125,7 @@ export class Registry {
                 await getRequest(uri, "");
                 validRegistryUri.push(uri);
             } catch (error) {
-                console.error(`Registry ${uri} is not available: ${error}`);
+                logger?.error(`Registry ${uri} is not available: ${error}`);
             }
         }
         return validRegistryUri;
@@ -137,14 +158,14 @@ export class Registry {
                             allItems.set(item.id, item);
                         }
                     }
-                } catch {
-                    // silently catch
+                } catch (error) {
+                    this._logger?.error(`Failed to fetch list from registry ${uri}: ${error}`);
                 }
             }
 
             return Array.from(allItems.values());
         } catch (error) {
-            throw new Error(`Failed to fetch library list from registries: ${error}`);
+            throw new ProjectFetchError(`Failed to fetch library list from registries: ${error}`);
         }
     }
 
@@ -159,7 +180,7 @@ export class Registry {
     public async listVersions(library: string): Promise<string[]> {
         const versions = await this.retrieveSingleResultFromRegistries(async (uri) => {
             return getRequestJson(this.getRequest, uri, `${library}/versions.json`);
-        }, `Failed to fetch versions for library '${library}'`);
+        }, `Failed to fetch versions for library '${library} from any registry'`);
         return parseRegistryVersions(versions)
             .map((item) => item.version)
             .sort(semver.rcompare);
@@ -212,7 +233,7 @@ export class Registry {
     public async getPackageTgz(library: string, version: string): Promise<Uint8Array> {
         return this.retrieveSingleResultFromRegistries(async (uri) => {
             return this.getRequest(uri, `${library}/${version}/package.tar.gz`);
-        }, `Failed to fetch package.tar.gz for library '${library}' version '${version}'`);
+        }, `Failed to fetch package.tar.gz for library '${library}' version '${version} from any registry'`);
     }
 
     private async retrieveSingleResultFromRegistries<T>(
@@ -227,6 +248,6 @@ export class Registry {
                 // try next registry
             }
         }
-        throw new Error(errorMessage);
+        throw new ProjectFetchError(errorMessage);
     }
 }

@@ -2,6 +2,7 @@ import path from "path";
 import { Writable } from "stream";
 import { extractTgz, FSInterface, traverseDirectory } from "../fs/index.js";
 import { Registry } from "./registry.js";
+import { ProjectError, ProjectFetchError, ProjectDependencyError } from "./errors.js";
 import {
     parsePackageJson,
     loadPackageJson,
@@ -19,6 +20,8 @@ import {
 } from "./package.js";
 
 export type ResolvedDependencies = Dependencies;
+
+type FetchType = "registry" | "local";
 
 export interface ProjectPackage {
     dirs: string[];
@@ -151,7 +154,7 @@ export class Project {
     async installedLibraries(returnResolved: boolean = false): Promise<Dependencies> {
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
         if (returnResolved) {
-            const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+            const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "registry");
             return resolvedDeps;
         }
         return pkg.dependencies;
@@ -160,7 +163,7 @@ export class Project {
     async install(): Promise<Dependencies> {
         this.out.write("Resolving project dependencies...\n");
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
-        const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "registry");
         await this.installDependencies(resolvedDeps);
         return pkg.dependencies;
     }
@@ -168,7 +171,7 @@ export class Project {
     public async addLibraryVersion(library: string, version: string): Promise<Dependencies> {
         this.out.write(`Adding library '${library}@${version}' to project.\n`);
         if (!(await this.registry?.exists(library))) {
-            throw new Error(`Library '${library}' does not exist in the registry`);
+            throw new ProjectError(`Library '${library}' does not exist in the registry`);
         }
 
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
@@ -179,18 +182,20 @@ export class Project {
             await this.installDependencies(resolvedDeps);
             return pkg.dependencies;
         } else {
-            throw new Error(`Failed to add library '${library}@${version}' to project`);
+            throw new ProjectDependencyError(
+                `Failed to add library '${library}@${version}' to project`
+            );
         }
     }
 
     async addLibrary(library: string): Promise<Dependencies> {
         this.out.write(`Adding library '${library}' to project.\n`);
         if (!(await this.registry?.exists(library))) {
-            throw new Error(`Library '${library}' does not exist in the registry`);
+            throw new ProjectError(`Library '${library}' does not exist in the registry`);
         }
 
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
-        const baseDeps = await this.resolveDependencies({ ...pkg.dependencies });
+        const baseDeps = await this.resolveDependencies({ ...pkg.dependencies }, "registry");
         const versions = (await this.registry?.listVersions(library)) || [];
         for (const version of versions) {
             const resolvedDeps = await this.addLibVersion(library, version, baseDeps);
@@ -201,7 +206,9 @@ export class Project {
                 return pkg.dependencies;
             }
         }
-        throw new Error(`Failed to add library '${library}' to project with any available version`);
+        throw new ProjectDependencyError(
+            `Failed to add library '${library}' to project with any available version`
+        );
     }
 
     async removeLibrary(libName: string): Promise<Dependencies> {
@@ -209,14 +216,18 @@ export class Project {
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
         delete pkg.dependencies[libName];
         await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
-        const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "local");
         await this.installDependencies(resolvedDeps);
         this.out.write(`Successfully removed library '${libName}' from project\n`);
         console.log(`Project ${pkg.dependencies} resolved dependencies:`, resolvedDeps);
         return pkg.dependencies;
     }
 
-    private async resolveDependencies(dependencies: Dependencies): Promise<ResolvedDependencies> {
+    private async resolveDependencies(
+        dependencies: Dependencies,
+        fetchType: FetchType = "registry"
+    ): Promise<ResolvedDependencies> {
         const resolvedDeps = { ...dependencies };
         const processedLibraries = new Set<string>();
         const queue: Array<Dependency> = [];
@@ -230,15 +241,37 @@ export class Project {
         while (queue.length > 0) {
             const dep = queue.shift()!;
 
-            // skip if already processed
             if (processedLibraries.has(dep.name)) {
                 continue;
             }
             processedLibraries.add(dep.name);
 
             try {
-                const packageJson = await this.registry?.getPackageJson(dep.name, dep.version);
+                let packageJson: PackageJson | undefined;
+
+                if (fetchType === "local") {
+                    // Read package.json from locally installed node_modules
+                    const localPkgPath = path.join(
+                        this.projectPath,
+                        "node_modules",
+                        dep.name,
+                        "package.json"
+                    );
+                    if (this.fs.existsSync(localPkgPath)) {
+                        packageJson = await loadPackageJson(this.fs, localPkgPath);
+                    }
+                } else {
+                    // Fetch package.json from remote registry
+                    packageJson = await this.registry?.getPackageJson(dep.name, dep.version);
+                }
+
                 if (!packageJson) {
+                    if (fetchType === "local") {
+                        this.err.write(
+                            `Package '${dep.name}@${dep.version}' not found locally in node_modules. Skipping transitive deps.\n`
+                        );
+                        continue;
+                    }
                     throw new Error(`Registry is not defined or returned no package.json`);
                 }
 
@@ -249,7 +282,7 @@ export class Project {
                         if (resolvedDeps[libName] !== libVersion) {
                             const errorMsg = `Version conflict for library '${libName}': requested '${libVersion}', already resolved '${resolvedDeps[libName]}'`;
                             this.err.write(`Error: ${errorMsg}\n`);
-                            throw new Error(errorMsg);
+                            throw new ProjectDependencyError(errorMsg);
                         }
                         // already resolved with same version, skip
                         continue;
@@ -260,10 +293,21 @@ export class Project {
                     queue.push({ name: libName, version: libVersion });
                 }
             } catch (error) {
+                if (fetchType === "local" && !(error instanceof ProjectError)) {
+                    this.err.write(
+                        `Warning: Could not resolve local dependencies for '${dep.name}@${dep.version}': ${error}\n`
+                    );
+                    continue;
+                }
+                if (error instanceof ProjectError) {
+                    throw error;
+                }
                 this.err.write(
                     `Failed to resolve dependencies for '${dep.name}@${dep.version}': ${error}\n`
                 );
-                throw new Error(`Dependency resolution failed for '${dep.name}@${dep.version}'`);
+                throw new ProjectFetchError(
+                    `Dependency resolution failed for '${dep.name}@${dep.version}'`
+                );
             }
         }
 
@@ -290,7 +334,7 @@ export class Project {
             } catch (error) {
                 const errorMsg = `Failed to install library '${libName}@${libVersion}': ${error}`;
                 this.err.write(`${errorMsg}\n`);
-                throw new Error(errorMsg);
+                throw new ProjectFetchError(errorMsg);
             }
         }
         this.out.write("All dependencies resolved and installed successfully.\n");
@@ -303,9 +347,15 @@ export class Project {
     ): Promise<Dependencies | null> {
         const newDeps = { ...testedDeps, [library]: version };
         try {
-            return this.resolveDependencies(newDeps);
+            return this.resolveDependencies(newDeps, "registry");
         } catch (error) {
-            this.err.write(`Error adding library '${library}@${version}': ${error}\n`);
+            if (error instanceof ProjectError) {
+                this.err.write(
+                    `Dependency conflict when adding '${library}@${version}': ${error.message}\n`
+                );
+            } else {
+                this.err.write(`Error when adding '${library}@${version}': ${error}\n`);
+            }
         }
         return null;
     }
@@ -322,7 +372,7 @@ export class Project {
      */
     async getJaclyBlockFiles(): Promise<JaclyBlocksFiles> {
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
-        const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "local");
         const jaclyBlockFiles: JaclyBlocksFiles = {};
         for (const [libName] of Object.entries(resolvedDeps)) {
             const pkg = await loadPackageJson(
@@ -377,7 +427,7 @@ export class Project {
      */
     async getJaclyData(locale: string): Promise<JaclyData> {
         const pkg = await loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
-        const resolvedDeps = await this.resolveDependencies(pkg.dependencies);
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "local");
         const blockFiles: JaclyBlocksFiles = {};
         const translations: Record<string, string> = {};
 
@@ -489,4 +539,7 @@ export {
     projectJsonSchema,
     JaculusProjectType,
     JaculusConfig,
+    ProjectError,
+    ProjectFetchError,
+    ProjectDependencyError,
 };
