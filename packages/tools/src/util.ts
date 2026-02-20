@@ -1,24 +1,40 @@
-import { RequestFunction } from "@jaculus/project/fs";
+import { JaculusRequestError, RequestFunction } from "@jaculus/project/fs";
 import { getUri } from "get-uri";
-import * as path from "path";
 import * as fs from "fs";
+import { fileURLToPath } from "url";
 
 export const uriRequest: RequestFunction = async (
     baseUri: string,
     libFile: string
 ): Promise<Uint8Array> => {
-    const uri = path.join(baseUri, libFile);
+    if (libFile === "") {
+        return new Uint8Array();
+    }
 
-    // Handle file URIs directly to avoid stream issues
+    const uri = new URL(
+        libFile.replace(/^\/+/, ""),
+        baseUri.endsWith("/") ? baseUri : `${baseUri}/`
+    ).toString();
+
     if (uri.startsWith("file:")) {
-        const filePath = uri.replace("file:", "");
-        return new Uint8Array(fs.readFileSync(filePath));
+        const filePath = fileURLToPath(uri);
+        try {
+            return new Uint8Array(fs.readFileSync(filePath));
+        } catch (error) {
+            throw new JaculusRequestError(
+                `Failed to read ${filePath}: ${(error as Error).message}`
+            );
+        }
     }
 
-    const stream = await getUri(uri);
-    const chunks = [];
-    for await (const chunk of stream) {
-        chunks.push(chunk);
+    try {
+        const stream = await getUri(uri);
+        const chunks: Buffer[] = [];
+        for await (const chunk of stream) {
+            chunks.push(chunk as Buffer);
+        }
+        return new Uint8Array(Buffer.concat(chunks));
+    } catch (error) {
+        throw new JaculusRequestError(`Failed to fetch ${uri}: ${(error as Error).message}`);
     }
-    return new Uint8Array(Buffer.concat(chunks));
 };

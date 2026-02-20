@@ -1,4 +1,4 @@
-import { loadPackageJson, savePackageJson, PackageJson } from "@jaculus/project";
+import { loadPackageJson, PackageJson, savePackageJson } from "@jaculus/project/package";
 import { cleanupTestDir, createTestDir, expect, fs, path, mockFs } from "./testHelpers.js";
 
 const projectBasePath = "data/test-project/";
@@ -24,7 +24,6 @@ describe("Package JSON", () => {
                     core: "0.0.24",
                     "led-strip": "1.2.3",
                 },
-                jacly: ["src/main.js", "lib/utils.js"],
                 registry: ["https://registry.example.com", "https://backup.registry.com"],
             };
 
@@ -39,12 +38,13 @@ describe("Package JSON", () => {
             expect(loaded.description).to.equal("A test package");
             expect(loaded.dependencies).to.have.property("core", "0.0.24");
             expect(loaded.dependencies).to.have.property("led-strip", "1.2.3");
-            expect(loaded.jacly).to.be.an("array").that.includes("src/main.js");
             expect(loaded.registry).to.be.an("array").that.includes("https://registry.example.com");
         });
 
         it("should load minimal valid package.json with only dependencies", async () => {
             const packageData: PackageJson = {
+                name: "minimal-package",
+                version: "1.0.0",
                 dependencies: {
                     core: "0.0.24",
                 },
@@ -57,10 +57,9 @@ describe("Package JSON", () => {
 
             expect(loaded).to.deep.equal(packageData);
             expect(loaded.dependencies).to.have.property("core", "0.0.24");
-            expect(loaded.name).to.be.undefined;
-            expect(loaded.version).to.be.undefined;
+            expect(loaded.name).to.equal("minimal-package");
+            expect(loaded.version).to.equal("1.0.0");
             expect(loaded.description).to.be.undefined;
-            expect(loaded.jacly).to.be.undefined;
             expect(loaded.registry).to.be.undefined;
         });
 
@@ -243,7 +242,6 @@ describe("Package JSON", () => {
                     core: "0.0.24",
                     "led-strip": "1.2.3",
                 },
-                jacly: ["src/main.js", "lib/utils.js"],
                 registry: ["https://registry.example.com"],
             };
 
@@ -256,14 +254,14 @@ describe("Package JSON", () => {
             const parsedData = JSON.parse(fileContent);
 
             expect(parsedData).to.deep.equal(packageData);
-
-            // Check formatting (should be pretty-printed with 4 spaces)
             expect(fileContent).to.include('    "name": "test-package"');
             expect(fileContent).to.include('    "version": "1.0.0"');
         });
 
         it("should save minimal package.json", async () => {
             const packageData: PackageJson = {
+                name: "minimal-package",
+                version: "1.0.0",
                 dependencies: {
                     core: "0.0.24",
                 },
@@ -281,10 +279,12 @@ describe("Package JSON", () => {
         it("should create directory if it doesn't exist", async () => {
             const nestedDir = path.join(tempDir, "nested", "directory");
             const packageData: PackageJson = {
+                name: "nested-package",
+                version: "1.0.0",
                 dependencies: {},
             };
 
-            // Directory shouldn't exist initially
+            // directory shouldn't exist initially
             expect(fs.existsSync(nestedDir)).to.be.false;
 
             await savePackageJson(mockFs, path.join(nestedDir, "package.json"), packageData);
@@ -298,15 +298,14 @@ describe("Package JSON", () => {
 
         it("should overwrite existing file", async () => {
             const packagePath = path.join(tempDir, "package.json");
-
-            // Create initial file
             const initialData: PackageJson = {
                 name: "initial",
+                version: "1.0.0",
                 dependencies: {},
             };
             await savePackageJson(mockFs, path.join(tempDir, "package.json"), initialData);
 
-            // Overwrite with new data
+            // overwrite with new data
             const newData: PackageJson = {
                 name: "updated",
                 version: "2.0.0",
@@ -325,6 +324,7 @@ describe("Package JSON", () => {
         it("should handle empty dependencies object", async () => {
             const packageData: PackageJson = {
                 name: "empty-deps",
+                version: "1.0.0",
                 dependencies: {},
             };
 
@@ -363,17 +363,11 @@ describe("Package JSON", () => {
                     core: "0.0.24",
                     "test-lib": "2.1.0-beta",
                 },
-                jacly: ["src/index.js", "lib/helper.js"],
                 registry: ["https://test.registry.com", "https://backup.registry.com"],
             };
 
-            // Save the data
             await savePackageJson(mockFs, path.join(tempDir, "roundtrip.json"), originalData);
-
-            // Load it back
             const loadedData = await loadPackageJson(mockFs, path.join(tempDir, "roundtrip.json"));
-
-            // Should be identical
             expect(loadedData).to.deep.equal(originalData);
         });
     });
@@ -397,6 +391,7 @@ describe("Package JSON", () => {
             for (const name of validNames) {
                 const packageData: PackageJson = {
                     name: name,
+                    version: "1.0.0",
                     dependencies: {},
                 };
 
@@ -431,6 +426,7 @@ describe("Package JSON", () => {
             for (const name of invalidNames) {
                 const packageData = {
                     name: name,
+                    version: "1.0.0",
                     dependencies: {},
                 };
 

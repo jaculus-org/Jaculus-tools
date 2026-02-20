@@ -6,8 +6,14 @@ export type FSPromisesInterface = typeof import("fs").promises;
 export type FSInterface = typeof import("fs");
 
 export type RequestFunction = (baseUri: string, libFile: string) => Promise<Uint8Array>;
+export class JaculusRequestError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "JaculusRequestError";
+    }
+}
 
-export function getRequestJson(
+export async function getRequestJson(
     getRequest: RequestFunction,
     baseUri: string,
     libFile: string
@@ -31,7 +37,7 @@ export async function copyFolder(
     }
 
     if (!fsDest.existsSync(dirDest)) {
-        fsDest.mkdirSync(dirDest, { recursive: true });
+        await fsDest.promises.mkdir(dirDest, { recursive: true });
     }
 
     const items = fsSource.readdirSync(dirSource);
@@ -43,7 +49,7 @@ export async function copyFolder(
             await copyFolder(fsSource, sourcePath, fsDest, destPath);
         } else if (stats.isFile()) {
             const content = fsSource.readFileSync(sourcePath, "utf-8");
-            fsDest.writeFileSync(destPath, content, "utf-8");
+            await fsDest.promises.writeFile(destPath, content, "utf-8");
         }
     }
 }
@@ -62,13 +68,14 @@ export function recursivelyPrintFs(fs: FSInterface, dir: string, indent: string 
     }
 }
 
-export async function extractTgz(
+export async function extractTgzPackage(
     packageData: Uint8Array,
     fs: FSInterface,
     extractionRoot: string
 ): Promise<void> {
+    const fsp = fs.promises;
     if (!fs.existsSync(extractionRoot)) {
-        fs.mkdirSync(extractionRoot, { recursive: true });
+        await fsp.mkdir(extractionRoot, { recursive: true });
     }
 
     for await (const entry of Archive.read(pako.ungzip(packageData))) {
@@ -85,14 +92,14 @@ export async function extractTgz(
 
         if (entry.isDirectory()) {
             if (!fs.existsSync(fullPath)) {
-                fs.mkdirSync(fullPath, { recursive: true });
+                await fsp.mkdir(fullPath, { recursive: true });
             }
         } else if (entry.isFile()) {
             const dirPath = path.dirname(fullPath);
             if (!fs.existsSync(dirPath)) {
-                fs.mkdirSync(dirPath, { recursive: true });
+                await fsp.mkdir(dirPath, { recursive: true });
             }
-            fs.writeFileSync(fullPath, entry.content!);
+            await fsp.writeFile(fullPath, entry.content!);
         }
     }
 }
@@ -100,7 +107,7 @@ export async function extractTgz(
 export async function traverseDirectory(
     fsp: FSPromisesInterface,
     dir: string,
-    callback: (filePath: string, content: Uint8Array) => Promise<void>,
+    fileCallback: (filePath: string, content: Uint8Array) => Promise<void>,
     filterFiles?: (filePath: string) => boolean,
     filterDirs?: (dirPath: string) => boolean
 ) {
@@ -109,13 +116,12 @@ export async function traverseDirectory(
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
             if (!filterDirs || filterDirs(fullPath)) {
-                await traverseDirectory(fsp, fullPath, callback, filterFiles, filterDirs);
+                await traverseDirectory(fsp, fullPath, fileCallback, filterFiles, filterDirs);
             }
         } else if (entry.isFile()) {
             if (!filterFiles || filterFiles(fullPath)) {
                 const content = await fsp.readFile(fullPath);
-
-                await callback(fullPath, content);
+                await fileCallback(fullPath, content);
             }
         }
     }

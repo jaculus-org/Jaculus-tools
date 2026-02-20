@@ -1,4 +1,3 @@
-import { copyFolder } from "@jaculus/project/fs";
 import * as chai from "chai";
 import * as path from "path";
 import { compile } from "@jaculus/project/compiler";
@@ -6,6 +5,7 @@ import * as fsReal from "fs";
 import { tmpdir } from "os";
 import { configure, umount, InMemory, fs as fsVirt } from "@zenfs/core";
 import { fileURLToPath } from "url";
+import { copyFolder } from "@jaculus/project/fs";
 
 const expect = chai.expect;
 const testProjectPath = path.resolve("./test/project/data/test-project");
@@ -71,8 +71,6 @@ describe("TypeScript Compiler", () => {
 
             afterEach(async () => {
                 await config.cleanup();
-
-                // Clean up any temporary directories created for Node.js tests
                 tempDirs.forEach((dir) => {
                     if (fsReal.existsSync(dir)) {
                         fsReal.rmSync(dir, { recursive: true, force: true });
@@ -123,7 +121,6 @@ describe("TypeScript Compiler", () => {
             });
 
             it("should handle compilation errors gracefully", async () => {
-                // Create a temporary directory for this test
                 let testDir: string;
                 if (config.name === "Node.js FS") {
                     testDir = fsReal.mkdtempSync(path.join(tmpdir(), "jaculus-error-test-"));

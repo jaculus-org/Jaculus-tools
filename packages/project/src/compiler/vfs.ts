@@ -1,7 +1,7 @@
 import { System, CompilerOptions, CompilerHost, SourceFile } from "typescript";
 import ts from "typescript";
 import path from "path";
-import { FSInterface } from "../fs/index.js";
+import { FSInterface } from "../fs.js";
 
 function notImplemented(methodName: string): any {
     throw new Error(`Method '${methodName}' is not implemented.`);
@@ -51,7 +51,7 @@ export function createSystem(fsVirtual: FSInterface, preFix: string): System {
         readDirectory: (directory, extensions, excludes, includes, depth) => {
             const absoluteDir = resolveVirtualPath(directory);
 
-            // ts.matchFiles is an internal API not exposed in types, but it exists
+            // ts.matchFiles is an internal API not exposed in types, but it is used by the compiler
             const matchResult = (ts as any).matchFiles(
                 absoluteDir,
                 extensions,

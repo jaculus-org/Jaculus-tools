@@ -2,7 +2,6 @@ import { Command, Opt } from "./lib/command.js";
 import * as path from "path";
 import { stderr } from "process";
 import { compile } from "@jaculus/project/compiler";
-import { logger } from "../logger.js";
 import * as fs from "fs";
 
 const cmd = new Command("Build TypeScript project", {
@@ -10,7 +9,7 @@ const cmd = new Command("Build TypeScript project", {
         const path_ = options["input"] as string;
         const inputDir = path.resolve(path_);
 
-        if (await compile(fs, inputDir, "build", stderr, logger)) {
+        if (await compile(fs, inputDir, "build", stderr)) {
             stderr.write("Compiled successfully\n");
         } else {
             stderr.write("Compilation failed\n");

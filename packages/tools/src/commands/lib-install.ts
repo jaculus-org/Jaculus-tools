@@ -1,9 +1,11 @@
 import { stderr, stdout } from "process";
 import { Arg, Command, Opt } from "./lib/command.js";
 import fs from "fs";
-import { loadPackageJson, Project, Registry, splitLibraryNameVersion } from "@jaculus/project";
 import { uriRequest } from "../util.js";
 import path from "path";
+import { loadPackageJson, splitLibraryNameVersion } from "@jaculus/project/package";
+import { Project } from "@jaculus/project";
+import { Registry } from "@jaculus/project/registry";
 
 const cmd = new Command("Install Jaculus libraries base on project's package.json", {
     action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
@@ -19,8 +21,9 @@ const cmd = new Command("Install Jaculus libraries base on project's package.jso
             await project.addLibraryVersion(name, version);
         } else if (name) {
             await project.addLibrary(name);
+        } else {
+            await project.install();
         }
-        await project.install();
     },
     args: [
         new Arg(

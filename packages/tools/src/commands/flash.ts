@@ -3,9 +3,11 @@ import { stderr, stdout } from "process";
 import { getDevice } from "./util.js";
 import { logger } from "../logger.js";
 import fs from "fs";
-import { loadPackageJson, Project, Registry } from "@jaculus/project";
 import { uriRequest } from "../util.js";
 import path, { dirname } from "path";
+import { loadPackageJson } from "@jaculus/project/package";
+import { Project } from "@jaculus/project";
+import { Registry } from "@jaculus/project/registry";
 
 const cmd = new Command("Flash code to device (replace contents of ./code)", {
     action: async (
@@ -55,10 +57,12 @@ const cmd = new Command("Flash code to device (replace contents of ./code)", {
                 if (dirPath) {
                     await device.uploader.createDirectory(dirPath).catch((err: unknown) => {
                         logger.verbose("Error creating directory: " + err);
+                        throw err;
                     });
                 }
                 await device.uploader.writeFile(fullPath, content).catch((err: unknown) => {
                     logger.verbose("Error writing file: " + err);
+                    throw err;
                 });
             }
         }

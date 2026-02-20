@@ -1,7 +1,11 @@
 import semver from "semver";
-import { getRequestJson, RequestFunction } from "../fs/index.js";
-import { PackageJson, parsePackageJson } from "./package.js";
-import { ProjectFetchError } from "./errors.js";
+import { getRequestJson, RequestFunction, JaculusRequestError } from "./fs.js";
+import {
+    parsePackageJson,
+    PackageJson,
+    JaculusProjectTypeSchema,
+    JaculusProjectType,
+} from "./package.js";
 import * as z from "zod";
 import { Logger } from "@jaculus/common";
 
@@ -10,30 +14,33 @@ export const DefaultRegistryUrl = ["http://127.0.0.1:3737/", "https://registry.j
 /**
  *
  * Registry dist structure:
- *  outputRegistryDist/
- *   |-- packageName/
- *   |    |-- version/
- *   |    |   |-- package.tar.gz
- *   |    |   |-- package.json (same as in package)
- *	 |-- versions.json (list of versions) [{"version":"0.0.24"},{"version":"0.0.25"}]
+ *  Registry/
  * 	 |-- list.json (list of packages) [{"id":"core"},{"id":"smart-led"}]
- *
+ *   |-- <packageName>/
+ *       |-- versions.json (list of versions) [{"version":"0.0.24"},{"version":"0.0.25"}]
+ *       |-- <version>/
+ *           |-- package.tar.gz
+ *           |-- package.json (same as in package)
  *
  * package.tar.gz contains:
  *   package/
- *     |-- dist/
- *     |-- blocks/
- *     |-- package.json
- *     |-- README.md
+ *    |-- dist/
+ *    |-- blocks/
+ *    |-- package.json
+ *    |-- README.md
  */
 
-const ProjectTypeSchema = z.enum(["code", "jacly"]);
-export type ProjectType = z.infer<typeof ProjectTypeSchema>;
+export class RegistryFetchError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "RegistryFetchError";
+    }
+}
 
 const RegistryListSchema = z.array(
     z.object({
         id: z.string(),
-        projectType: ProjectTypeSchema.optional(),
+        projectType: JaculusProjectTypeSchema.optional(),
         isTemplate: z.boolean().optional(),
     })
 );
@@ -82,7 +89,6 @@ export class Registry {
 
     /**
      * Create a new Registry instance with validated registry URIs.
-     * Use this instead of the constructor.
      */
     public static async create(
         registryUri: string[] | undefined,
@@ -98,9 +104,7 @@ export class Registry {
     }
 
     /**
-     * Create a Registry instance without validating URIs.
-     * Useful when offline operations are the primary use case
-     * and online validation can happen lazily on first network request.
+     * Create a new Registry instance without validating registry URIs.
      */
     public static createWithoutValidation(
         registryUri: string[] | undefined,
@@ -136,7 +140,7 @@ export class Registry {
         return items.filter((item) => !item.isTemplate).map((item) => item.id);
     }
 
-    public async listTemplates(projectType?: ProjectType): Promise<string[]> {
+    public async listTemplates(projectType?: JaculusProjectType): Promise<string[]> {
         const items = await this.fetchRegistryItems();
         return items
             .filter((item) => item.isTemplate && (!projectType || item.projectType === projectType))
@@ -144,110 +148,106 @@ export class Registry {
     }
 
     private async fetchRegistryItems(): Promise<RegistryList> {
-        try {
-            // map to store all items and their data
-            const allItems: Map<string, RegistryList[0]> = new Map();
+        const allItems: Map<string, RegistryList[0]> = new Map();
+        let firstError: unknown;
 
-            for (const uri of this.registryUri) {
-                try {
-                    const libraries = parseRegistryList(
-                        await getRequestJson(this.getRequest, uri, "list.json")
-                    );
-                    for (const item of libraries) {
-                        if (!allItems.has(item.id)) {
-                            allItems.set(item.id, item);
-                        }
+        for (const uri of this.registryUri) {
+            try {
+                const libraries = parseRegistryList(
+                    await getRequestJson(this.getRequest, uri, "list.json")
+                );
+                for (const item of libraries) {
+                    if (!allItems.has(item.id)) {
+                        allItems.set(item.id, item);
                     }
-                } catch (error) {
-                    this._logger?.error(`Failed to fetch list from registry ${uri}: ${error}`);
                 }
+            } catch (error) {
+                firstError ??= error;
+                this._logger?.error(`Failed to fetch list from registry ${uri}: ${error}`);
             }
-
-            return Array.from(allItems.values());
-        } catch (error) {
-            throw new ProjectFetchError(`Failed to fetch library list from registries: ${error}`);
         }
+
+        if (allItems.size === 0) {
+            if (firstError instanceof Error) {
+                throw firstError;
+            }
+            throw new RegistryFetchError("Failed to fetch library list from registries");
+        }
+
+        return Array.from(allItems.values());
     }
 
     public async exists(library: string): Promise<boolean> {
-        return this.retrieveSingleResultFromRegistries(
-            (uri) =>
-                getRequestJson(this.getRequest, uri, `${library}/versions.json`).then(() => true),
-            `Library '${library}' not found`
-        ).catch(() => false);
+        let firstError: unknown;
+
+        for (const uri of this.registryUri) {
+            try {
+                await getRequestJson(this.getRequest, uri, `${library}/versions.json`);
+                return true;
+            } catch (error) {
+                if (error instanceof JaculusRequestError) {
+                    continue;
+                }
+                firstError ??= error;
+            }
+        }
+
+        if (firstError instanceof Error) {
+            throw firstError;
+        }
+        if (firstError !== undefined) {
+            throw new RegistryFetchError(String(firstError));
+        }
+
+        return false;
     }
 
     public async listVersions(library: string): Promise<string[]> {
         const versions = await this.retrieveSingleResultFromRegistries(async (uri) => {
             return getRequestJson(this.getRequest, uri, `${library}/versions.json`);
-        }, `Failed to fetch versions for library '${library} from any registry'`);
+        }, `Failed to fetch versions for library '${library}' from any registry`);
         return parseRegistryVersions(versions)
             .map((item) => item.version)
             .sort(semver.rcompare);
     }
 
-    /**
-     * Get package.json for a specific version of a library.
-     * This method uses caching and pending requests pattern to avoid duplicate requests.
-     *
-     * @param library The name of the library.
-     * @param version The version of the library.
-     * @returns The package.json for the specified version.
-     */
     public async getPackageJson(library: string, version: string): Promise<PackageJson> {
-        const cacheKey = `${library}@${version}`;
-
-        // Check cache first
-        const cached = this.packageJsonCache.get(cacheKey);
-        if (cached) {
-            return cached;
-        }
-
-        // Check if there's already a pending request for this package
-        const pending = this.pendingRequests.get(cacheKey);
-        if (pending) {
-            return pending;
-        }
-
-        // Create the request promise and store it
-        const requestPromise = (async () => {
-            const path = `${library}/${version}/package.json`;
-            const json = await this.retrieveSingleResultFromRegistries(async (uri) => {
-                return getRequestJson(this.getRequest, uri, path);
-            }, `Failed to fetch package.json for library '${library}' version '${version}'`);
-            const result = parsePackageJson(json, path);
-            this.packageJsonCache.set(cacheKey, result);
-            return result;
-        })();
-
-        this.pendingRequests.set(cacheKey, requestPromise);
-
-        try {
-            return await requestPromise;
-        } finally {
-            // Clean up pending request after completion
-            this.pendingRequests.delete(cacheKey);
-        }
+        const path = `${library}/${version}/package.json`;
+        const json = await this.retrieveSingleResultFromRegistries(async (uri) => {
+            return getRequestJson(this.getRequest, uri, path);
+        }, `Failed to fetch package.json for library '${library}' version '${version}' from any registry`);
+        return parsePackageJson(json, path);
     }
 
     public async getPackageTgz(library: string, version: string): Promise<Uint8Array> {
         return this.retrieveSingleResultFromRegistries(async (uri) => {
             return this.getRequest(uri, `${library}/${version}/package.tar.gz`);
-        }, `Failed to fetch package.tar.gz for library '${library}' version '${version} from any registry'`);
+        }, `Failed to fetch package.tar.gz for library '${library}' version '${version}' from any registry`);
     }
 
     private async retrieveSingleResultFromRegistries<T>(
         action: (uri: string) => Promise<T>,
         errorMessage: string
     ): Promise<T> {
+        let firstError: unknown;
+
         for (const uri of this.registryUri) {
             try {
                 const result = await action(uri);
                 return result;
-            } catch {
+            } catch (error) {
+                firstError ??= error;
                 // try next registry
             }
         }
-        throw new ProjectFetchError(errorMessage);
+
+        if (firstError instanceof Error) {
+            throw firstError;
+        }
+        if (firstError !== undefined) {
+            throw new RegistryFetchError(String(firstError));
+        }
+
+        throw new RegistryFetchError(errorMessage);
     }
 }

@@ -6,7 +6,9 @@ import install from "./install.js";
 import build from "./build.js";
 import flash from "./flash.js";
 import libInstall from "./lib-install.js";
+import libLs from "./lib-ls.js";
 import libRemove from "./lib-remove.js";
+import libSearch from "./lib-search.js";
 import ls from "./ls.js";
 import read from "./read.js";
 import write from "./write.js";
@@ -36,7 +38,9 @@ export function registerJaculusCommands(jac: Program) {
     jac.addCommand("flash", flash);
 
     jac.addCommand("lib-install", libInstall);
+    jac.addCommand("lib-ls", libLs);
     jac.addCommand("lib-remove", libRemove);
+    jac.addCommand("lib-search", libSearch);
 
     jac.addCommand("pull", pull);
     jac.addCommand("ls", ls);

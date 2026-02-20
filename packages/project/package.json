@@ -13,20 +13,24 @@
     "type": "module",
     "exports": {
         ".": {
-            "types": "./dist/src/project/index.d.ts",
-            "import": "./dist/src/project/index.js"
+            "types": "./dist/src/project.d.ts",
+            "import": "./dist/src/project.js"
         },
         "./compiler": {
             "types": "./dist/src/compiler/index.d.ts",
             "import": "./dist/src/compiler/index.js"
         },
         "./fs": {
-            "types": "./dist/src/fs/index.d.ts",
-            "import": "./dist/src/fs/index.js"
+            "types": "./dist/src/fs.d.ts",
+            "import": "./dist/src/fs.js"
+        },
+        "./package": {
+            "types": "./dist/src/package.d.ts",
+            "import": "./dist/src/package.js"
         },
         "./registry": {
-            "types": "./dist/src/project/registry.d.ts",
-            "import": "./dist/src/project/registry.js"
+            "types": "./dist/src/registry.d.ts",
+            "import": "./dist/src/registry.js"
         }
     },
     "files": [

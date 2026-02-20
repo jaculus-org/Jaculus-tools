@@ -1,8 +1,8 @@
 import { Project, ProjectPackage } from "@jaculus/project";
 import {
     setupTest,
-    createProject,
-    expectOutput,
+    createMockProject,
+    expectOutputMessage,
     expect,
     fs,
     createProjectStructure,
@@ -17,7 +17,7 @@ describe("Project - Package Operations", () => {
                 const projectPath = createProjectStructure(tempDir, "test-project", {
                     dependencies: {},
                 });
-                const project = await createProject(projectPath, mockOut, mockErr);
+                const project = await createMockProject(projectPath, mockOut, mockErr);
 
                 expect(project).to.be.instanceOf(Project);
                 expect(project.projectPath).to.equal(projectPath);
@@ -37,7 +37,7 @@ describe("Project - Package Operations", () => {
                 const projectPath = createProjectStructure(tempDir, "test-project", {
                     dependencies: {},
                 });
-                const project = await createProject(projectPath, mockOut, mockErr, getRequest);
+                const project = await createMockProject(projectPath, mockOut, mockErr, getRequest);
                 expect(project.registry).to.not.be.undefined;
             } finally {
                 cleanup();
@@ -51,7 +51,6 @@ describe("Project - Package Operations", () => {
 
             try {
                 const projectPath = `${tempDir}/test-project`;
-                // Don't create project structure since createFromPackage expects it not to exist
                 const project = new Project(fs, projectPath, mockOut, mockErr);
 
                 const pkg: ProjectPackage = {
@@ -60,46 +59,18 @@ describe("Project - Package Operations", () => {
                         "src/index.js": new TextEncoder().encode("console.log('hello');"),
                         "lib/utils.js": new TextEncoder().encode("export const helper = () => {};"),
                         "package.json": new TextEncoder().encode('{"name": "test"}'),
+                        "manifest.json": new TextEncoder().encode('{"version": "1.0.0"}'),
                     },
                 };
 
                 await project.createFromPackage(pkg, false);
 
-                expectOutput(mockOut, ["Create"]);
+                expectOutputMessage(mockOut, ["Create"]);
                 expect(fs.existsSync(`${projectPath}/src`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/lib`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/src/index.js`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/lib/utils.js`)).to.be.true;
-            } finally {
-                cleanup();
-            }
-        });
-
-        it("should filter files based on skeleton patterns", async () => {
-            const { tempDir, mockOut, mockErr, cleanup } = setupTest("jaculus-project-test-");
-
-            try {
-                const projectPath = createProjectStructure(tempDir, "test-project", {
-                    dependencies: {},
-                });
-                const project = await createProject(projectPath, mockOut, mockErr);
-
-                const pkg: ProjectPackage = {
-                    dirs: [],
-                    files: {
-                        "tsconfig.json": new TextEncoder().encode('{"compilerOptions": {}}'),
-                        "src/index.js": new TextEncoder().encode("// should be filtered out"),
-                        "manifest.json": new TextEncoder().encode(
-                            '{"skeletonFiles": ["tsconfig.json"]}'
-                        ),
-                    },
-                };
-
-                await project.updateFromPackage(pkg, false);
-
-                expectOutput(mockOut, ["tsconfig.json"]);
-                expect(fs.existsSync(`${projectPath}/tsconfig.json`)).to.be.true;
-                expect(fs.existsSync(`${projectPath}/src/index.js`)).to.be.false;
+                expect(fs.existsSync(`${projectPath}/manifest.json`)).to.be.false;
             } finally {
                 cleanup();
             }
@@ -110,7 +81,6 @@ describe("Project - Package Operations", () => {
 
             try {
                 const projectPath = `${tempDir}/test-project`;
-                // Don't create project structure since createFromPackage expects it not to exist
                 const project = new Project(fs, projectPath, mockOut, mockErr);
 
                 const pkg: ProjectPackage = {
@@ -121,7 +91,7 @@ describe("Project - Package Operations", () => {
                 };
 
                 await project.createFromPackage(pkg, true);
-                expectOutput(mockOut, ["[dry-run]"]);
+                expectOutputMessage(mockOut, ["[dry-run]"]);
                 expect(fs.existsSync(projectPath)).to.be.false;
             } finally {
                 cleanup();
@@ -135,9 +105,8 @@ describe("Project - Package Operations", () => {
                 const projectPath = createProjectStructure(tempDir, "test-project", {
                     dependencies: {},
                 });
-                const project = await createProject(projectPath, mockOut, mockErr);
+                const project = await createMockProject(projectPath, mockOut, mockErr);
 
-                // Create a pre-existing file first
                 fs.mkdirSync(`${projectPath}/src`, { recursive: true });
                 fs.writeFileSync(`${projectPath}/src/index.js`, "existing content");
 
@@ -150,7 +119,7 @@ describe("Project - Package Operations", () => {
                 };
 
                 await project.updateFromPackage(pkg, false);
-                expectOutput(mockOut, ["Overwrite"]);
+                expectOutputMessage(mockOut, ["Overwrite"]);
                 const content = fs.readFileSync(`${projectPath}/src/index.js`, "utf-8");
                 expect(content).to.equal("new content");
             } finally {
@@ -163,7 +132,6 @@ describe("Project - Package Operations", () => {
 
             try {
                 const projectPath = `${tempDir}/test-project`;
-                // Don't create project structure since createFromPackage expects it not to exist
                 const project = new Project(fs, projectPath, mockOut, mockErr);
 
                 const pkg: ProjectPackage = {
@@ -174,50 +142,18 @@ describe("Project - Package Operations", () => {
                 };
 
                 await project.createFromPackage(pkg, false);
-                expectOutput(mockOut, ["Create"]);
+                expectOutputMessage(mockOut, ["Create"]);
                 expect(fs.existsSync(`${projectPath}/src/lib/utils`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/src/lib/utils/helper.js`)).to.be.true;
             } finally {
                 cleanup();
             }
         });
-    });
-
-    describe("createFromPackage()", () => {
-        it("should create new project from package", async () => {
-            const { tempDir, mockOut, mockErr, cleanup } = setupTest("jaculus-project-test-");
-
-            try {
-                const projectPath = `${tempDir}/new-project`;
-                // Don't create project structure since createFromPackage expects it not to exist
-                const project = new Project(fs, projectPath, mockOut, mockErr);
-
-                const pkg: ProjectPackage = {
-                    dirs: ["src"],
-                    files: {
-                        "src/index.js": new TextEncoder().encode("console.log('hello');"),
-                        "package.json": new TextEncoder().encode('{"name": "test"}'),
-                        "manifest.json": new TextEncoder().encode('{"version": "1.0.0"}'),
-                    },
-                };
-
-                await project.createFromPackage(pkg, false);
-                expectOutput(mockOut, ["Create"]);
-                expect(fs.existsSync(`${projectPath}/src/index.js`)).to.be.true;
-                expect(fs.existsSync(`${projectPath}/package.json`)).to.be.true;
-                // manifest.json should be filtered out
-                expect(fs.existsSync(`${projectPath}/manifest.json`)).to.be.false;
-            } finally {
-                cleanup();
-            }
-        });
-
         it("should throw error if project directory already exists", async () => {
             const { tempDir, mockOut, mockErr, cleanup } = setupTest("jaculus-project-test-");
 
             try {
                 const projectPath = `${tempDir}/existing-project`;
-                // Create the project directory first so it "already exists"
                 fs.mkdirSync(projectPath, { recursive: true });
 
                 const project = new Project(fs, projectPath, mockOut, mockErr);
@@ -233,31 +169,9 @@ describe("Project - Package Operations", () => {
                     await project.createFromPackage(pkg, false);
                     expect.fail("Expected createFromPackage to throw an error");
                 } catch (error) {
-                    expect(error).to.equal(1);
-                    expectOutput(mockErr, ["already exists"]);
+                    expect(error).to.be.an("error");
+                    expect((error as Error).message).to.include("already exists");
                 }
-            } finally {
-                cleanup();
-            }
-        });
-
-        it("should handle dry-run mode", async () => {
-            const { tempDir, mockOut, mockErr, cleanup } = setupTest("jaculus-project-test-");
-
-            try {
-                const projectPath = `${tempDir}/dry-run-project`;
-                const project = new Project(fs, projectPath, mockOut, mockErr);
-
-                const pkg: ProjectPackage = {
-                    dirs: ["src"],
-                    files: {
-                        "src/index.js": new TextEncoder().encode("test"),
-                    },
-                };
-
-                await project.createFromPackage(pkg, true);
-                expectOutput(mockOut, ["[dry-run]"]);
-                expect(fs.existsSync(projectPath)).to.be.false;
             } finally {
                 cleanup();
             }
@@ -265,6 +179,36 @@ describe("Project - Package Operations", () => {
     });
 
     describe("updateFromPackage()", () => {
+        it("should filter files based on skeleton patterns", async () => {
+            const { tempDir, mockOut, mockErr, cleanup } = setupTest("jaculus-project-test-");
+
+            try {
+                const projectPath = createProjectStructure(tempDir, "test-project", {
+                    dependencies: {},
+                });
+                const project = await createMockProject(projectPath, mockOut, mockErr);
+
+                const pkg: ProjectPackage = {
+                    dirs: [],
+                    files: {
+                        "tsconfig.json": new TextEncoder().encode('{"compilerOptions": {}}'),
+                        "src/index.js": new TextEncoder().encode("// should be filtered out"),
+                        "manifest.json": new TextEncoder().encode(
+                            '{"skeletonFiles": ["tsconfig.json"]}'
+                        ),
+                    },
+                };
+
+                await project.updateFromPackage(pkg, false);
+
+                expectOutputMessage(mockOut, ["tsconfig.json"]);
+                expect(fs.existsSync(`${projectPath}/tsconfig.json`)).to.be.true;
+                expect(fs.existsSync(`${projectPath}/src/index.js`)).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
         it("should update existing project with skeleton files", async () => {
             const { tempDir, mockOut, mockErr, cleanup } = setupTest("jaculus-project-test-");
 
@@ -273,7 +217,7 @@ describe("Project - Package Operations", () => {
                     dependencies: {},
                 });
 
-                const project = await createProject(projectPath, mockOut, mockErr);
+                const project = await createMockProject(projectPath, mockOut, mockErr);
 
                 const pkg: ProjectPackage = {
                     dirs: ["@types"],
@@ -285,7 +229,7 @@ describe("Project - Package Operations", () => {
                 };
 
                 await project.updateFromPackage(pkg, false);
-                expectOutput(mockOut, ["Create"]);
+                expectOutputMessage(mockOut, ["Create"]);
                 expect(fs.existsSync(`${projectPath}/@types/stdio.d.ts`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/tsconfig.json`)).to.be.true;
                 // src/index.js should be filtered out by default skeleton
@@ -303,7 +247,7 @@ describe("Project - Package Operations", () => {
                     dependencies: {},
                 });
 
-                const project = await createProject(projectPath, mockOut, mockErr);
+                const project = await createMockProject(projectPath, mockOut, mockErr);
 
                 const pkg: ProjectPackage = {
                     dirs: ["@types"],
@@ -315,7 +259,6 @@ describe("Project - Package Operations", () => {
                 };
 
                 await project.updateFromPackage(pkg, false);
-                // Test passes if no errors are thrown and default skeleton filters are applied
                 expect(fs.existsSync(`${projectPath}/@types/stdio.d.ts`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/tsconfig.json`)).to.be.true;
             } finally {
@@ -339,8 +282,8 @@ describe("Project - Package Operations", () => {
                     await project.updateFromPackage(pkg, false);
                     expect.fail("Expected updateFromPackage to throw an error");
                 } catch (error) {
-                    expect(error).to.equal(1);
-                    expectOutput(mockErr, ["does not exist"]);
+                    expect(error).to.be.an("error");
+                    expect((error as Error).message).to.include("does not exist");
                 }
             } finally {
                 cleanup();
@@ -352,7 +295,6 @@ describe("Project - Package Operations", () => {
 
             try {
                 const projectPath = `${tempDir}/not-a-dir`;
-                // Create a file (not a directory) at the project path
                 fs.writeFileSync(projectPath, "I am a file, not a directory");
 
                 const project = new Project(fs, projectPath, mockOut, mockErr);
@@ -366,8 +308,8 @@ describe("Project - Package Operations", () => {
                     await project.updateFromPackage(pkg, false);
                     expect.fail("Expected updateFromPackage to throw an error");
                 } catch (error) {
-                    expect(error).to.equal(1);
-                    expectOutput(mockErr, ["is not a directory"]);
+                    expect(error).to.be.an("error");
+                    expect((error as Error).message).to.include("is not a directory");
                 }
             } finally {
                 cleanup();
@@ -382,7 +324,7 @@ describe("Project - Package Operations", () => {
                     dependencies: {},
                 });
 
-                const project = await createProject(projectPath, mockOut, mockErr);
+                const project = await createMockProject(projectPath, mockOut, mockErr);
 
                 const manifest = {
                     skeletonFiles: ["*.config.js", "types/*.d.ts"],
@@ -399,7 +341,6 @@ describe("Project - Package Operations", () => {
                 };
 
                 await project.updateFromPackage(pkg, false);
-                // Check that files matching the custom skeleton were created
                 expect(fs.existsSync(`${projectPath}/vite.config.js`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/types/custom.d.ts`)).to.be.true;
                 // src/index.js should be filtered out as it doesn't match the skeleton patterns
@@ -417,7 +358,7 @@ describe("Project - Package Operations", () => {
                     dependencies: {},
                 });
 
-                const project = await createProject(projectPath, mockOut, mockErr);
+                const project = await createMockProject(projectPath, mockOut, mockErr);
 
                 const manifest = {
                     skeletonFiles: ["valid.js", { invalid: "object" }, "another.js"],
@@ -434,8 +375,8 @@ describe("Project - Package Operations", () => {
                     await project.updateFromPackage(pkg, false);
                     expect.fail("Expected updateFromPackage to throw an error");
                 } catch (error) {
-                    expect(error).to.equal(1);
-                    expectOutput(mockErr, ["Invalid skeleton entry"]);
+                    expect(error).to.be.an("error");
+                    expect((error as Error).message).to.include("Invalid skeleton entry");
                 }
             } finally {
                 cleanup();
@@ -450,7 +391,7 @@ describe("Project - Package Operations", () => {
                     dependencies: {},
                 });
 
-                const project = await createProject(projectPath, mockOut, mockErr);
+                const project = await createMockProject(projectPath, mockOut, mockErr);
 
                 const pkg: ProjectPackage = {
                     dirs: ["@types"],
@@ -461,8 +402,7 @@ describe("Project - Package Operations", () => {
                 };
 
                 await project.updateFromPackage(pkg, true);
-                expectOutput(mockOut, ["[dry-run]"]);
-                // Files should not be created in dry-run mode
+                expectOutputMessage(mockOut, ["[dry-run]"]);
                 expect(fs.existsSync(`${projectPath}/@types/stdio.d.ts`)).to.be.false;
                 expect(fs.existsSync(`${projectPath}/tsconfig.json`)).to.be.false;
             } finally {

@@ -1,7 +1,7 @@
 import * as tsvfs from "./vfs.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { FSInterface } from "../fs/index.js";
+import { FSInterface } from "../fs.js";
 import ts from "typescript";
 
 type Writable = { write: (chunk: string) => void };
@@ -34,8 +34,8 @@ export async function compile(
     fs: FSInterface,
     inputDir: string,
     outDir: string,
-    out: Writable,
     err: Writable,
+    out?: Writable,
     tsLibsPath: string = path.dirname(
         fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
     )
@@ -50,6 +50,16 @@ export async function compile(
         printMessage(config.error.messageText, err);
         throw new Error("Error reading tsconfig.json");
     }
+
+    // convert enum values to names for better error messages
+    const optionNames: Record<string, Record<any, string>> = {
+        target: Object.entries(ts.ScriptTarget).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {}),
+        module: Object.entries(ts.ModuleKind).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {}),
+        moduleResolution: Object.entries(ts.ModuleResolutionKind).reduce(
+            (acc, [k, v]) => ({ ...acc, [v]: k }),
+            {}
+        ),
+    };
 
     const forcedOptions: Record<string, any[]> = {
         target: [ts.ScriptTarget.ES2023, ts.ScriptTarget.ES2020],
@@ -67,20 +77,19 @@ export async function compile(
     } = ts.parseJsonConfigFileContent(config.config, system, "./");
     if (errors.length > 0) {
         errors.forEach((error) => printMessage(error.messageText, err));
-        throw new Error("Error parsing tsconfig.json");
+        throw new Error(`Error parsing tsconfig.json - ${errors.length} error(s) found`);
     }
 
     for (const [key, values] of Object.entries(forcedOptions)) {
+        const valueNames = values.map((v) => optionNames[key]?.[v] ?? v).join(", ");
         if (compilerOptions[key] && !values.includes(compilerOptions[key])) {
-            throw new Error(
-                `tsconfig.json must have ${key} set to one of: [ ${values.join(", ")} ]`
-            );
+            throw new Error(`tsconfig.json must have ${key} set to one of: [ ${valueNames} ]`);
         } else if (!compilerOptions[key]) {
             compilerOptions[key] = values[0];
         }
     }
 
-    out.write("Compiling files: " + fileNames.join(", ") + "\n");
+    out?.write("Compiling files: [" + fileNames.join(", ") + "]\n");
 
     const host = tsvfs.createVirtualCompilerHost(system, compilerOptions, tsLibsPath);
 

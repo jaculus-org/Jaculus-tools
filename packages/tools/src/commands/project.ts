@@ -5,9 +5,9 @@ import fs from "fs";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import { getUri } from "get-uri";
-import { Project, ProjectPackage } from "@jaculus/project";
 import { JacDevice } from "@jaculus/device";
 import { logger } from "../logger.js";
+import { ProjectPackage, Project } from "@jaculus/project";
 
 async function loadFromDevice(device: JacDevice): Promise<Uint8Array> {
     await device.controller.lock().catch((err) => {

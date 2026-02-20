@@ -2,22 +2,22 @@ import path from "path";
 import fs from "fs";
 import { tmpdir } from "os";
 import { Writable } from "stream";
-import { Project, PackageJson, Registry, loadPackageJson } from "@jaculus/project";
-import { RequestFunction } from "@jaculus/project/fs";
 import * as chai from "chai";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
+import { JaculusRequestError, RequestFunction } from "@jaculus/project/fs";
+import { Project } from "@jaculus/project";
+import { PackageJson, loadPackageJson } from "@jaculus/project/package";
+import { Registry } from "@jaculus/project/registry";
 
 export const expect = chai.expect;
 export const registryBasePath = "file://data/test-registry/";
 export { fs, path, fs as mockFs };
 
 export async function createTarGzPackage(sourceDir: string, outFile: string): Promise<void> {
-    // const { Archive } = await import("@obsidize/tar-browserify");
-    // const pako = await import("pako");
     const archive = new Archive();
 
-    // Recursively add files from sourceDir with "package/" prefix
+    // recursively add files from sourceDir with "package/" prefix
     function addFilesToArchive(dir: string, baseDir: string = dir) {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
@@ -43,7 +43,6 @@ export async function createTarGzPackage(sourceDir: string, outFile: string): Pr
 }
 
 export async function generateTestRegistryPackages(registryBasePath: string): Promise<void> {
-    // Remove file:// prefix if present
     const baseDir = registryBasePath.replace(/^file:\/\//, "");
     const testDataPath = path.resolve(
         path.dirname(import.meta.url.replace("file://", "")),
@@ -71,7 +70,7 @@ export async function generateTestRegistryPackages(registryBasePath: string): Pr
     }
 }
 
-// Helper class to capture output
+// helper class to capture output
 export class MockWritable extends Writable {
     public output: string = "";
 
@@ -85,27 +84,29 @@ export class MockWritable extends Writable {
     }
 }
 
-// Helper function to create request function
 export const createGetRequest = (): RequestFunction => async (baseUri, libFile) => {
-    // expect file:// or http:// URIs for test data
     expect(baseUri).to.match(/^(file:\/\/|http:\/\/)/);
+    if (libFile === "") {
+        return new Uint8Array();
+    }
 
-    // Remove file:// prefix and resolve the path correctly
     const baseDir = baseUri.replace(/^file:\/\//, "");
     const filePath = path.resolve(
         path.dirname(import.meta.url.replace("file://", "")),
         baseDir,
         libFile
     );
-    return new Uint8Array(fs.readFileSync(filePath));
+    try {
+        return new Uint8Array(fs.readFileSync(filePath));
+    } catch (error) {
+        throw new JaculusRequestError(`Failed to read ${filePath}: ${(error as Error).message}`);
+    }
 };
 
-// Helper function to create failing request function
 export const createFailingGetRequest = (): RequestFunction => async (baseUri, libFile) => {
-    throw new Error(`Simulated network error for ${baseUri}/${libFile}`);
+    throw new JaculusRequestError(`Simulated network error for ${baseUri}/${libFile}`);
 };
 
-// Helper function to create and write package.json
 export function createPackageJson(
     projectPath: string,
     dependencies: Record<string, string> = {},
@@ -113,6 +114,8 @@ export function createPackageJson(
     additionalFields: Partial<PackageJson> = {}
 ): void {
     const packageData: PackageJson = {
+        name: "test-project",
+        version: "0.0.1",
         dependencies,
         registry,
         ...additionalFields,
@@ -122,8 +125,7 @@ export function createPackageJson(
     fs.writeFileSync(path.join(projectPath, "package.json"), JSON.stringify(packageData, null, 2));
 }
 
-// Helper function to create project with mocks
-export async function createProject(
+export async function createMockProject(
     projectPath: string,
     mockOut: MockWritable,
     mockErr: MockWritable,
@@ -132,24 +134,21 @@ export async function createProject(
     const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
     let registry: Registry | undefined = undefined;
     if (getRequest) {
-        registry = new Registry(pkg.registry, getRequest);
+        registry = Registry.createWithoutValidation(pkg.registry, getRequest);
     }
-    return new Project(fs, projectPath, mockOut, mockErr, pkg, registry);
+    return new Project(fs, projectPath, mockOut, mockErr, registry);
 }
 
-// Helper function to create test directory
 export function createTestDir(prefix: string = "jaculus-test-"): string {
     return fs.mkdtempSync(path.join(tmpdir(), prefix));
 }
 
-// Helper function to cleanup test directory
 export function cleanupTestDir(tempDir: string): void {
     if (fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
     }
 }
 
-// Helper function to create project directory structure
 export function createProjectStructure(
     tempDir: string,
     projectName: string,
@@ -171,7 +170,6 @@ export function createProjectStructure(
     return projectPath;
 }
 
-// Helper function for test setup
 export function setupTest(prefix?: string): {
     tempDir: string;
     mockOut: MockWritable;
@@ -189,13 +187,11 @@ export function setupTest(prefix?: string): {
     return { tempDir, mockOut, mockErr, getRequest, cleanup };
 }
 
-// Helper function to read and parse package.json
 export function readPackageJson(projectPath: string): PackageJson {
     const packagePath = path.join(projectPath, "package.json");
     return JSON.parse(fs.readFileSync(packagePath, "utf-8"));
 }
 
-// Helper function to expect package.json properties
 export function expectPackageJson(
     projectPath: string,
     expectations: {
@@ -224,8 +220,7 @@ export function expectPackageJson(
     }
 }
 
-// Helper function to expect output messages
-export function expectOutput(
+export function expectOutputMessage(
     mockOut: MockWritable,
     includes: string[],
     excludes: string[] = []

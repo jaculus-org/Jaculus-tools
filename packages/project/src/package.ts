@@ -1,8 +1,6 @@
 import * as z from "zod";
 import path from "path";
-import { FSInterface } from "../fs/index.js";
-
-// package.json like definition for libraries
+import { FSInterface } from "./fs.js";
 
 // name: npm package name pattern (allows scoped packages like @org/name)
 // Got from: https://github.com/SchemaStore/schemastore/tree/d2684d4406cb26c254dffde1f43b5d1ee51c531a/src/schemas/json/package.json#L349-L354
@@ -18,28 +16,13 @@ const VersionFormat = z
     .min(1)
     .regex(/^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?$/);
 
-// VersionFormat or "workspace:<VersionFormat>"
-const VersionSchema = z.string().refine(
-    (val) => {
-        if (val.startsWith("workspace:")) {
-            const versionPart = val.substring("workspace:".length);
-            return VersionFormat.safeParse(versionPart).success;
-        } else {
-            return VersionFormat.safeParse(val).success;
-        }
-    },
-    { message: "Invalid version format" }
-);
-
 const DescriptionSchema = z.string();
 
-// dependencies: optional record of name -> version
-// - in first version, only exact versions are supported
-const DependenciesSchema = z.record(NameSchema, VersionSchema);
-
+// dependencies: record of package name to version (currently only exact version)
+const DependenciesSchema = z.record(NameSchema, VersionFormat);
 const RegistryUrisSchema = z.array(z.string());
+export const JaculusProjectTypeSchema = z.enum(["code", "jacly"]);
 
-const JaculusProjectTypeSchema = z.enum(["code", "jacly"]);
 const JaculusSchema = z.object({
     blocks: z.string().optional(),
     projectType: JaculusProjectTypeSchema.optional(),
@@ -47,22 +30,12 @@ const JaculusSchema = z.object({
 });
 
 const ExportKeyValueSchema = z.record(z.string(), z.string());
-// const ExportsAdvancedSchema = z.union([z.string(), ExportKeyValueSchema]).optional();
 
-const ExportsSchema = z.union([
-    z.string(),
-    ExportKeyValueSchema,
-    // z.object({
-    //     import: ExportsAdvancedSchema,
-    //     require: ExportsAdvancedSchema,
-    //     default: ExportsAdvancedSchema,
-    //     types: ExportsAdvancedSchema,
-    // }),
-]);
+const ExportsSchema = z.union([z.string(), ExportKeyValueSchema]);
 
 const PackageJsonSchema = z.object({
     name: NameSchema,
-    version: VersionSchema,
+    version: VersionFormat,
     description: DescriptionSchema.optional(),
     dependencies: DependenciesSchema.default({}),
     registry: RegistryUrisSchema.optional(),
@@ -73,7 +46,7 @@ const PackageJsonSchema = z.object({
     types: z.string().optional(),
 });
 
-export type Dependency = {
+export type DependencyObject = {
     name: string;
     version: string;
 };
@@ -87,24 +60,33 @@ export function projectJsonSchema() {
     return z.toJSONSchema(PackageJsonSchema, {});
 }
 
-export function parsePackageJson(json: any, file: string): PackageJson {
+export class InvalidPackageJsonFormatError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "InvalidPackageJsonFormatError";
+    }
+}
+
+export function parsePackageJson(json: unknown, filePathLog: string): PackageJson {
     const result = PackageJsonSchema.safeParse(json);
     if (!result.success) {
         const pretty = z.prettifyError(result.error);
-        throw new Error(`Invalid package.json format in file '${file}':\n${pretty}`);
+        throw new InvalidPackageJsonFormatError(
+            `Invalid package.json format at '${filePathLog}': ${pretty}`
+        );
     }
     return result.data;
 }
 
 export async function loadPackageJson(fs: FSInterface, filePath: string): Promise<PackageJson> {
     const data = await fs.promises.readFile(filePath, { encoding: "utf-8" });
-    const json = JSON.parse(data);
-    return parsePackageJson(json, filePath);
-}
-
-export function loadPackageJsonSync(fs: FSInterface, filePath: string): PackageJson {
-    const data = fs.readFileSync(filePath, { encoding: "utf-8" });
-    const json = JSON.parse(data);
+    let json: any;
+    try {
+        json = JSON.parse(data);
+    } catch (error) {
+        console.error(`Failed to parse package.json at ${filePath}:`, error);
+        throw new InvalidPackageJsonFormatError(`Invalid JSON format: ${(error as Error).message}`);
+    }
     return parsePackageJson(json, filePath);
 }
 
@@ -120,17 +102,6 @@ export async function savePackageJson(
     }
 
     await fs.promises.writeFile(filePath, data, { encoding: "utf-8" });
-}
-
-export async function getBlockFilesFromPackageJson(
-    fs: FSInterface,
-    filePath: string
-): Promise<string[]> {
-    const pkg = await loadPackageJson(fs, filePath);
-    if (pkg.jaculus && pkg.jaculus.blocks) {
-        return [pkg.jaculus.blocks];
-    }
-    return [];
 }
 
 export function splitLibraryNameVersion(library: string): { name: string; version: string | null } {
