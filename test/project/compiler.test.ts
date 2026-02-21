@@ -1,6 +1,6 @@
 import * as chai from "chai";
 import * as path from "path";
-import { compile } from "@jaculus/project/compiler";
+import { compileProject } from "@jaculus/project/compiler";
 import * as fsReal from "fs";
 import { tmpdir } from "os";
 import { configure, umount, InMemory, fs as fsVirt } from "@zenfs/core";
@@ -87,10 +87,9 @@ describe("TypeScript Compiler", () => {
                     },
                 };
 
-                const result = await compile(
+                const result = await compileProject(
                     config.fs,
                     testData.inputPath,
-                    "build",
                     errorStream,
                     undefined,
                     testData.tsLibsPath
@@ -174,10 +173,9 @@ describe("TypeScript Compiler", () => {
                     },
                 };
 
-                const result = await compile(
+                const result = await compileProject(
                     config.fs,
                     testDir,
-                    "build",
                     errorStream,
                     undefined,
                     testData.tsLibsPath
@@ -207,10 +205,9 @@ describe("TypeScript Compiler", () => {
                 };
 
                 try {
-                    await compile(
+                    await compileProject(
                         config.fs,
                         testDir,
-                        "build",
                         errorStream,
                         undefined,
                         testData.tsLibsPath
