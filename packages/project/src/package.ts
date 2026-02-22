@@ -42,6 +42,7 @@ const PackageJsonSchema = z.object({
     jaculus: JaculusSchema.optional(),
     type: z.enum(["module"]).optional(),
     main: z.string().optional(),
+    scripts: z.record(z.string(), z.string()).optional(),
     exports: ExportsSchema.optional(),
     types: z.string().optional(),
 });
