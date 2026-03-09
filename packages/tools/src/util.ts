@@ -1,7 +1,7 @@
-import { JaculusRequestError, RequestFunction } from "@jaculus/project/fs";
 import { getUri } from "get-uri";
 import * as fs from "fs";
 import { fileURLToPath } from "url";
+import { RequestFunction, JaculusRequestError, concatUint8Arrays } from "@jaculus/common";
 
 export const uriRequest: RequestFunction = async (
     baseUri: string,
@@ -29,11 +29,11 @@ export const uriRequest: RequestFunction = async (
 
     try {
         const stream = await getUri(uri);
-        const chunks: Buffer[] = [];
+        const chunks: Uint8Array[] = [];
         for await (const chunk of stream) {
-            chunks.push(chunk as Buffer);
+            chunks.push(chunk as Uint8Array);
         }
-        return new Uint8Array(Buffer.concat(chunks));
+        return concatUint8Arrays(chunks);
     } catch (error) {
         throw new JaculusRequestError(`Failed to fetch ${uri}: ${(error as Error).message}`);
     }

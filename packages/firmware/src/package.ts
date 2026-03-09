@@ -1,4 +1,5 @@
 import { getUri } from "get-uri";
+import { concatUint8Arrays } from "@jaculus/common";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import * as espPlatform from "./esp32/esp32.js";
@@ -63,11 +64,11 @@ export class Package {
  */
 export async function loadPackage(uri: string): Promise<Package> {
     const stream = await getUri(uri);
-    const chunks = [];
+    const chunks: Uint8Array[] = [];
     for await (const chunk of stream) {
-        chunks.push(chunk);
+        chunks.push(chunk as Uint8Array);
     }
-    const archive = Buffer.concat(chunks);
+    const archive = concatUint8Arrays(chunks);
 
     let manifest: Manifest | null = null;
     const files: Record<string, Uint8Array> = {};

@@ -8,11 +8,10 @@ import { uriRequest } from "../util.js";
 
 const cmd = new Command("Search libraries in configured registries", {
     action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
-        const projectPath = options["path"] as string;
         const query = ((args["query"] as string | undefined) ?? "").trim();
         const allLibs = options["all-libs"] as boolean;
 
-        const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
+        const pkg = await loadPackageJson(fs, path.join(process.cwd(), "package.json"));
         const registry = await Registry.create(pkg?.registry, uriRequest);
 
         const libraries = await registry.listPackages();
@@ -33,18 +32,12 @@ const cmd = new Command("Search libraries in configured registries", {
         }
 
         stdout.write(`${allLibs ? "All libraries:" : "Matching libraries:"}\n`);
-        const exactMatch = allLibs ? undefined : libraries.find((library) => library === query);
         for (const library of matches) {
             stdout.write(`${library}\n`);
-            if (exactMatch) {
-                const versions = await registry.listVersions(exactMatch);
-                stdout.write(` - versions: ${versions.join(", ")}\n`);
-            }
         }
     },
     args: [new Arg("query", "Library search query")],
     options: {
-        path: new Opt("Project directory path", { defaultValue: "./" }),
         "all-libs": new Opt("List all libraries from all configured registries", { isFlag: true }),
     },
     chainable: true,

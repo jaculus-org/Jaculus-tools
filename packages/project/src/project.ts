@@ -10,6 +10,7 @@ import {
     PackageJson,
     getPackagePath,
 } from "./package.js";
+import { Logger } from "@jaculus/common";
 
 export type ResolvedDependencies = Dependencies;
 type DataSourceType = "registry" | "local";
@@ -56,110 +57,8 @@ export class Project {
         public fs: FSInterface,
         public projectPath: string,
         public out: Writable,
-        public err: Writable,
-        public registry?: Registry
+        public logger: Logger
     ) {}
-
-    private async unpackPackage(
-        pkg: ProjectPackage,
-        filter: (fileName: string) => boolean,
-        dryRun: boolean = false
-    ): Promise<void> {
-        for (const dir of pkg.dirs) {
-            const source = dir;
-            const fullPath = path.join(this.projectPath, source);
-            if (!this.fs.existsSync(fullPath) && !dryRun) {
-                this.err.write(`Create directory: ${fullPath}\n`);
-                await this.fs.promises.mkdir(fullPath, { recursive: true });
-            }
-        }
-
-        for (const [fileName, data] of Object.entries(pkg.files)) {
-            const source = fileName;
-
-            if (!filter(source)) {
-                this.out.write(`[skip] ${source}\n`);
-                continue;
-            }
-            const fullPath = path.join(this.projectPath, source);
-
-            const exists = this.fs.existsSync(fullPath);
-            this.out.write(
-                `${dryRun ? "[dry-run] " : ""}${exists ? "Overwrite" : "Create"} ${fullPath}\n`
-            );
-
-            if (!dryRun) {
-                const dir = path.dirname(fullPath);
-                if (!this.fs.existsSync(dir)) {
-                    await this.fs.promises.mkdir(dir, { recursive: true });
-                }
-                await this.fs.promises.writeFile(fullPath, data);
-            }
-        }
-    }
-
-    async createFromPackage(
-        pkg: ProjectPackage,
-        dryRun: boolean = false,
-        validateFolder: boolean = true
-    ): Promise<void> {
-        if (validateFolder && !dryRun && this.fs.existsSync(this.projectPath)) {
-            throw new ProjectError(`Directory '${this.projectPath}' already exists`);
-        }
-
-        const filter = (fileName: string): boolean => {
-            if (fileName === "manifest.json") {
-                return false;
-            }
-            return true;
-        };
-
-        await this.unpackPackage(pkg, filter, dryRun);
-    }
-
-    async updateFromPackage(pkg: ProjectPackage, dryRun: boolean = false): Promise<void> {
-        if (!this.fs.existsSync(this.projectPath)) {
-            throw new ProjectError(`Directory '${this.projectPath}' does not exist`);
-        }
-
-        if (!this.fs.statSync(this.projectPath).isDirectory()) {
-            throw new ProjectError(`Path '${this.projectPath}' is not a directory`);
-        }
-
-        let manifest;
-        if (pkg.files["manifest.json"]) {
-            manifest = JSON.parse(new TextDecoder().decode(pkg.files["manifest.json"]));
-        }
-
-        let skeleton: string[];
-        if (!manifest || !manifest["skeletonFiles"]) {
-            skeleton = ["@types/*", "tsconfig.json"];
-        } else {
-            const input = manifest["skeletonFiles"];
-            skeleton = [];
-            for (const entry of input) {
-                if (typeof entry === "string") {
-                    skeleton.push(entry);
-                } else {
-                    throw new ProjectError(`Invalid skeleton entry: ${JSON.stringify(entry)}`);
-                }
-            }
-        }
-
-        const filter = (fileName: string): boolean => {
-            if (fileName === "manifest.json") {
-                return false;
-            }
-            for (const pattern of skeleton) {
-                if (path.matchesGlob(fileName, pattern)) {
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        await this.unpackPackage(pkg, filter, dryRun);
-    }
 
     async loadProjectPackageJson(): Promise<PackageJson> {
         return loadPackageJson(this.fs, path.join(this.projectPath, "package.json"));
@@ -179,22 +78,20 @@ export class Project {
         return await this.resolveDependencies(pkg.dependencies, "registry");
     }
 
-    async install(): Promise<Dependencies> {
-        if (!this.registry) {
-            throw new ProjectError("Registry is not defined for the project");
-        }
+    async install(registry: Registry): Promise<Dependencies> {
         this.out.write("Resolving project dependencies...\n");
         const pkg = await this.loadProjectPackageJson();
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "registry");
-        await this.installDependencies(resolvedDeps);
+        await this.installDependencies(registry, resolvedDeps);
         return pkg.dependencies;
     }
 
-    async addLibraryVersion(library: string, version: string): Promise<Dependencies> {
-        if (!this.registry) {
-            throw new ProjectError("Registry is not defined for the project");
-        }
-        if (!(await this.registry?.exists(library))) {
+    async addLibraryVersion(
+        registry: Registry,
+        library: string,
+        version: string
+    ): Promise<Dependencies> {
+        if (!(await registry.exists(library))) {
             throw new ProjectError(`Library '${library}' does not exist in the registry`);
         }
 
@@ -203,27 +100,24 @@ export class Project {
         const resolvedDependencies = await this.addLibVersion(library, version, pkg.dependencies);
         pkg.dependencies[library] = version;
         await this.saveProjectPackageJson(pkg);
-        await this.installDependencies(resolvedDependencies);
+        await this.installDependencies(registry, resolvedDependencies);
         return pkg.dependencies;
     }
 
-    async addLibrary(library: string): Promise<Dependencies> {
-        if (!this.registry) {
-            throw new ProjectError("Registry is not defined for the project");
-        }
+    async addLibrary(registry: Registry, library: string): Promise<Dependencies> {
         this.out.write(`Adding library '${library}' to project.\n`);
-        if (!(await this.registry?.exists(library))) {
+        if (!(await registry.exists(library))) {
             throw new ProjectError(`Library '${library}' does not exist in the registry`);
         }
 
         const pkg = await this.loadProjectPackageJson();
         const baseDeps = await this.resolveDependencies({ ...pkg.dependencies }, "registry");
-        const versions = (await this.registry?.listVersions(library)) || [];
+        const versions = (await registry.listVersions(library)) || [];
         for (const version of versions) {
             const resolvedDependencies = await this.addLibVersion(library, version, baseDeps);
             pkg.dependencies[library] = version;
             await this.saveProjectPackageJson(pkg);
-            await this.installDependencies(resolvedDependencies);
+            await this.installDependencies(registry, resolvedDependencies);
             return pkg.dependencies;
         }
         throw new ProjectDependencyError(
@@ -231,10 +125,7 @@ export class Project {
         );
     }
 
-    async removeLibrary(libName: string): Promise<Dependencies> {
-        if (!this.registry) {
-            throw new ProjectError("Registry is not defined for the project");
-        }
+    async removeLibrary(registry: Registry, libName: string): Promise<Dependencies> {
         this.out.write(`Removing library '${libName}' from project...\n`);
         const pkg = await this.loadProjectPackageJson();
         if (!(libName in pkg.dependencies)) {
@@ -246,18 +137,22 @@ export class Project {
         await this.saveProjectPackageJson(pkg);
 
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "local");
-        await this.installDependencies(resolvedDeps);
+        await this.installDependencies(registry, resolvedDeps);
         this.out.write(`Successfully removed library '${libName}' from project\n`);
         return pkg.dependencies;
     }
 
     private async resolveDependencies(
         dependencies: Dependencies,
-        dataSourceType: DataSourceType = "registry"
+        dataSourceType: DataSourceType = "registry",
+        registry?: Registry
     ): Promise<ResolvedDependencies> {
-        if (!this.registry) {
-            throw new ProjectError("Registry is not defined for the project");
+        if (dataSourceType === "registry" && !registry) {
+            throw new ProjectError(
+                "Registry instance is required for resolving dependencies from registry"
+            );
         }
+
         const resolvedDeps = { ...dependencies };
         const processedLibraries = new Set<string>();
         const queue: Array<DependencyObject> = [];
@@ -292,18 +187,22 @@ export class Project {
                     }
                 } else {
                     // fetch from registry
-                    packageJson = await this.registry?.getPackageJson(dep.name, dep.version);
+                    packageJson = await registry!.getPackageJson(dep.name, dep.version);
                 }
 
                 if (!packageJson) {
                     if (dataSourceType === "local") {
-                        this.err.write(
+                        this.logger.warn(
                             `Package '${dep.name}@${dep.version}' not found locally in node_modules. Skipping transitive deps.\n`
                         );
                         continue;
                     }
-                    // TODO: fix it
-                    throw new Error(`Package '${dep.name}@${dep.version}' not found in registry`);
+
+                    throw new ProjectDependencyError(
+                        `Package '${dep.name}@${dep.version}' not found in registry`,
+                        dep.name,
+                        dep.version
+                    );
                 }
 
                 for (const [libName, libVersion] of Object.entries(packageJson.dependencies)) {
@@ -326,12 +225,12 @@ export class Project {
                 }
             } catch (error) {
                 if (dataSourceType === "local") {
-                    this.err.write(
+                    this.logger.warn(
                         `Warning: Could not resolve local dependencies for '${dep.name}@${dep.version}': ${error}\n`
                     );
                     continue;
                 }
-                this.err.write(
+                this.logger.error(
                     `Failed to resolve dependencies for '${dep.name}@${dep.version}': ${error}\n`
                 );
                 throw error;
@@ -341,10 +240,10 @@ export class Project {
         return resolvedDeps;
     }
 
-    private async installDependencies(dependencies: Dependencies): Promise<void> {
-        if (!this.registry) {
-            throw new ProjectError("Registry is not defined for the project");
-        }
+    private async installDependencies(
+        registry: Registry,
+        dependencies: Dependencies
+    ): Promise<void> {
         const nodeModulesPath = path.join(this.projectPath, "node_modules");
         if (this.fs.existsSync(nodeModulesPath)) {
             await this.fs.promises.rm(nodeModulesPath, { recursive: true, force: true });
@@ -354,11 +253,13 @@ export class Project {
         for (const [libName, libVersion] of Object.entries(dependencies)) {
             try {
                 this.out.write(` - Installing library '${libName}' version '${libVersion}'\n`);
-                const packageData = await this.registry.getPackageTgz(libName, libVersion);
+                const packageData = await registry.getPackageTgz(libName, libVersion);
                 const installPath = getPackagePath(this.projectPath, libName);
                 await extractTgzPackage(packageData, this.fs, installPath);
             } catch (error) {
-                this.err.write(`Failed to install library '${libName}@${libVersion}': ${error}\n`);
+                this.logger.error(
+                    `Failed to install library '${libName}@${libVersion}': ${error}\n`
+                );
                 throw error;
             }
         }
@@ -394,7 +295,7 @@ export class Project {
             try {
                 libPkg = await loadPackageJson(this.fs, pkgPath);
             } catch (e) {
-                this.err.write(`Failed to load package.json for '${libName}': ${e}. Skipping.\n`);
+                this.logger.warn(`Failed to load package.json for '${libName}': ${e}. Skipping.\n`);
                 continue;
             }
 
@@ -418,7 +319,7 @@ export class Project {
                             const fileContent = await this.fs.promises.readFile(fullPath, "utf-8");
                             jaclyData.blockFiles[fullPath] = JSON.parse(fileContent);
                         } catch (e) {
-                            this.err.write(
+                            this.logger.error(
                                 `Failed to read/parse JacLy block file '${fullPath}': ${e}\n`
                             );
                             throw e;
@@ -436,7 +337,7 @@ export class Project {
                         const localeTranslations = JSON.parse(fileContent);
                         Object.assign(jaclyData.translations, localeTranslations);
                     } catch (e) {
-                        this.err.write(
+                        this.logger.error(
                             `Failed to read/parse JacLy translation file '${translationFile}': ${e}\n`
                         );
                         throw e;

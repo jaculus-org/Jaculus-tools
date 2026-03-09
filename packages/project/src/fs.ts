@@ -5,25 +5,6 @@ import pako from "pako";
 export type FSPromisesInterface = typeof import("fs").promises;
 export type FSInterface = typeof import("fs");
 
-export type RequestFunction = (baseUri: string, libFile: string) => Promise<Uint8Array>;
-export class JaculusRequestError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = "JaculusRequestError";
-    }
-}
-
-export async function getRequestJson(
-    getRequest: RequestFunction,
-    baseUri: string,
-    libFile: string
-): Promise<any> {
-    return getRequest(baseUri, libFile).then((data) => {
-        const text = new TextDecoder().decode(data);
-        return JSON.parse(text);
-    });
-}
-
 export async function copyFolder(
     fsSource: FSInterface,
     dirSource: string,

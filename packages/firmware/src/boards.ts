@@ -1,3 +1,4 @@
+import { getRequestJson, RequestFunction } from "@jaculus/common";
 import { z } from "zod";
 
 const BOARD_INDEX_URL = "https://f.jaculus.org/bin";
@@ -22,11 +23,9 @@ export type BoardVariant = z.infer<typeof BoardVariantSchema>;
 export type BoardsIndex = z.infer<typeof BoardsIndexSchema>;
 export type BoardVersion = z.infer<typeof BoardVersionSchema>;
 
-export async function getBoardsIndex(): Promise<BoardsIndex[]> {
+export async function getBoardsIndex(getRequest: RequestFunction): Promise<BoardsIndex[]> {
     try {
-        const response = fetch(`${BOARD_INDEX_URL}/${BOARDS_INDEX_JSON}`);
-        const res = await response;
-        const data = await res.json();
+        const data = await getRequestJson(getRequest, BOARD_INDEX_URL, BOARDS_INDEX_JSON);
         const parsed = z.array(BoardsIndexSchema).safeParse(data);
         if (!parsed.success) {
             console.error("Failed to parse boards index:", z.prettifyError(parsed.error));
@@ -39,11 +38,16 @@ export async function getBoardsIndex(): Promise<BoardsIndex[]> {
     }
 }
 
-export async function getBoardVersions(boardId: string): Promise<BoardVersion[]> {
+export async function getBoardVersions(
+    getRequest: RequestFunction,
+    boardId: string
+): Promise<BoardVersion[]> {
     try {
-        const response = fetch(`${BOARD_INDEX_URL}/${boardId}/${BOARD_VERSIONS_JSON}`);
-        const res = await response;
-        const data = await res.json();
+        const data = await getRequestJson(
+            getRequest,
+            BOARD_INDEX_URL,
+            `${boardId}/${BOARD_VERSIONS_JSON}`
+        );
         const parsed = z.array(BoardVersionSchema).safeParse(data);
         if (!parsed.success) {
             console.error("Failed to parse board versions:", z.prettifyError(parsed.error));

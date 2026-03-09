@@ -108,8 +108,8 @@ export class Controller {
         return false;
     }
 
-    public start(path: string): Promise<void> {
-        this._logger?.verbose("Starting program: " + path);
+    public start(path: string = ""): Promise<void> {
+        this._logger?.verbose("Starting program: " + (path ? path : "<default>"));
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {

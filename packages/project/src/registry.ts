@@ -1,5 +1,4 @@
 import semver from "semver";
-import { getRequestJson, RequestFunction, JaculusRequestError } from "./fs.js";
 import {
     parsePackageJson,
     PackageJson,
@@ -7,7 +6,7 @@ import {
     JaculusProjectType,
 } from "./package.js";
 import * as z from "zod";
-import { Logger } from "@jaculus/common";
+import { getRequestJson, JaculusRequestError, Logger, RequestFunction } from "@jaculus/common";
 
 export const DefaultRegistryUrl = ["http://127.0.0.1:3737/", "https://registry.jaculus.org"];
 
@@ -75,8 +74,6 @@ export function parseRegistryVersions(json: object): RegistryVersions {
 export class Registry {
     public registryUri: string[];
     private _logger?: Logger;
-    private packageJsonCache: Map<string, PackageJson> = new Map();
-    private pendingRequests: Map<string, Promise<PackageJson>> = new Map();
 
     private constructor(
         registryUri: string[],

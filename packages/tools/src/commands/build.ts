@@ -3,13 +3,14 @@ import * as path from "path";
 import { stderr, stdout } from "process";
 import { compileProject } from "@jaculus/project/compiler";
 import * as fs from "fs";
+import { logger } from "../logger.js";
 
 const cmd = new Command("Build TypeScript project", {
     action: async (options: Record<string, string | boolean>) => {
         const path_ = options["input"] as string;
         const inputDir = path.resolve(path_);
 
-        if (await compileProject(fs, inputDir, stderr, stdout)) {
+        if (await compileProject(fs, inputDir, stdout, logger)) {
             stderr.write("Compiled successfully\n");
         } else {
             stderr.write("Compilation failed\n");

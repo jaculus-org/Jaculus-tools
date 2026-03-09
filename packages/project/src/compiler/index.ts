@@ -3,17 +3,18 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { FSInterface } from "../fs.js";
 import ts from "typescript";
+import { Logger } from "@jaculus/common";
 
 type Writable = { write: (chunk: string) => void };
 
-function printMessage(message: string | ts.DiagnosticMessageChain, stream: Writable, indent = 0) {
+function printMessage(message: string | ts.DiagnosticMessageChain, logger: Logger, indent = 0) {
     if (typeof message === "string") {
-        stream.write(" ".repeat(indent * 2) + message + "\n");
+        logger.warn(" ".repeat(indent * 2) + message + "\n");
     } else {
-        stream.write(" ".repeat(indent * 2) + message.messageText + "\n");
+        logger.warn(" ".repeat(indent * 2) + message.messageText + "\n");
         if (message.next) {
             for (const next of message.next) {
-                printMessage(next, stream, indent + 1);
+                printMessage(next, logger, indent + 1);
             }
         }
     }
@@ -51,8 +52,8 @@ function validateProjectTsconfig(compilerOptions: ts.CompilerOptions, outDir: st
 export async function compileProject(
     fs: FSInterface,
     projectPath: string,
-    err: Writable,
-    out?: Writable,
+    out: Writable,
+    logger: Logger,
     tsLibsPath: string = path.dirname(
         fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
     )
@@ -66,35 +67,24 @@ export async function compileProject(
     }
     const configJsonFile = ts.readConfigFile(tsconfig, system.readFile);
     if (configJsonFile.error) {
-        printMessage(configJsonFile.error.messageText, err);
+        printMessage(configJsonFile.error.messageText, logger);
         throw new Error("Error reading tsconfig.json");
     }
 
     validateProjectTsconfig(configJsonFile.config, outDir);
-    return await compile(
-        fs,
-        projectPath,
-        outDir,
-        configJsonFile.config,
-        system,
-        err,
-        out,
-        false,
-        tsLibsPath
-    );
+    return await compile(configJsonFile.config, system, out, logger, false, tsLibsPath);
 }
 
 export async function compileLibrary(
     fs: FSInterface,
     libraryPath: string,
-    err: Writable,
-    out?: Writable,
+    out: Writable,
+    logger: Logger,
     transpileOnly: boolean = false,
     tsLibsPath: string = path.dirname(
         fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
     )
 ): Promise<boolean> {
-    const outDir = "dist";
     const system = tsvfs.createSystem(fs, libraryPath);
 
     const configJson = {
@@ -114,38 +104,24 @@ export async function compileLibrary(
         include: ["src"],
     };
 
-    return await compile(
-        fs,
-        libraryPath,
-        outDir,
-        configJson,
-        system,
-        err,
-        out,
-        transpileOnly,
-        tsLibsPath
-    );
+    return await compile(configJson, system, out, logger, transpileOnly, tsLibsPath);
 }
 
 /**
  * Compiles TypeScript files with custom FSInterface
- * @param fs - The file system interface (Node, zenfs, etc.)
- * @param inputDir - The input directory containing TypeScript files.
- * @param outDir - The output directory for compiled files.
- * @param err - The writable stream for error messages.
+ * @param configJson - The tsconfig.json content as a JavaScript object.
+ * @param system - The TypeScript System implementation that uses the custom FSInterface.
+ * @param logger - The logger for error and info messages.
  * @param out - The writable stream for standard output messages.
  * @param tsLibsPath - The path to TypeScript libraries (in Node, it's the directory of the 'typescript' package)
  *                     (in zenfs, it's necessary to provide this path and copy TS files to the virtual FS in advance)
  * @returns A promise that resolves to true if compilation is successful, false otherwise.
  */
 export async function compile(
-    fs: FSInterface,
-    inputDir: string,
-    outDir: string,
     configJson: Record<string, unknown>,
     system: ts.System,
-    err: Writable,
-    out?: Writable,
+    out: Writable,
+    logger: Logger,
     transpileOnly: boolean = false,
     tsLibsPath: string = path.dirname(
         fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
@@ -153,7 +129,7 @@ export async function compile(
 ): Promise<boolean> {
     const { options, fileNames, errors } = ts.parseJsonConfigFileContent(configJson, system, "./");
     if (errors.length > 0) {
-        errors.forEach((error) => printMessage(error.messageText, err));
+        errors.forEach((error) => printMessage(error.messageText, logger));
         throw new Error(`Error parsing tsconfig.json - ${errors.length} error(s) found`);
     }
 
@@ -182,10 +158,10 @@ export async function compile(
             const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(
                 diagnostic.start
             );
-            printMessage(`${diagnostic.file.fileName} (${line + 1}:${character + 1}): `, err);
-            printMessage(diagnostic.messageText, err);
+            printMessage(`${diagnostic.file.fileName} (${line + 1}:${character + 1}): `, logger);
+            printMessage(diagnostic.messageText, logger);
         } else {
-            printMessage(diagnostic.messageText, err);
+            printMessage(diagnostic.messageText, logger);
         }
     }
 

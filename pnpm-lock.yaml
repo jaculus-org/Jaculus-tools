@@ -105,6 +105,9 @@ importers:
       '@cubicap/esptool-js':
         specifier: ^0.3.2
         version: 0.3.2
+      '@jaculus/common':
+        specifier: workspace:*
+        version: link:../common
       '@obsidize/tar-browserify':
         specifier: ^6.3.2
         version: 6.3.2

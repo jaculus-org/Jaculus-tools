@@ -5,9 +5,11 @@ import fs from "fs";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import { getUri } from "get-uri";
+import { concatUint8Arrays } from "@jaculus/common";
 import { JacDevice } from "@jaculus/device";
 import { logger } from "../logger.js";
-import { ProjectPackage, Project } from "@jaculus/project";
+import { ProjectPackage } from "@jaculus/project";
+import { createFromPackage, updateFromPackage } from "@jaculus/project/creation";
 
 async function loadFromDevice(device: JacDevice): Promise<Uint8Array> {
     await device.controller.lock().catch((err) => {
@@ -56,11 +58,11 @@ async function loadPackage(
         archive = await loadFromDevice(device);
     } else {
         const stream = await getUri(pkgUri);
-        const chunks = [];
+        const chunks: Uint8Array[] = [];
         for await (const chunk of stream) {
-            chunks.push(chunk);
+            chunks.push(chunk as Uint8Array);
         }
-        archive = Buffer.concat(chunks);
+        archive = concatUint8Arrays(chunks);
     }
 
     const dirs: string[] = [];
@@ -86,9 +88,7 @@ export const projectCreate = new Command("Create project from package", {
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
-
-        const project = new Project(fs, outPath, stdout, stderr);
-        await project.createFromPackage(pkg, dryRun);
+        await createFromPackage(fs, outPath, pkg, stdout, logger, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
@@ -108,9 +108,7 @@ export const projectUpdate = new Command("Update existing project from package s
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
-
-        const project = new Project(fs, outPath, stdout, stderr);
-        await project.updateFromPackage(pkg, dryRun);
+        await updateFromPackage(fs, outPath, pkg, stdout, logger, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),

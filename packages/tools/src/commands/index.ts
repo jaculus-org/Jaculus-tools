@@ -7,7 +7,7 @@ import build from "./build.js";
 import flash from "./flash.js";
 import libBuild from "./lib-build.js";
 import libInstall from "./lib-install.js";
-import libLs from "./lib-ls.js";
+import libList from "./lib-list.js";
 import libRemove from "./lib-remove.js";
 import libSearch from "./lib-search.js";
 import ls from "./ls.js";
@@ -40,7 +40,7 @@ export function registerJaculusCommands(jac: Program) {
 
     jac.addCommand("lib-build", libBuild);
     jac.addCommand("lib-install", libInstall);
-    jac.addCommand("lib-ls", libLs);
+    jac.addCommand("lib-list", libList);
     jac.addCommand("lib-remove", libRemove);
     jac.addCommand("lib-search", libSearch);
 

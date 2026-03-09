@@ -3,11 +3,8 @@ import { stderr, stdout } from "process";
 import { getDevice } from "./util.js";
 import { logger } from "../logger.js";
 import fs from "fs";
-import { uriRequest } from "../util.js";
-import path, { dirname } from "path";
-import { loadPackageJson } from "@jaculus/project/package";
+import { dirname } from "path";
 import { Project } from "@jaculus/project";
-import { Registry } from "@jaculus/project/registry";
 
 const cmd = new Command("Flash code to device (replace contents of ./code)", {
     action: async (
@@ -21,10 +18,7 @@ const cmd = new Command("Flash code to device (replace contents of ./code)", {
         const projectPath = options["path"] as string;
 
         const device = await getDevice(port, baudrate, socket, env);
-
-        const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
-        const registry = await Registry.create(pkg?.registry, uriRequest);
-        const project = new Project(fs, projectPath, stdout, stderr, registry);
+        const project = new Project(fs, projectPath, stdout, logger);
 
         const files = await project.getFlashFiles();
 
