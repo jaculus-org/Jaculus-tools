@@ -1,14 +1,17 @@
 import * as chai from "chai";
 import * as path from "path";
-import { compileProject } from "@jaculus/project/compiler";
 import * as fsReal from "fs";
+import { createRequire } from "module";
 import { tmpdir } from "os";
 import { configure, umount, InMemory, fs as fsVirt } from "@zenfs/core";
-import { fileURLToPath } from "url";
-import { copyFolder } from "@jaculus/project/fs";
+import { compileProjectPath } from "../../packages/project/src/compiler/index.js";
+import { copyFolder } from "../../packages/project/src/fs.js";
+import { createMockIo, expectAsyncError } from "./testHelpers.js";
 
 const expect = chai.expect;
 const testProjectPath = path.resolve("./test/project/data/test-project");
+const require = createRequire(import.meta.url);
+const tsLibsSource = path.dirname(require.resolve("typescript"));
 
 interface TestConfig {
     name: string;
@@ -26,7 +29,7 @@ describe("TypeScript Compiler", () => {
             setup: async () => {
                 const tempDir = fsReal.mkdtempSync(path.join(tmpdir(), "jaculus-test-"));
                 await copyFolder(fsReal, testProjectPath, fsReal, tempDir);
-                return { inputPath: tempDir };
+                return { inputPath: tempDir, tsLibsPath: tsLibsSource };
             },
             cleanup: async () => {},
         },
@@ -45,9 +48,6 @@ describe("TypeScript Compiler", () => {
                     },
                 });
 
-                const tsLibsSource = path.dirname(
-                    fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
-                );
                 await copyFolder(fsReal, tsLibsSource, fsVirt as any, tsLibsPath, false);
                 await copyFolder(fsReal, testProjectPath, fsVirt as any, pathPrefix);
 
@@ -80,27 +80,19 @@ describe("TypeScript Compiler", () => {
             });
 
             it("should successfully compile a simple TypeScript project", async () => {
-                let errorOutput = "";
-                const errorStream = {
-                    write: (chunk: string) => {
-                        errorOutput += chunk;
-                    },
-                };
+                const { mockOut, mockErr, logger } = createMockIo();
 
-                const result = await compileProject(
+                const result = await compileProjectPath(
                     config.fs,
                     testData.inputPath,
-                    errorStream,
+                    logger,
                     undefined,
                     testData.tsLibsPath
                 );
 
-                if (!result) {
-                    console.log("Compilation errors:", errorOutput);
-                }
-
                 expect(result).to.be.true;
-                expect(errorOutput).to.be.empty;
+                expect(mockErr.output).to.be.empty;
+                expect(mockOut.output).to.include("Compiling files:");
 
                 const buildExists = config.fs.existsSync(path.join(testData.inputPath, "build"));
                 expect(buildExists).to.be.true;
@@ -166,24 +158,19 @@ describe("TypeScript Compiler", () => {
 
                 config.fs.writeFileSync(path.join(testDir, "src", "index.ts"), invalidCode);
 
-                let errorOutput = "";
-                const errorStream = {
-                    write: (chunk: string) => {
-                        errorOutput += chunk;
-                    },
-                };
+                const { mockErr, logger } = createMockIo();
 
-                const result = await compileProject(
+                const result = await compileProjectPath(
                     config.fs,
                     testDir,
-                    errorStream,
+                    logger,
                     undefined,
                     testData.tsLibsPath
                 );
 
                 expect(result).to.be.false;
-                expect(errorOutput).to.not.be.empty;
-                expect(errorOutput).to.include("not assignable to type");
+                expect(mockErr.output).to.not.be.empty;
+                expect(mockErr.output).to.include("not assignable to type");
             });
 
             it("should throw error when tsconfig.json is missing", async () => {
@@ -200,23 +187,20 @@ describe("TypeScript Compiler", () => {
                 config.fs.mkdirSync(testDir, { recursive: true });
                 config.fs.mkdirSync(path.join(testDir, "src"), { recursive: true });
 
-                const errorStream = {
-                    write: () => {},
-                };
+                const { logger } = createMockIo();
 
-                try {
-                    await compileProject(
-                        config.fs,
-                        testDir,
-                        errorStream,
-                        undefined,
-                        testData.tsLibsPath
-                    );
-                    expect.fail("Expected compile to throw an error");
-                } catch (error) {
-                    expect(error).to.be.an("error");
-                    expect((error as Error).message).to.include("Could not find tsconfig.json");
-                }
+                await expectAsyncError(
+                    () =>
+                        compileProjectPath(
+                            config.fs,
+                            testDir,
+                            logger,
+                            undefined,
+                            testData.tsLibsPath
+                        ),
+                    "Could not find tsconfig.json",
+                    "Expected compile to throw an error"
+                );
             });
         });
     });

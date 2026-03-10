@@ -1,6 +1,7 @@
 import path from "path";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
+import { Logger } from "@jaculus/common";
 
 export type FSPromisesInterface = typeof import("fs").promises;
 export type FSInterface = typeof import("fs");
@@ -10,10 +11,11 @@ export async function copyFolder(
     dirSource: string,
     fsDest: FSInterface,
     dirDest: string,
-    copySubdirs: boolean = true
+    copySubdirs: boolean = true,
+    logger?: Logger
 ) {
     if (!fsSource.existsSync(dirSource)) {
-        console.warn(`Source directory ${dirSource} does not exist, skipping copy.`);
+        logger?.warn(`Source directory ${dirSource} does not exist, skipping copy.`);
         return;
     }
 
@@ -27,7 +29,7 @@ export async function copyFolder(
         const destPath = path.join(dirDest, item);
         const stats = fsSource.statSync(sourcePath);
         if (stats.isDirectory() && copySubdirs) {
-            await copyFolder(fsSource, sourcePath, fsDest, destPath);
+            await copyFolder(fsSource, sourcePath, fsDest, destPath, copySubdirs, logger);
         } else if (stats.isFile()) {
             const content = fsSource.readFileSync(sourcePath, "utf-8");
             await fsDest.promises.writeFile(destPath, content, "utf-8");
@@ -35,16 +37,21 @@ export async function copyFolder(
     }
 }
 
-export function recursivelyPrintFs(fs: FSInterface, dir: string, indent: string = "") {
+export function recursivelyPrintFs(
+    logger: Logger,
+    fs: FSInterface,
+    dir: string,
+    indent: string = ""
+) {
     const items = fs.readdirSync(dir);
     for (const item of items) {
         const fullPath = path.join(dir, item);
         const stats = fs.statSync(fullPath);
         if (stats.isDirectory()) {
-            console.log(`${indent}[DIR]  ${item}`);
-            recursivelyPrintFs(fs, fullPath, indent + "  ");
+            logger.info(`${indent}[DIR]  ${item}`);
+            recursivelyPrintFs(logger, fs, fullPath, indent + "  ");
         } else {
-            console.log(`${indent}[FILE] ${item}`);
+            logger.info(`${indent}[FILE] ${item}`);
         }
     }
 }

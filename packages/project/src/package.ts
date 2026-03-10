@@ -27,6 +27,8 @@ const JaculusSchema = z.object({
     blocks: z.string().optional(),
     projectType: JaculusProjectTypeSchema.optional(),
     template: z.boolean().optional(),
+    jaclyVersion: VersionFormat.optional(),
+    jaclyGitHash: z.string().optional(),
 });
 
 const ExportKeyValueSchema = z.record(z.string(), z.string());
@@ -85,7 +87,6 @@ export async function loadPackageJson(fs: FSInterface, filePath: string): Promis
     try {
         json = JSON.parse(data);
     } catch (error) {
-        console.error(`Failed to parse package.json at ${filePath}:`, error);
         throw new InvalidPackageJsonFormatError(`Invalid JSON format: ${(error as Error).message}`);
     }
     return parsePackageJson(json, filePath);

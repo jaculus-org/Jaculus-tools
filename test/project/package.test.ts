@@ -1,5 +1,17 @@
-import { loadPackageJson, PackageJson, savePackageJson } from "@jaculus/project/package";
-import { cleanupTestDir, createTestDir, expect, fs, path, mockFs } from "./testHelpers.js";
+import {
+    loadPackageJson,
+    PackageJson,
+    savePackageJson,
+} from "../../packages/project/src/package.js";
+import {
+    cleanupTestDir,
+    createTestDir,
+    expect,
+    expectAsyncError,
+    fs,
+    path,
+    mockFs,
+} from "./testHelpers.js";
 
 const projectBasePath = "data/test-project/";
 
@@ -83,21 +95,19 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, "{ invalid json }");
 
-            try {
-                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
-                expect.fail("Expected loadPackageJson to throw an error");
-            } catch (error) {
-                expect(error).to.be.an("error");
-            }
+            await expectAsyncError(
+                () => loadPackageJson(mockFs, path.join(tempDir, "package.json")),
+                undefined,
+                "Expected loadPackageJson to throw an error"
+            );
         });
 
         it("should throw error for non-existent file", async () => {
-            try {
-                await loadPackageJson(mockFs, path.join(tempDir, "non-existent.json"));
-                expect.fail("Expected loadPackageJson to throw an error");
-            } catch (error) {
-                expect(error).to.be.an("error");
-            }
+            await expectAsyncError(
+                () => loadPackageJson(mockFs, path.join(tempDir, "non-existent.json")),
+                undefined,
+                "Expected loadPackageJson to throw an error"
+            );
         });
 
         it("should throw error for invalid package name", async () => {
@@ -110,13 +120,11 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-            try {
-                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
-                expect.fail("Expected loadPackageJson to throw an error");
-            } catch (error) {
-                expect(error).to.be.an("error");
-                expect((error as Error).message).to.include("Invalid package.json format");
-            }
+            await expectAsyncError(
+                () => loadPackageJson(mockFs, path.join(tempDir, "package.json")),
+                "Invalid package.json format",
+                "Expected loadPackageJson to throw an error"
+            );
         });
 
         it("should throw error for name that's too long", async () => {
@@ -129,13 +137,11 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-            try {
-                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
-                expect.fail("Expected loadPackageJson to throw an error");
-            } catch (error) {
-                expect(error).to.be.an("error");
-                expect((error as Error).message).to.include("Invalid package.json format");
-            }
+            await expectAsyncError(
+                () => loadPackageJson(mockFs, path.join(tempDir, "package.json")),
+                "Invalid package.json format",
+                "Expected loadPackageJson to throw an error"
+            );
         });
 
         it("should throw error for invalid version format", async () => {
@@ -148,13 +154,11 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-            try {
-                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
-                expect.fail("Expected loadPackageJson to throw an error");
-            } catch (error) {
-                expect(error).to.be.an("error");
-                expect((error as Error).message).to.include("Invalid package.json format");
-            }
+            await expectAsyncError(
+                () => loadPackageJson(mockFs, path.join(tempDir, "package.json")),
+                "Invalid package.json format",
+                "Expected loadPackageJson to throw an error"
+            );
         });
 
         it("should accept valid semver versions", async () => {
@@ -201,13 +205,11 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-            try {
-                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
-                expect.fail("Expected loadPackageJson to throw an error");
-            } catch (error) {
-                expect(error).to.be.an("error");
-                expect((error as Error).message).to.include("Invalid package.json format");
-            }
+            await expectAsyncError(
+                () => loadPackageJson(mockFs, path.join(tempDir, "package.json")),
+                "Invalid package.json format",
+                "Expected loadPackageJson to throw an error"
+            );
         });
 
         it("should handle invalid dependency versions in dependencies", async () => {
@@ -222,13 +224,11 @@ describe("Package JSON", () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-            try {
-                await loadPackageJson(mockFs, path.join(tempDir, "package.json"));
-                expect.fail("Expected loadPackageJson to throw an error");
-            } catch (error) {
-                expect(error).to.be.an("error");
-                expect((error as Error).message).to.include("Invalid package.json format");
-            }
+            await expectAsyncError(
+                () => loadPackageJson(mockFs, path.join(tempDir, "package.json")),
+                "Invalid package.json format",
+                "Expected loadPackageJson to throw an error"
+            );
         });
     });
 
@@ -436,13 +436,11 @@ describe("Package JSON", () => {
                 );
                 fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
 
-                try {
-                    await loadPackageJson(mockFs, path.join(tempDir, path.basename(packagePath)));
-                    expect.fail(`Expected name "${name}" to be invalid`);
-                } catch (error) {
-                    expect(error).to.be.an("error");
-                    expect((error as Error).message).to.include("Invalid package.json format");
-                }
+                await expectAsyncError(
+                    () => loadPackageJson(mockFs, path.join(tempDir, path.basename(packagePath))),
+                    "Invalid package.json format",
+                    `Expected name "${name}" to be invalid`
+                );
             }
         });
 

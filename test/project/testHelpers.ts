@@ -5,10 +5,11 @@ import { Writable } from "stream";
 import * as chai from "chai";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
-import { JaculusRequestError, RequestFunction } from "@jaculus/project/fs";
-import { Project } from "@jaculus/project";
-import { PackageJson, loadPackageJson } from "@jaculus/project/package";
-import { Registry } from "@jaculus/project/registry";
+import type { Logger } from "../../packages/common/dist/logger.js";
+import { JaculusRequestError, RequestFunction } from "../../packages/common/dist/request.js";
+import { Project } from "../../packages/project/src/project.js";
+import { PackageJson, loadPackageJson } from "../../packages/project/src/package.js";
+import { Registry } from "../../packages/project/src/registry.js";
 
 export const expect = chai.expect;
 export const registryBasePath = "file://data/test-registry/";
@@ -74,14 +75,66 @@ export async function generateTestRegistryPackages(registryBasePath: string): Pr
 export class MockWritable extends Writable {
     public output: string = "";
 
-    _write(chunk: any, _encoding: string, callback: (error?: Error | null) => void) {
+    append(chunk: string | Uint8Array) {
         this.output += chunk.toString();
+    }
+
+    writeLine(message?: string) {
+        if (message === undefined) {
+            return;
+        }
+        this.write(message.endsWith("\n") ? message : `${message}\n`);
+    }
+
+    _write(
+        chunk: string | Uint8Array,
+        _encoding: BufferEncoding,
+        callback: (error?: Error | null) => void
+    ) {
+        this.append(chunk);
         callback();
     }
 
     clear() {
         this.output = "";
     }
+}
+
+function createLoggerWriter(stream: MockWritable) {
+    return (message?: string) => {
+        stream.writeLine(message);
+    };
+}
+
+export function createMockLogger(
+    mockOut: MockWritable = new MockWritable(),
+    mockErr: MockWritable = new MockWritable()
+): Logger {
+    const writeOut = createLoggerWriter(mockOut);
+    const writeErr = createLoggerWriter(mockErr);
+
+    return {
+        error: writeErr,
+        warn: writeErr,
+        info: writeOut,
+        verbose: writeOut,
+        debug: writeOut,
+        silly: writeOut,
+    };
+}
+
+export function createMockIo(): {
+    mockOut: MockWritable;
+    mockErr: MockWritable;
+    logger: Logger;
+} {
+    const mockOut = new MockWritable();
+    const mockErr = new MockWritable();
+    return {
+        mockOut,
+        mockErr,
+        logger: createMockLogger(mockOut, mockErr),
+    };
 }
 
 export const createGetRequest = (): RequestFunction => async (baseUri, libFile) => {
@@ -129,14 +182,20 @@ export async function createMockProject(
     projectPath: string,
     mockOut: MockWritable,
     mockErr: MockWritable,
-    getRequest?: RequestFunction
+    logger: Logger = createMockLogger(mockOut, mockErr)
 ): Promise<Project> {
+    return new Project(fs, projectPath, mockOut, logger);
+}
+
+export async function createMockRegistry(
+    projectPath: string,
+    mockOut: MockWritable,
+    mockErr: MockWritable,
+    getRequest: RequestFunction,
+    logger: Logger = createMockLogger(mockOut, mockErr)
+): Promise<Registry> {
     const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
-    let registry: Registry | undefined = undefined;
-    if (getRequest) {
-        registry = Registry.createWithoutValidation(pkg.registry, getRequest);
-    }
-    return new Project(fs, projectPath, mockOut, mockErr, registry);
+    return new Registry(pkg.registry, getRequest, logger);
 }
 
 export function createTestDir(prefix: string = "jaculus-test-"): string {
@@ -174,17 +233,17 @@ export function setupTest(prefix?: string): {
     tempDir: string;
     mockOut: MockWritable;
     mockErr: MockWritable;
+    logger: Logger;
     getRequest: RequestFunction;
     cleanup: () => void;
 } {
     const tempDir = createTestDir(prefix);
-    const mockOut = new MockWritable();
-    const mockErr = new MockWritable();
+    const { mockOut, mockErr, logger } = createMockIo();
     const getRequest = createGetRequest();
 
     const cleanup = () => cleanupTestDir(tempDir);
 
-    return { tempDir, mockOut, mockErr, getRequest, cleanup };
+    return { tempDir, mockOut, mockErr, logger, getRequest, cleanup };
 }
 
 export function readPackageJson(projectPath: string): PackageJson {
@@ -231,5 +290,26 @@ export function expectOutputMessage(
 
     for (const message of excludes) {
         expect(mockOut.output).to.not.include(message);
+    }
+}
+
+export async function expectAsyncError(
+    action: () => Promise<unknown>,
+    messageIncludes?: string,
+    failureMessage: string = "Expected operation to throw an error"
+): Promise<Error> {
+    try {
+        await action();
+        expect.fail(failureMessage);
+        throw new Error(failureMessage);
+    } catch (error) {
+        const normalizedError =
+            error instanceof Error
+                ? error
+                : new Error(typeof error === "string" ? error : String(error));
+        if (messageIncludes) {
+            expect(normalizedError.message).to.include(messageIncludes);
+        }
+        return normalizedError;
     }
 }
