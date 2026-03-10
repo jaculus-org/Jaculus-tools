@@ -36,25 +36,25 @@ export class RegistryFetchError extends Error {
     }
 }
 
-const RegistryListSchema = z.array(
-    z.object({
-        id: z.string(),
-        projectType: JaculusProjectTypeSchema.optional(),
-        isTemplate: z.boolean().optional(),
-    })
-);
+const RegistryListSchema = z.object({
+    id: z.string(),
+    description: z.string().optional(),
+    projectType: JaculusProjectTypeSchema.optional(),
+    isTemplate: z.boolean().optional(),
+});
 
-const RegistryVersionsSchema = z.array(
-    z.object({
-        version: z.string(),
-    })
-);
+const RegistryVersionSchema = z.object({
+    version: z.string(),
+});
 
 export type RegistryList = z.infer<typeof RegistryListSchema>;
-export type RegistryVersions = z.infer<typeof RegistryVersionsSchema>;
+export type RegistryListProject = Pick<RegistryList, "id" | "description">;
+export type RegistryListTemplate = Pick<RegistryList, "id" | "description" | "projectType">;
 
-export function parseRegistryList(json: object): RegistryList {
-    const result = RegistryListSchema.safeParse(json);
+export type RegistryVersion = z.infer<typeof RegistryVersionSchema>;
+
+export function parseRegistryList(json: object): RegistryList[] {
+    const result = RegistryListSchema.array().safeParse(json);
     if (!result.success) {
         const pretty = z.prettifyError(result.error);
         throw new Error(`Invalid registry list format:\n${pretty}`);
@@ -62,8 +62,8 @@ export function parseRegistryList(json: object): RegistryList {
     return result.data;
 }
 
-export function parseRegistryVersions(json: object): RegistryVersions {
-    const result = RegistryVersionsSchema.safeParse(json);
+export function parseRegistryVersions(json: object): RegistryVersion[] {
+    const result = RegistryVersionSchema.array().safeParse(json);
     if (!result.success) {
         const pretty = z.prettifyError(result.error);
         throw new Error(`Invalid registry versions format:\n${pretty}`);
@@ -72,80 +72,52 @@ export function parseRegistryVersions(json: object): RegistryVersions {
 }
 
 export class Registry {
-    public registryUri: string[];
-    private _logger?: Logger;
+    public readonly registryUri: string[];
+    private logger: Logger;
 
-    private constructor(
-        registryUri: string[],
+    constructor(
+        registryUri: string[] | undefined,
         public getRequest: RequestFunction,
-        logger?: Logger
+        logger: Logger
     ) {
-        this.registryUri = registryUri;
-        this._logger = logger;
+        this.registryUri = registryUri || DefaultRegistryUrl;
+        this.logger = logger;
     }
 
-    /**
-     * Create a new Registry instance with validated registry URIs.
-     */
-    public static async create(
-        registryUri: string[] | undefined,
-        getRequest: RequestFunction,
-        logger?: Logger
-    ): Promise<Registry> {
-        const validatedUri = await Registry.validateRegistry(
-            registryUri ?? DefaultRegistryUrl,
-            getRequest,
-            logger
-        );
-        return new Registry(validatedUri, getRequest, logger);
-    }
-
-    /**
-     * Create a new Registry instance without validating registry URIs.
-     */
-    public static createWithoutValidation(
-        registryUri: string[] | undefined,
-        getRequest: RequestFunction,
-        logger?: Logger
-    ): Registry {
-        return new Registry(registryUri ?? DefaultRegistryUrl, getRequest, logger);
-    }
-
-    /**
-     * Validate registry URIs by checking if they are available.
-     * Returns only valid registry URIs.
-     */
-    private static async validateRegistry(
-        registryUri: string[],
-        getRequest: RequestFunction,
-        logger?: Logger
-    ): Promise<string[]> {
-        const validRegistryUri: string[] = [];
-        for (const uri of registryUri) {
-            try {
-                await getRequest(uri, "");
-                validRegistryUri.push(uri);
-            } catch (error) {
-                logger?.error(`Registry ${uri} is not available: ${error}`);
-            }
-        }
-        return validRegistryUri;
-    }
-
-    public async listPackages(): Promise<string[]> {
+    // return list of objects with id and description of all packages in the registry, excluding templates
+    public async listPackages(): Promise<RegistryListProject[]> {
         const items = await this.fetchRegistryItems();
-        return items.filter((item) => !item.isTemplate).map((item) => item.id);
+        return items
+            .filter((item) => !item.isTemplate)
+            .map((item) => ({ id: item.id, description: item.description }));
     }
 
-    public async listTemplates(projectType?: JaculusProjectType): Promise<string[]> {
+    public async listTemplates(projectType?: JaculusProjectType): Promise<RegistryListTemplate[]> {
         const items = await this.fetchRegistryItems();
         return items
             .filter((item) => item.isTemplate && (!projectType || item.projectType === projectType))
-            .map((item) => item.id);
+            .map((item) => ({
+                id: item.id,
+                description: item.description,
+                projectType: item.projectType,
+            }));
     }
 
-    private async fetchRegistryItems(): Promise<RegistryList> {
-        const allItems: Map<string, RegistryList[0]> = new Map();
+    public static async searchPackages(
+        packages: RegistryListProject[],
+        query: string
+    ): Promise<RegistryListProject[]> {
+        return packages.filter((pkg) => {
+            const lowerQuery = query.toLowerCase();
+            return (
+                pkg.id.toLowerCase().includes(lowerQuery) ||
+                (pkg.description?.toLowerCase().includes(lowerQuery) ?? false)
+            );
+        });
+    }
+
+    private async fetchRegistryItems(): Promise<RegistryList[]> {
+        const allItems: Map<string, RegistryList> = new Map();
         let firstError: unknown;
 
         for (const uri of this.registryUri) {
@@ -160,7 +132,7 @@ export class Registry {
                 }
             } catch (error) {
                 firstError ??= error;
-                this._logger?.error(`Failed to fetch list from registry ${uri}: ${error}`);
+                this.logger.error(`Failed to fetch list from registry ${uri}: ${error}`);
             }
         }
 

@@ -13,7 +13,6 @@ import {
 import { Logger } from "@jaculus/common";
 
 export type ResolvedDependencies = Dependencies;
-type DataSourceType = "registry" | "local";
 
 export interface ProjectPackage {
     dirs: string[];
@@ -69,19 +68,23 @@ export class Project {
     }
 
     async installedLibraries(
-        includeResolvedDependencies: boolean = false
+        includeResolvedDependencies: boolean = false,
+        registry?: Registry
     ): Promise<Dependencies | ResolvedDependencies> {
         const pkg = await this.loadProjectPackageJson();
         if (!includeResolvedDependencies) {
             return pkg.dependencies;
         }
-        return await this.resolveDependencies(pkg.dependencies, "registry");
+        if (!registry) {
+            throw new ProjectError("Registry instance is required for resolving dependencies");
+        }
+        return await this.resolveDependencies(pkg.dependencies, registry);
     }
 
     async install(registry: Registry): Promise<Dependencies> {
         this.out.write("Resolving project dependencies...\n");
         const pkg = await this.loadProjectPackageJson();
-        const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "registry");
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies, registry);
         await this.installDependencies(registry, resolvedDeps);
         return pkg.dependencies;
     }
@@ -97,7 +100,12 @@ export class Project {
 
         this.out.write(`Adding library '${library}@${version}' to project.\n`);
         const pkg = await this.loadProjectPackageJson();
-        const resolvedDependencies = await this.addLibVersion(library, version, pkg.dependencies);
+        const resolvedDependencies = await this.addLibVersion(
+            registry,
+            library,
+            version,
+            pkg.dependencies
+        );
         pkg.dependencies[library] = version;
         await this.saveProjectPackageJson(pkg);
         await this.installDependencies(registry, resolvedDependencies);
@@ -111,10 +119,15 @@ export class Project {
         }
 
         const pkg = await this.loadProjectPackageJson();
-        const baseDeps = await this.resolveDependencies({ ...pkg.dependencies }, "registry");
+        const baseDeps = await this.resolveDependencies({ ...pkg.dependencies }, registry);
         const versions = (await registry.listVersions(library)) || [];
         for (const version of versions) {
-            const resolvedDependencies = await this.addLibVersion(library, version, baseDeps);
+            const resolvedDependencies = await this.addLibVersion(
+                registry,
+                library,
+                version,
+                baseDeps
+            );
             pkg.dependencies[library] = version;
             await this.saveProjectPackageJson(pkg);
             await this.installDependencies(registry, resolvedDependencies);
@@ -136,7 +149,7 @@ export class Project {
         delete pkg.dependencies[libName];
         await this.saveProjectPackageJson(pkg);
 
-        const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "local");
+        const resolvedDeps = await this.resolveDependencies(pkg.dependencies, registry);
         await this.installDependencies(registry, resolvedDeps);
         this.out.write(`Successfully removed library '${libName}' from project\n`);
         return pkg.dependencies;
@@ -144,15 +157,8 @@ export class Project {
 
     private async resolveDependencies(
         dependencies: Dependencies,
-        dataSourceType: DataSourceType = "registry",
-        registry?: Registry
+        registry: Registry
     ): Promise<ResolvedDependencies> {
-        if (dataSourceType === "registry" && !registry) {
-            throw new ProjectError(
-                "Registry instance is required for resolving dependencies from registry"
-            );
-        }
-
         const resolvedDeps = { ...dependencies };
         const processedLibraries = new Set<string>();
         const queue: Array<DependencyObject> = [];
@@ -172,32 +178,8 @@ export class Project {
             processedLibraries.add(dep.name);
 
             try {
-                let packageJson: PackageJson | undefined;
-
-                if (dataSourceType === "local") {
-                    // use local package.json
-                    const localPkgPath = path.join(
-                        this.projectPath,
-                        "node_modules",
-                        dep.name,
-                        "package.json"
-                    );
-                    if (this.fs.existsSync(localPkgPath)) {
-                        packageJson = await loadPackageJson(this.fs, localPkgPath);
-                    }
-                } else {
-                    // fetch from registry
-                    packageJson = await registry!.getPackageJson(dep.name, dep.version);
-                }
-
+                const packageJson = await registry.getPackageJson(dep.name, dep.version);
                 if (!packageJson) {
-                    if (dataSourceType === "local") {
-                        this.logger.warn(
-                            `Package '${dep.name}@${dep.version}' not found locally in node_modules. Skipping transitive deps.\n`
-                        );
-                        continue;
-                    }
-
                     throw new ProjectDependencyError(
                         `Package '${dep.name}@${dep.version}' not found in registry`,
                         dep.name,
@@ -224,12 +206,6 @@ export class Project {
                     queue.push({ name: libName, version: libVersion });
                 }
             } catch (error) {
-                if (dataSourceType === "local") {
-                    this.logger.warn(
-                        `Warning: Could not resolve local dependencies for '${dep.name}@${dep.version}': ${error}\n`
-                    );
-                    continue;
-                }
                 this.logger.error(
                     `Failed to resolve dependencies for '${dep.name}@${dep.version}': ${error}\n`
                 );
@@ -263,88 +239,134 @@ export class Project {
                 throw error;
             }
         }
-        this.out.write("All dependencies resolved and installed successfully.\n");
+        this.logger.info("All dependencies resolved and installed successfully.\n");
     }
 
     private async addLibVersion(
+        registry: Registry,
         library: string,
         version: string,
         testedDeps: Dependencies
     ): Promise<Dependencies> {
         const newDeps = { ...testedDeps, [library]: version };
-        return await this.resolveDependencies(newDeps, "registry");
+        return await this.resolveDependencies(newDeps, registry);
     }
 
     /**
-     * Get JacLy block files and translations for all libraries
+     * Discover all package directories in node_modules, including scoped packages.
+     * @returns Array of absolute paths to package directories
+     */
+    private discoverPackagesInNodeModules(): string[] {
+        const nodeModulesPath = path.join(this.projectPath, "node_modules");
+        if (!this.fs.existsSync(nodeModulesPath)) {
+            return [];
+        }
+
+        const packageDirs: string[] = [];
+        const entries = this.fs.readdirSync(nodeModulesPath);
+
+        for (const entry of entries) {
+            if (entry.startsWith(".")) continue;
+            const entryPath = path.join(nodeModulesPath, entry);
+            if (!this.fs.statSync(entryPath).isDirectory()) continue;
+
+            if (entry.startsWith("@")) {
+                // Scoped package scope dir — list sub-packages
+                const scopedEntries = this.fs.readdirSync(entryPath);
+                for (const scopedEntry of scopedEntries) {
+                    const scopedPath = path.join(entryPath, scopedEntry);
+                    if (this.fs.statSync(scopedPath).isDirectory()) {
+                        packageDirs.push(scopedPath);
+                    }
+                }
+            } else {
+                packageDirs.push(entryPath);
+            }
+        }
+
+        return packageDirs;
+    }
+
+    private async loadJaclyBlockFiles(blocksDir: string): Promise<JaclyBlocksFiles> {
+        const blockFiles: JaclyBlocksFiles = {};
+        if (!this.fs.existsSync(blocksDir)) {
+            return blockFiles;
+        }
+
+        const files = this.fs.readdirSync(blocksDir);
+        for (const file of files) {
+            const justFilename = path.basename(file);
+            if (!/^[a-zA-Z0-9_-]+\.jacly\.json$/.test(justFilename)) {
+                continue;
+            }
+            const fullPath = path.join(blocksDir, file);
+            try {
+                const fileContent = await this.fs.promises.readFile(fullPath, "utf-8");
+                blockFiles[fullPath] = JSON.parse(fileContent);
+            } catch (e) {
+                this.logger.error(`Failed to read/parse JacLy block file '${fullPath}': ${e}\n`);
+                throw e;
+            }
+        }
+
+        return blockFiles;
+    }
+
+    private async loadJaclyTranslations(
+        blocksDir: string,
+        locale: string
+    ): Promise<JaclyBlocksTranslations> {
+        const translationFile = path.join(blocksDir, "translations", `${locale}.lang.json`);
+        if (!this.fs.existsSync(translationFile)) {
+            return {};
+        }
+
+        try {
+            const fileContent = await this.fs.promises.readFile(translationFile, "utf-8");
+            return JSON.parse(fileContent);
+        } catch (e) {
+            this.logger.error(
+                `Failed to read/parse JacLy translation file '${translationFile}': ${e}\n`
+            );
+            throw e;
+        }
+    }
+
+    /**
+     * Get JacLy block files and translations for all installed packages.
+     * Scans node_modules directly instead of resolving dependencies.
      * @param locale - The locale for translations (e.g., "en", "cs")
      * @returns JaclyData
      */
     async getJaclyData(locale: string): Promise<JaclyBlocksData> {
-        const pkg = await this.loadProjectPackageJson();
-        const resolvedDeps = await this.resolveDependencies(pkg.dependencies, "local");
         const jaclyData: JaclyBlocksData = { blockFiles: {}, translations: {} };
+        const packageDirs = this.discoverPackagesInNodeModules();
 
-        for (const [libName] of Object.entries(resolvedDeps)) {
-            const pkgPath = path.join(this.projectPath, "node_modules", libName, "package.json");
-            if (!this.fs.existsSync(pkgPath)) {
+        for (const pkgDir of packageDirs) {
+            const pkgJsonPath = path.join(pkgDir, "package.json");
+            if (!this.fs.existsSync(pkgJsonPath)) {
                 continue;
             }
 
             let libPkg;
             try {
-                libPkg = await loadPackageJson(this.fs, pkgPath);
+                libPkg = await loadPackageJson(this.fs, pkgJsonPath);
             } catch (e) {
-                this.logger.warn(`Failed to load package.json for '${libName}': ${e}. Skipping.\n`);
+                this.logger.warn(`Failed to load package.json for '${pkgDir}': ${e}. Skipping.\n`);
                 continue;
             }
 
             if (libPkg.jaculus && libPkg.jaculus.blocks) {
-                const blocksDir = path.join(
-                    this.projectPath,
-                    "node_modules",
-                    libName,
-                    libPkg.jaculus.blocks
-                );
+                const blocksDir = path.join(pkgDir, libPkg.jaculus.blocks);
 
-                if (this.fs.existsSync(blocksDir)) {
-                    const files = this.fs.readdirSync(blocksDir);
-                    for (const file of files) {
-                        const justFilename = path.basename(file);
-                        if (!/^[a-zA-Z0-9_-]+\.jacly\.json$/.test(justFilename)) {
-                            continue;
-                        }
-                        const fullPath = path.join(blocksDir, file);
-                        try {
-                            const fileContent = await this.fs.promises.readFile(fullPath, "utf-8");
-                            jaclyData.blockFiles[fullPath] = JSON.parse(fileContent);
-                        } catch (e) {
-                            this.logger.error(
-                                `Failed to read/parse JacLy block file '${fullPath}': ${e}\n`
-                            );
-                            throw e;
-                        }
-                    }
-                }
+                const blockFiles = await this.loadJaclyBlockFiles(blocksDir);
+                Object.assign(jaclyData.blockFiles, blockFiles);
 
-                const translationFile = path.join(blocksDir, "translations", `${locale}.lang.json`);
-                if (this.fs.existsSync(translationFile)) {
-                    try {
-                        const fileContent = await this.fs.promises.readFile(
-                            translationFile,
-                            "utf-8"
-                        );
-                        const localeTranslations = JSON.parse(fileContent);
-                        Object.assign(jaclyData.translations, localeTranslations);
-                    } catch (e) {
-                        this.logger.error(
-                            `Failed to read/parse JacLy translation file '${translationFile}': ${e}\n`
-                        );
-                        throw e;
-                    }
-                }
+                const translations = await this.loadJaclyTranslations(blocksDir, locale);
+                Object.assign(jaclyData.translations, translations);
             }
         }
+
         return jaclyData;
     }
 

@@ -1,13 +1,12 @@
-import { stdout } from "process";
 import { Command, Opt } from "./lib/command.js";
 import fs from "fs";
-import { compileLibrary } from "@jaculus/project/compiler";
+import { compileProjectPath } from "@jaculus/project/compiler";
 import { logger } from "../logger.js";
 
 const cmd = new Command("List libraries from project package.json", {
     action: async (options: Record<string, string | boolean>) => {
-        const transpileOnly = options["transpileOnly"] as boolean;
-        if (await compileLibrary(fs, process.cwd(), stdout, logger, transpileOnly)) {
+        const noCheck = options["no-check"] as boolean;
+        if (await compileProjectPath(fs, process.cwd(), logger, noCheck)) {
             logger.info("Compiled successfully\n");
         } else {
             logger.error("Compilation failed\n");
@@ -15,8 +14,8 @@ const cmd = new Command("List libraries from project package.json", {
         }
     },
     options: {
-        transpileOnly: new Opt(
-            "Transpile only, skip type validation (still emits JS/d.ts on type errors)",
+        "no-check": new Opt(
+            "Compile without type checking, emits JavaScript even if there are type errors",
             { isFlag: true }
         ),
     },

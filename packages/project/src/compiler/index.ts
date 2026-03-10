@@ -5,8 +5,6 @@ import { FSInterface } from "../fs.js";
 import ts from "typescript";
 import { Logger } from "@jaculus/common";
 
-type Writable = { write: (chunk: string) => void };
-
 function printMessage(message: string | ts.DiagnosticMessageChain, logger: Logger, indent = 0) {
     if (typeof message === "string") {
         logger.warn(" ".repeat(indent * 2) + message + "\n");
@@ -20,17 +18,9 @@ function printMessage(message: string | ts.DiagnosticMessageChain, logger: Logge
     }
 }
 
-function validateProjectTsconfig(compilerOptions: ts.CompilerOptions, outDir: string) {
-    const forcedOptions: Record<string, any[]> = {
-        target: [ts.ScriptTarget.ES2023, ts.ScriptTarget.ES2020],
-        module: [ts.ModuleKind.ES2022, ts.ModuleKind.ES2020],
-        moduleResolution: [ts.ModuleResolutionKind.NodeJs],
-        resolveJsonModule: [false],
-        esModuleInterop: [true],
-        outDir: [outDir],
-    };
-
-    const optionNames: Record<string, Record<any, string>> = {
+// Builds human-readable option name maps
+function buildOptionNameMaps(): Record<string, Record<any, string>> {
+    return {
         target: Object.entries(ts.ScriptTarget).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {}),
         module: Object.entries(ts.ModuleKind).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {}),
         moduleResolution: Object.entries(ts.ModuleResolutionKind).reduce(
@@ -38,6 +28,24 @@ function validateProjectTsconfig(compilerOptions: ts.CompilerOptions, outDir: st
             {}
         ),
     };
+}
+
+// Required compiler options for Jaculus
+function buildForcedOptions(outDir: string): Record<string, any[]> {
+    return {
+        target: [ts.ScriptTarget.ES2023, ts.ScriptTarget.ES2020],
+        module: [ts.ModuleKind.ES2022, ts.ModuleKind.ES2020],
+        moduleResolution: [ts.ModuleResolutionKind.NodeJs],
+        resolveJsonModule: [false],
+        esModuleInterop: [true],
+        outDir: [outDir],
+    };
+}
+
+// Validates and fills in required tsconfig compiler options; throws if an option is set to an unsupported value
+function validateProjectTsconfig(compilerOptions: ts.CompilerOptions, outDir: string) {
+    const forcedOptions = buildForcedOptions(outDir);
+    const optionNames = buildOptionNameMaps();
 
     for (const [key, values] of Object.entries(forcedOptions)) {
         const valueNames = values.map((v) => optionNames[key]?.[v] ?? v).join(", ");
@@ -49,22 +57,18 @@ function validateProjectTsconfig(compilerOptions: ts.CompilerOptions, outDir: st
     }
 }
 
-export async function compileProject(
-    fs: FSInterface,
+// Reads tsconfig.json from the project directory + validate it
+function readProjectTsconfig(
+    system: ts.System,
     projectPath: string,
-    out: Writable,
-    logger: Logger,
-    tsLibsPath: string = path.dirname(
-        fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
-    )
-): Promise<boolean> {
-    const outDir = "build";
-    const system = tsvfs.createSystem(fs, projectPath);
-
+    outDir: string,
+    logger: Logger
+): Record<string, unknown> {
     const tsconfig = ts.findConfigFile("./", system.fileExists, "tsconfig.json");
     if (!tsconfig) {
         throw new Error(`Could not find tsconfig.json in directory: ${projectPath}`);
     }
+
     const configJsonFile = ts.readConfigFile(tsconfig, system.readFile);
     if (configJsonFile.error) {
         printMessage(configJsonFile.error.messageText, logger);
@@ -72,81 +76,38 @@ export async function compileProject(
     }
 
     validateProjectTsconfig(configJsonFile.config, outDir);
-    return await compile(configJsonFile.config, system, out, logger, false, tsLibsPath);
+    return configJsonFile.config;
 }
 
-export async function compileLibrary(
-    fs: FSInterface,
-    libraryPath: string,
-    out: Writable,
-    logger: Logger,
-    transpileOnly: boolean = false,
-    tsLibsPath: string = path.dirname(
-        fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
-    )
-): Promise<boolean> {
-    const system = tsvfs.createSystem(fs, libraryPath);
-
-    const configJson = {
-        compilerOptions: {
-            target: "ES2023",
-            module: "ES2022",
-            lib: ["es2023"],
-            moduleResolution: "node",
-            declaration: true,
-            declarationDir: "dist/types",
-            outDir: "dist/js",
-            rootDir: "src",
-            strict: true,
-            baseUrl: ".",
-            noEmitOnError: !transpileOnly,
-        },
-        include: ["src"],
-    };
-
-    return await compile(configJson, system, out, logger, transpileOnly, tsLibsPath);
-}
-
-/**
- * Compiles TypeScript files with custom FSInterface
- * @param configJson - The tsconfig.json content as a JavaScript object.
- * @param system - The TypeScript System implementation that uses the custom FSInterface.
- * @param logger - The logger for error and info messages.
- * @param out - The writable stream for standard output messages.
- * @param tsLibsPath - The path to TypeScript libraries (in Node, it's the directory of the 'typescript' package)
- *                     (in zenfs, it's necessary to provide this path and copy TS files to the virtual FS in advance)
- * @returns A promise that resolves to true if compilation is successful, false otherwise.
- */
-export async function compile(
+function parseTsConfig(
     configJson: Record<string, unknown>,
     system: ts.System,
-    out: Writable,
-    logger: Logger,
-    transpileOnly: boolean = false,
-    tsLibsPath: string = path.dirname(
-        fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
-    )
-): Promise<boolean> {
+    logger: Logger
+): { options: ts.CompilerOptions; fileNames: string[] } {
     const { options, fileNames, errors } = ts.parseJsonConfigFileContent(configJson, system, "./");
     if (errors.length > 0) {
         errors.forEach((error) => printMessage(error.messageText, logger));
         throw new Error(`Error parsing tsconfig.json - ${errors.length} error(s) found`);
     }
+    return { options, fileNames };
+}
 
-    out?.write("Compiling files: [" + fileNames.join(", ") + "]\n");
-
-    const host = tsvfs.createVirtualCompilerHost(system, options, tsLibsPath);
-
+function buildAndEmit(
+    fileNames: string[],
+    options: ts.CompilerOptions,
+    host: ReturnType<typeof tsvfs.createVirtualCompilerHost>
+): { program: ts.Program; emitResult: ts.EmitResult } {
     const program = ts.createProgram({
         rootNames: fileNames,
         options,
         host: host.compilerHost,
     });
     const emitResult = program.emit();
+    return { program, emitResult };
+}
 
-    const diagnostics = ts.getPreEmitDiagnostics(program).concat(emitResult.diagnostics);
-
-    const error = diagnostics.some(
+function reportDiagnostics(diagnostics: readonly ts.Diagnostic[], logger: Logger): boolean {
+    const hasError = diagnostics.some(
         (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error
     );
 
@@ -165,9 +126,55 @@ export async function compile(
         }
     }
 
+    return hasError;
+}
+
+export async function compileProjectTsconfig(
+    configJson: Record<string, unknown>,
+    system: ts.System,
+    logger: Logger,
+    noCheck: boolean = false,
+    tsLibsPath: string = path.dirname(
+        fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
+    )
+): Promise<boolean> {
+    const { options, fileNames } = parseTsConfig(configJson, system, logger);
+    logger.info("Compiling files: [" + fileNames.join(", ") + "]\n");
+
+    const host = tsvfs.createVirtualCompilerHost(system, options, tsLibsPath);
+    const { program, emitResult } = buildAndEmit(fileNames, options, host);
+
+    const diagnostics = ts.getPreEmitDiagnostics(program).concat(emitResult.diagnostics);
+    const hasError = reportDiagnostics(diagnostics, logger);
+
     if (emitResult.emitSkipped) {
         throw new Error("Compilation failed");
     }
 
-    return !emitResult.emitSkipped && (transpileOnly || !error);
+    return !emitResult.emitSkipped && (noCheck || !hasError);
+}
+
+/**
+ * Compiles a TypeScript project located at the given path
+ * @param fs Filesystem interface for file operations
+ * @param projectPath Path to the project directory (should contain tsconfig.json)
+ * @param logger Logger for outputting messages and diagnostics
+ * @param noCheck If true, compiles without type checking, emitting JavaScript even if there are type errors
+ * @param tsLibsPath Optional path to TypeScript libraries (lib.d.ts, etc.), defaults to the directory of the installed TypeScript package
+ * @returns Promise that resolves to true if compilation succeeded
+ */
+export async function compileProjectPath(
+    fs: FSInterface,
+    projectPath: string,
+    logger: Logger,
+    noCheck: boolean = false,
+    tsLibsPath: string = path.dirname(
+        fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
+    )
+): Promise<boolean> {
+    const outDir = "build";
+    const system = tsvfs.createSystem(fs, projectPath);
+    const configJson = readProjectTsconfig(system, projectPath, outDir, logger);
+
+    return await compileProjectTsconfig(configJson, system, logger, noCheck, tsLibsPath);
 }
