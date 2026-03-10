@@ -1,15 +1,13 @@
-import { Writable } from "stream";
+import { Logger } from "@jaculus/common";
 import { FSInterface } from "./fs.js";
 import { ProjectError, ProjectPackage } from "./project.js";
 import path from "path";
-import { Logger } from "../../common/dist/logger.js";
 
 export async function unpackPackage(
     fs: FSInterface,
     projectPath: string,
     pkg: ProjectPackage,
     filter: (fileName: string) => boolean,
-    out: Writable,
     logger: Logger,
     dryRun: boolean = false
 ): Promise<void> {
@@ -26,13 +24,13 @@ export async function unpackPackage(
         const source = fileName;
 
         if (!filter(source)) {
-            out.write(`[skip] ${source}\n`);
+            logger.info(`[skip] ${source}`);
             continue;
         }
         const fullPath = path.join(projectPath, source);
 
         const exists = fs.existsSync(fullPath);
-        out.write(`${dryRun ? "[dry-run] " : ""}${exists ? "Overwrite" : "Create"} ${fullPath}\n`);
+        logger.info(`${dryRun ? "[dry-run] " : ""}${exists ? "Overwrite" : "Create"} ${fullPath}`);
 
         if (!dryRun) {
             const dir = path.dirname(fullPath);
@@ -48,7 +46,6 @@ export async function createFromPackage(
     fs: FSInterface,
     projectPath: string,
     pkg: ProjectPackage,
-    out: Writable,
     logger: Logger,
     dryRun: boolean = false,
     validateFolder: boolean = true
@@ -64,14 +61,13 @@ export async function createFromPackage(
         return true;
     };
 
-    await unpackPackage(fs, projectPath, pkg, filter, out, logger, dryRun);
+    await unpackPackage(fs, projectPath, pkg, filter, logger, dryRun);
 }
 
 export async function updateFromPackage(
     fs: FSInterface,
     projectPath: string,
     pkg: ProjectPackage,
-    out: Writable,
     logger: Logger,
     dryRun: boolean = false
 ): Promise<void> {
@@ -115,5 +111,5 @@ export async function updateFromPackage(
         return false;
     };
 
-    await unpackPackage(fs, projectPath, pkg, filter, out, logger, dryRun);
+    await unpackPackage(fs, projectPath, pkg, filter, logger, dryRun);
 }

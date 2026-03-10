@@ -1,7 +1,7 @@
 import { getRequestJson, Logger, RequestFunction } from "@jaculus/common";
 import { z } from "zod";
 
-const BOARD_INDEX_URL = "https://f.jaculus.org/bin";
+const BOARD_INDEX_URL = "https://f.jaculus.org/bin/";
 const BOARDS_INDEX_JSON = "boards.json";
 const BOARD_VERSIONS_JSON = "versions.json";
 

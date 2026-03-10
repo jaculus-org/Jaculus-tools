@@ -1,5 +1,5 @@
 import { Arg, Command, Env, Opt } from "./lib/command.js";
-import { stderr, stdout } from "process";
+import { stderr } from "process";
 import { getDevice } from "./util.js";
 import fs from "fs";
 import { Archive } from "@obsidize/tar-browserify";
@@ -88,7 +88,7 @@ export const projectCreate = new Command("Create project from package", {
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
-        await createFromPackage(fs, outPath, pkg, stdout, logger, dryRun);
+        await createFromPackage(fs, outPath, pkg, logger, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
@@ -108,7 +108,7 @@ export const projectUpdate = new Command("Update existing project from package s
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
-        await updateFromPackage(fs, outPath, pkg, stdout, logger, dryRun);
+        await updateFromPackage(fs, outPath, pkg, logger, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
