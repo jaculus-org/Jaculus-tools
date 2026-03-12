@@ -8,7 +8,7 @@ import {
 import * as z from "zod";
 import { getRequestJson, JaculusRequestError, Logger, RequestFunction } from "@jaculus/common";
 
-export const DefaultRegistryUrl = ["http://127.0.0.1:3737/", "https://registry.jaculus.org"];
+export const DefaultRegistryUrl = ["https://registry.jaculus.org"];
 
 /**
  *

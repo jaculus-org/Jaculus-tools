@@ -1,5 +1,4 @@
 import path from "path";
-import { Writable } from "stream";
 import { extractTgzPackage, FSInterface, traverseDirectory } from "./fs.js";
 import { Registry } from "./registry.js";
 import {
@@ -55,7 +54,6 @@ export class Project {
     constructor(
         public fs: FSInterface,
         public projectPath: string,
-        public out: Writable,
         public logger: Logger
     ) {}
 
@@ -82,7 +80,7 @@ export class Project {
     }
 
     async install(registry: Registry): Promise<Dependencies> {
-        this.out.write("Resolving project dependencies...\n");
+        this.logger.info("Resolving project dependencies...\n");
         const pkg = await this.loadProjectPackageJson();
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies, registry);
         await this.installDependencies(registry, resolvedDeps);
@@ -98,7 +96,7 @@ export class Project {
             throw new ProjectError(`Library '${library}' does not exist in the registry`);
         }
 
-        this.out.write(`Adding library '${library}@${version}' to project.\n`);
+        this.logger.info(`Adding library '${library}@${version}' to project.`);
         const pkg = await this.loadProjectPackageJson();
         const resolvedDependencies = await this.addLibVersion(
             registry,
@@ -113,7 +111,7 @@ export class Project {
     }
 
     async addLibrary(registry: Registry, library: string): Promise<Dependencies> {
-        this.out.write(`Adding library '${library}' to project.\n`);
+        this.logger.info(`Adding library '${library}' to project.`);
         if (!(await registry.exists(library))) {
             throw new ProjectError(`Library '${library}' does not exist in the registry`);
         }
@@ -139,7 +137,7 @@ export class Project {
     }
 
     async removeLibrary(registry: Registry, libName: string): Promise<Dependencies> {
-        this.out.write(`Removing library '${libName}' from project...\n`);
+        this.logger.info(`Removing library '${libName}' from project...`);
         const pkg = await this.loadProjectPackageJson();
         if (!(libName in pkg.dependencies)) {
             throw new ProjectError(
@@ -151,7 +149,7 @@ export class Project {
 
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies, registry);
         await this.installDependencies(registry, resolvedDeps);
-        this.out.write(`Successfully removed library '${libName}' from project\n`);
+        this.logger.info(`Successfully removed library '${libName}' from project`);
         return pkg.dependencies;
     }
 
@@ -228,7 +226,7 @@ export class Project {
         // install all resolved dependencies
         for (const [libName, libVersion] of Object.entries(dependencies)) {
             try {
-                this.out.write(` - Installing library '${libName}' version '${libVersion}'\n`);
+                this.logger.info(` - Installing library '${libName}' version '${libVersion}'`);
                 const packageData = await registry.getPackageTgz(libName, libVersion);
                 const installPath = getPackagePath(this.projectPath, libName);
                 await extractTgzPackage(packageData, this.fs, installPath);

@@ -1,4 +1,3 @@
-import { stdout } from "process";
 import { Arg, Command } from "./lib/command.js";
 import fs from "fs";
 import { uriRequest } from "../util.js";
@@ -14,7 +13,7 @@ const cmd = new Command("Remove a library from the project package.json", {
         const projectPath = process.cwd();
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
-        const project = new Project(fs, projectPath, stdout, logger);
+        const project = new Project(fs, projectPath, logger);
         const registry = new Registry(pkg.registry, uriRequest, logger);
         await project.removeLibrary(registry, libraryName);
     },

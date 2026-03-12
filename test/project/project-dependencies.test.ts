@@ -4,7 +4,7 @@ import {
     createMockProject,
     createMockRegistry,
     expectPackageJson,
-    expectOutputMessage,
+    expectLoggerMessage,
     expectAsyncError,
     generateTestRegistryPackages,
 } from "./testHelpers.js";
@@ -15,14 +15,8 @@ async function createDependencyContext(
     projectName: string = "test-project"
 ) {
     const projectPath = createProjectStructure(env.tempDir, projectName, { dependencies });
-    const project = await createMockProject(projectPath, env.mockOut, env.mockErr, env.logger);
-    const registry = await createMockRegistry(
-        projectPath,
-        env.mockOut,
-        env.mockErr,
-        env.getRequest,
-        env.logger
-    );
+    const project = await createMockProject(projectPath, env.logger);
+    const registry = await createMockRegistry(projectPath, env.getRequest, env.logger);
 
     return { projectPath, project, registry };
 }
@@ -42,7 +36,7 @@ describe("Project - Dependency Management", () => {
                 });
                 await project.install(registry);
 
-                expectOutputMessage(env.mockOut, [
+                expectLoggerMessage(env.logger, [
                     "Resolving project dependencies",
                     "Installing library 'core' version '0.0.24'",
                     "All dependencies resolved and installed successfully",
@@ -72,7 +66,7 @@ describe("Project - Dependency Management", () => {
                 const { project, registry } = await createDependencyContext(env);
                 await project.install(registry);
 
-                expectOutputMessage(env.mockOut, [
+                expectLoggerMessage(env.logger, [
                     "Resolving project dependencies",
                     "All dependencies resolved and installed successfully",
                 ]);
@@ -88,12 +82,7 @@ describe("Project - Dependency Management", () => {
                 const projectPath = createProjectStructure(env.tempDir, "test-project", {
                     dependencies: { core: "0.0.24" },
                 });
-                const project = await createMockProject(
-                    projectPath,
-                    env.mockOut,
-                    env.mockErr,
-                    env.logger
-                );
+                const project = await createMockProject(projectPath, env.logger);
 
                 await expectAsyncError(
                     () => project.installedLibraries(true),
@@ -114,7 +103,7 @@ describe("Project - Dependency Management", () => {
                 });
                 await project.install(registry);
 
-                expectOutputMessage(env.mockOut, [
+                expectLoggerMessage(env.logger, [
                     "All dependencies resolved and installed successfully",
                 ]);
             } finally {
@@ -132,7 +121,7 @@ describe("Project - Dependency Management", () => {
                 await project.addLibrary(registry, "color");
 
                 expectPackageJson(projectPath, { hasDependency: ["color"] });
-                expectOutputMessage(env.mockOut, ["Adding library 'color'"]);
+                expectLoggerMessage(env.logger, ["Adding library 'color'"]);
             } finally {
                 env.cleanup();
             }
@@ -193,7 +182,7 @@ describe("Project - Dependency Management", () => {
                 await project.addLibraryVersion(registry, "color", "0.0.2");
 
                 expectPackageJson(projectPath, { hasDependency: ["color", "0.0.2"] });
-                expectOutputMessage(env.mockOut, ["Adding library 'color@0.0.2'"]);
+                expectLoggerMessage(env.logger, ["Adding library 'color@0.0.2'"]);
             } finally {
                 env.cleanup();
             }
@@ -246,7 +235,7 @@ describe("Project - Dependency Management", () => {
                     noDependency: "color",
                     hasDependency: ["core", "0.0.24"],
                 });
-                expectOutputMessage(env.mockOut, [
+                expectLoggerMessage(env.logger, [
                     "Removing library 'color'",
                     "Successfully removed library 'color'",
                 ]);
@@ -323,15 +312,15 @@ describe("Project - Dependency Management", () => {
                 await project.addLibrary(registry, "color");
                 expectPackageJson(projectPath, { hasDependency: ["color"] });
 
-                env.mockOut.clear();
+                env.logger.clear();
                 await project.install(registry);
 
-                env.mockOut.clear();
+                env.logger.clear();
                 await project.addLibrary(registry, "core");
                 expectPackageJson(projectPath, { hasDependency: ["core"] });
                 expectPackageJson(projectPath, { hasDependency: ["color"] });
 
-                env.mockOut.clear();
+                env.logger.clear();
                 await project.removeLibrary(registry, "color");
                 expectPackageJson(projectPath, {
                     noDependency: "color",

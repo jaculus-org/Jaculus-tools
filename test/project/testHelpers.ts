@@ -1,7 +1,6 @@
 import path from "path";
 import fs from "fs";
 import { tmpdir } from "os";
-import { Writable } from "stream";
 import * as chai from "chai";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
@@ -14,6 +13,7 @@ import { Registry } from "../../packages/project/src/registry.js";
 export const expect = chai.expect;
 export const registryBasePath = "file://data/test-registry/";
 export { fs, path, fs as mockFs };
+export type LogLevel = keyof Logger;
 
 export async function createTarGzPackage(sourceDir: string, outFile: string): Promise<void> {
     const archive = new Archive();
@@ -71,70 +71,54 @@ export async function generateTestRegistryPackages(registryBasePath: string): Pr
     }
 }
 
-// helper class to capture output
-export class MockWritable extends Writable {
-    public output: string = "";
+export class MockLogger implements Logger {
+    private entries: Array<{ level: LogLevel; message: string }> = [];
 
-    append(chunk: string | Uint8Array) {
-        this.output += chunk.toString();
+    private normalize(message?: string): string | null {
+        if (message === undefined) {
+            return null;
+        }
+        return message.endsWith("\n") ? message : `${message}\n`;
     }
 
-    writeLine(message?: string) {
-        if (message === undefined) {
+    private record(level: LogLevel, message?: string) {
+        const normalized = this.normalize(message);
+        if (normalized === null) {
             return;
         }
-        this.write(message.endsWith("\n") ? message : `${message}\n`);
+        this.entries.push({ level, message: normalized });
     }
 
-    _write(
-        chunk: string | Uint8Array,
-        _encoding: BufferEncoding,
-        callback: (error?: Error | null) => void
-    ) {
-        this.append(chunk);
-        callback();
+    error = (message?: string) => this.record("error", message);
+    warn = (message?: string) => this.record("warn", message);
+    info = (message?: string) => this.record("info", message);
+    verbose = (message?: string) => this.record("verbose", message);
+    debug = (message?: string) => this.record("debug", message);
+    silly = (message?: string) => this.record("silly", message);
+
+    output(levels?: LogLevel | LogLevel[]): string {
+        if (!levels) {
+            return this.entries.map((entry) => entry.message).join("");
+        }
+        const levelSet = new Set(Array.isArray(levels) ? levels : [levels]);
+        return this.entries
+            .filter((entry) => levelSet.has(entry.level))
+            .map((entry) => entry.message)
+            .join("");
     }
 
-    clear() {
-        this.output = "";
+    clear(levels?: LogLevel | LogLevel[]) {
+        if (!levels) {
+            this.entries = [];
+            return;
+        }
+        const levelSet = new Set(Array.isArray(levels) ? levels : [levels]);
+        this.entries = this.entries.filter((entry) => !levelSet.has(entry.level));
     }
 }
 
-function createLoggerWriter(stream: MockWritable) {
-    return (message?: string) => {
-        stream.writeLine(message);
-    };
-}
-
-export function createMockLogger(
-    mockOut: MockWritable = new MockWritable(),
-    mockErr: MockWritable = new MockWritable()
-): Logger {
-    const writeOut = createLoggerWriter(mockOut);
-    const writeErr = createLoggerWriter(mockErr);
-
-    return {
-        error: writeErr,
-        warn: writeErr,
-        info: writeOut,
-        verbose: writeOut,
-        debug: writeOut,
-        silly: writeOut,
-    };
-}
-
-export function createMockIo(): {
-    mockOut: MockWritable;
-    mockErr: MockWritable;
-    logger: Logger;
-} {
-    const mockOut = new MockWritable();
-    const mockErr = new MockWritable();
-    return {
-        mockOut,
-        mockErr,
-        logger: createMockLogger(mockOut, mockErr),
-    };
+export function createMockLogger(): MockLogger {
+    return new MockLogger();
 }
 
 export const createGetRequest = (): RequestFunction => async (baseUri, libFile) => {
@@ -180,19 +164,15 @@ export function createPackageJson(
 
 export async function createMockProject(
     projectPath: string,
-    mockOut: MockWritable,
-    mockErr: MockWritable,
-    logger: Logger = createMockLogger(mockOut, mockErr)
+    logger: Logger = createMockLogger()
 ): Promise<Project> {
-    return new Project(fs, projectPath, mockOut, logger);
+    return new Project(fs, projectPath, logger);
 }
 
 export async function createMockRegistry(
     projectPath: string,
-    mockOut: MockWritable,
-    mockErr: MockWritable,
     getRequest: RequestFunction,
-    logger: Logger = createMockLogger(mockOut, mockErr)
+    logger: Logger = createMockLogger()
 ): Promise<Registry> {
     const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
     return new Registry(pkg.registry, getRequest, logger);
@@ -231,19 +211,17 @@ export function createProjectStructure(
 
 export function setupTest(prefix?: string): {
     tempDir: string;
-    mockOut: MockWritable;
-    mockErr: MockWritable;
-    logger: Logger;
+    logger: MockLogger;
     getRequest: RequestFunction;
     cleanup: () => void;
 } {
     const tempDir = createTestDir(prefix);
-    const { mockOut, mockErr, logger } = createMockIo();
+    const logger = createMockLogger();
     const getRequest = createGetRequest();
 
     const cleanup = () => cleanupTestDir(tempDir);
 
-    return { tempDir, mockOut, mockErr, logger, getRequest, cleanup };
+    return { tempDir, logger, getRequest, cleanup };
 }
 
 export function readPackageJson(projectPath: string): PackageJson {
@@ -279,17 +257,19 @@ export function expectPackageJson(
     }
 }
 
-export function expectOutputMessage(
-    mockOut: MockWritable,
+export function expectLoggerMessage(
+    logger: MockLogger,
     includes: string[],
-    excludes: string[] = []
+    excludes: string[] = [],
+    levels: LogLevel[] = ["info", "verbose", "debug", "silly"]
 ): void {
+    const output = logger.output(levels);
     for (const message of includes) {
-        expect(mockOut.output).to.include(message);
+        expect(output).to.include(message);
     }
 
     for (const message of excludes) {
-        expect(mockOut.output).to.not.include(message);
+        expect(output).to.not.include(message);
     }
 }
 

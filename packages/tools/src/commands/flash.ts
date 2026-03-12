@@ -1,5 +1,5 @@
 import { Command, Env, Opt } from "./lib/command.js";
-import { stderr, stdout } from "process";
+import { stderr } from "process";
 import { getDevice } from "./util.js";
 import { logger } from "../logger.js";
 import fs from "fs";
@@ -18,7 +18,7 @@ const cmd = new Command("Flash code to device (replace contents of ./code)", {
         const projectPath = options["path"] as string;
 
         const device = await getDevice(port, baudrate, socket, env);
-        const project = new Project(fs, projectPath, stdout, logger);
+        const project = new Project(fs, projectPath, logger);
 
         const files = await project.getFlashFiles();
 

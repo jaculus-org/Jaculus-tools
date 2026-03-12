@@ -1,4 +1,3 @@
-import { stdout } from "process";
 import { Arg, Command } from "./lib/command.js";
 import fs from "fs";
 import { uriRequest } from "../util.js";
@@ -14,7 +13,7 @@ const cmd = new Command("Install Jaculus libraries base on project's package.jso
         const projectPath = process.cwd();
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
-        const project = new Project(fs, projectPath, stdout, logger);
+        const project = new Project(fs, projectPath, logger);
         const registry = new Registry(pkg.registry, uriRequest, logger);
 
         const { name, version } = splitLibraryNameVersion(libraryName);

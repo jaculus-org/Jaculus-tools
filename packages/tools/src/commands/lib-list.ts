@@ -9,7 +9,7 @@ const cmd = new Command("List libraries from project package.json", {
         const projectPath = process.cwd();
         const includeResolvedLibs = options["resolved"] as boolean;
 
-        const project = new Project(fs, projectPath, stdout, logger);
+        const project = new Project(fs, projectPath, logger);
         const dependencies = await project.installedLibraries(includeResolvedLibs);
         const list = Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b));
         if (list.length === 0) {
