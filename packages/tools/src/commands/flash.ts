@@ -6,6 +6,28 @@ import fs from "fs";
 import { dirname } from "path";
 import { Project } from "@jaculus/project";
 
+async function ensureDirectoryExists(
+    createDirectory: (path: string) => Promise<unknown>,
+    dirPath: string,
+    existingDirs: Set<string>
+): Promise<void> {
+    const parts = dirPath.split("/").filter(Boolean);
+    let currentPath = "";
+
+    for (const part of parts) {
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        if (existingDirs.has(currentPath)) {
+            continue;
+        }
+
+        await createDirectory(currentPath).catch((err: unknown) => {
+            logger.verbose("Error creating directory: " + err);
+            throw err;
+        });
+        existingDirs.add(currentPath);
+    }
+}
+
 const cmd = new Command("Flash code to device (replace contents of ./code)", {
     action: async (
         options: Record<string, string | boolean>,
@@ -45,14 +67,16 @@ const cmd = new Command("Flash code to device (replace contents of ./code)", {
                 logger.verbose("Error deleting directory: " + err);
             });
 
+            const existingDirs = new Set<string>();
             for (const [filePath, content] of Object.entries(files)) {
                 const fullPath = `code/${filePath}`;
                 const dirPath = dirname(fullPath);
-                if (dirPath) {
-                    await device.uploader.createDirectory(dirPath).catch((err: unknown) => {
-                        logger.verbose("Error creating directory: " + err);
-                        throw err;
-                    });
+                if (dirPath && dirPath !== ".") {
+                    await ensureDirectoryExists(
+                        (path) => device.uploader.createDirectory(path),
+                        dirPath,
+                        existingDirs
+                    );
                 }
                 await device.uploader.writeFile(fullPath, content).catch((err: unknown) => {
                     logger.verbose("Error writing file: " + err);
