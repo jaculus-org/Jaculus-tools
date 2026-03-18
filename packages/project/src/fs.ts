@@ -15,8 +15,7 @@ export async function copyFolder(
     logger?: Logger
 ) {
     if (!fsSource.existsSync(dirSource)) {
-        logger?.warn(`Source directory ${dirSource} does not exist, skipping copy.`);
-        return;
+        throw new Error(`Source directory does not exist: ${dirSource}`);
     }
 
     if (!fsDest.existsSync(dirDest)) {
@@ -33,25 +32,6 @@ export async function copyFolder(
         } else if (stats.isFile()) {
             const content = fsSource.readFileSync(sourcePath, "utf-8");
             await fsDest.promises.writeFile(destPath, content, "utf-8");
-        }
-    }
-}
-
-export function recursivelyPrintFs(
-    logger: Logger,
-    fs: FSInterface,
-    dir: string,
-    indent: string = ""
-) {
-    const items = fs.readdirSync(dir);
-    for (const item of items) {
-        const fullPath = path.join(dir, item);
-        const stats = fs.statSync(fullPath);
-        if (stats.isDirectory()) {
-            logger.info(`${indent}[DIR]  ${item}`);
-            recursivelyPrintFs(logger, fs, fullPath, indent + "  ");
-        } else {
-            logger.info(`${indent}[FILE] ${item}`);
         }
     }
 }
