@@ -85,9 +85,9 @@ describe("Project - Dependency Management", () => {
                 const project = await createMockProject(projectPath, env.logger);
 
                 await expectAsyncError(
-                    () => project.installedLibraries(true),
+                    () => project.listDependencies(true),
                     "Registry instance is required",
-                    "Expected installedLibraries() to throw an error"
+                    "Expected listDependencies() to throw an error"
                 );
             } finally {
                 env.cleanup();

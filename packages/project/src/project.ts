@@ -65,12 +65,12 @@ export class Project {
         await savePackageJson(this.fs, path.join(this.projectPath, "package.json"), pkg);
     }
 
-    async installedLibraries(
-        includeResolvedDependencies: boolean = false,
+    async listDependencies(
+        includeTransitive: boolean = false,
         registry?: Registry
     ): Promise<Dependencies | ResolvedDependencies> {
         const pkg = await this.loadProjectPackageJson();
-        if (!includeResolvedDependencies) {
+        if (!includeTransitive) {
             return pkg.dependencies;
         }
         if (!registry) {
