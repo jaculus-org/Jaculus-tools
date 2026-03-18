@@ -3,6 +3,7 @@ import {
     createProjectStructure,
     createMockProject,
     createMockRegistry,
+    expect,
     expectPackageJson,
     expectLoggerMessage,
     expectAsyncError,
@@ -89,6 +90,25 @@ describe("Project - Dependency Management", () => {
                     "Registry instance is required",
                     "Expected listDependencies() to throw an error"
                 );
+            } finally {
+                env.cleanup();
+            }
+        });
+
+        it("should list transitive dependencies when a registry is provided", async () => {
+            const env = setupTest("jaculus-deps-test-");
+
+            try {
+                const { project, registry } = await createDependencyContext(env, {
+                    "led-strip": "0.0.5",
+                });
+
+                const dependencies = await project.listDependencies(true, registry);
+
+                expect(dependencies).to.include({
+                    "led-strip": "0.0.5",
+                    color: "0.0.2",
+                });
             } finally {
                 env.cleanup();
             }

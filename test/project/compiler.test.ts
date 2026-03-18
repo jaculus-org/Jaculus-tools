@@ -204,6 +204,52 @@ describe("TypeScript Compiler", () => {
                     "Expected compile to throw an error"
                 );
             });
+
+            it("should reject unsupported compilerOptions overrides in tsconfig.json", async () => {
+                let testDir: string;
+                if (config.name === "Node.js FS") {
+                    testDir = fsReal.mkdtempSync(
+                        path.join(tmpdir(), "jaculus-invalid-config-test-")
+                    );
+                    tempDirs.push(testDir);
+                } else {
+                    testDir = "/invalid-config-test/";
+                }
+
+                config.fs.mkdirSync(testDir, { recursive: true });
+                config.fs.mkdirSync(path.join(testDir, "src"), { recursive: true });
+                config.fs.writeFileSync(
+                    path.join(testDir, "tsconfig.json"),
+                    JSON.stringify(
+                        {
+                            compilerOptions: {
+                                module: "commonjs",
+                            },
+                        },
+                        null,
+                        2
+                    )
+                );
+                config.fs.writeFileSync(
+                    path.join(testDir, "src", "index.ts"),
+                    "export const value = 42;\n"
+                );
+
+                const logger = createMockLogger();
+
+                await expectAsyncError(
+                    () =>
+                        compileProjectPath(
+                            config.fs,
+                            testDir,
+                            logger,
+                            undefined,
+                            testData.tsLibsPath
+                        ),
+                    "tsconfig.json must have module set to one of",
+                    "Expected invalid compilerOptions.module to throw an error"
+                );
+            });
         });
     });
 });

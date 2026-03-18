@@ -18,24 +18,12 @@ function printMessage(message: string | ts.DiagnosticMessageChain, logger: Logge
     }
 }
 
-// Builds human-readable option name maps
-function buildOptionNameMaps(): Record<string, Record<any, string>> {
+// Required compiler options for Jaculus in tsconfig.json shape
+function buildForcedOptions(outDir: string): Record<string, Array<string | boolean>> {
     return {
-        target: Object.entries(ts.ScriptTarget).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {}),
-        module: Object.entries(ts.ModuleKind).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {}),
-        moduleResolution: Object.entries(ts.ModuleResolutionKind).reduce(
-            (acc, [k, v]) => ({ ...acc, [v]: k }),
-            {}
-        ),
-    };
-}
-
-// Required compiler options for Jaculus
-function buildForcedOptions(outDir: string): Record<string, any[]> {
-    return {
-        target: [ts.ScriptTarget.ES2023, ts.ScriptTarget.ES2020],
-        module: [ts.ModuleKind.ES2022, ts.ModuleKind.ES2020],
-        moduleResolution: [ts.ModuleResolutionKind.NodeJs],
+        target: ["es2023", "es2020"],
+        module: ["es2022", "es2020"],
+        moduleResolution: ["node"],
         resolveJsonModule: [false],
         esModuleInterop: [true],
         outDir: [outDir],
@@ -43,15 +31,24 @@ function buildForcedOptions(outDir: string): Record<string, any[]> {
 }
 
 // Validates and fills in required tsconfig compiler options; throws if an option is set to an unsupported value
-function validateProjectTsconfig(compilerOptions: ts.CompilerOptions, outDir: string) {
+function validateProjectTsconfig(compilerOptions: Record<string, unknown>, outDir: string) {
     const forcedOptions = buildForcedOptions(outDir);
-    const optionNames = buildOptionNameMaps();
 
     for (const [key, values] of Object.entries(forcedOptions)) {
-        const valueNames = values.map((v) => optionNames[key]?.[v] ?? v).join(", ");
-        if (compilerOptions[key] && !values.includes(compilerOptions[key])) {
+        const valueNames = values.join(", ");
+        const currentValue = compilerOptions[key];
+        let normalizedValue: string | boolean | undefined;
+        if (typeof currentValue === "string") {
+            normalizedValue = key === "outDir" ? currentValue : currentValue.toLowerCase();
+        } else if (typeof currentValue === "boolean") {
+            normalizedValue = currentValue;
+        } else if (currentValue !== undefined && currentValue !== null) {
             throw new Error(`tsconfig.json must have ${key} set to one of: [ ${valueNames} ]`);
-        } else if (!compilerOptions[key]) {
+        }
+
+        if (normalizedValue !== undefined && !values.includes(normalizedValue)) {
+            throw new Error(`tsconfig.json must have ${key} set to one of: [ ${valueNames} ]`);
+        } else if (currentValue === undefined || currentValue === null) {
             compilerOptions[key] = values[0];
         }
     }
@@ -75,7 +72,8 @@ function readProjectTsconfig(
         throw new Error("Error reading tsconfig.json");
     }
 
-    validateProjectTsconfig(configJsonFile.config, outDir);
+    configJsonFile.config.compilerOptions ??= {};
+    validateProjectTsconfig(configJsonFile.config.compilerOptions, outDir);
     return configJsonFile.config;
 }
 
