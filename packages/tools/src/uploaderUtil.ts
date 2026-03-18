@@ -1,29 +1,8 @@
-import crypto from "crypto";
 import * as fs from "fs";
 import { Uploader } from "@jaculus/device";
 import { UploaderCommand, UploaderCommandStrings } from "@jaculus/device/dist/uploader.js";
 import { logger } from "./logger.js";
 import path from "path";
-import { stderr } from "process";
-
-export async function fileSha1(path: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const hasher = crypto.createHash("sha1");
-
-        const stream = fs.createReadStream(path);
-        stream.on("data", (data: Uint8Array | string) => {
-            hasher.update(data);
-        });
-        stream.on("error", (err: NodeJS.ErrnoException) => {
-            stream.close();
-            reject(err);
-        });
-        stream.on("end", () => {
-            resolve(hasher.digest("hex"));
-            stream.close();
-        });
-    });
-}
 
 export async function upload(
     uploader: Uploader,
@@ -133,34 +112,4 @@ export async function pull(uploader: Uploader, from: string, to: string): Promis
     }
 
     return pullFile(uploader, from, to);
-}
-
-export async function uploadIfDifferentFs(
-    uploader: Uploader,
-    remoteHashes: [string, string][],
-    from: string,
-    to: string
-) {
-    if (!fs.lstatSync(from).isDirectory()) {
-        stderr.write("FROM must be a directory\n");
-        throw 1;
-    }
-
-    const files: Record<string, Uint8Array> = {};
-    function readFilesRec(dir: string, basePath: string) {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        for (const entry of entries) {
-            const fullPath = path.join(dir, entry.name);
-            const relativePath = path.join(basePath, entry.name);
-            if (entry.isDirectory()) {
-                readFilesRec(fullPath, relativePath);
-            } else if (entry.isFile()) {
-                const data = fs.readFileSync(fullPath);
-                files[relativePath.replace(/\\/g, "/")] = data;
-            }
-        }
-    }
-    readFilesRec(from, "");
-
-    await uploader.uploadIfDifferent(remoteHashes, files, to);
 }
