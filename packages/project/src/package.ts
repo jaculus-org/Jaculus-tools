@@ -35,19 +35,21 @@ const ExportKeyValueSchema = z.record(z.string(), z.string());
 
 const ExportsSchema = z.union([z.string(), ExportKeyValueSchema]);
 
-const PackageJsonSchema = z.object({
-    name: NameSchema,
-    version: VersionFormat,
-    description: DescriptionSchema.optional(),
-    dependencies: DependenciesSchema.default({}),
-    registry: RegistryUrisSchema.optional(),
-    jaculus: JaculusSchema.optional(),
-    type: z.enum(["module"]).optional(),
-    main: z.string().optional(),
-    scripts: z.record(z.string(), z.string()).optional(),
-    exports: ExportsSchema.optional(),
-    types: z.string().optional(),
-});
+const PackageJsonSchema = z
+    .object({
+        name: NameSchema,
+        version: VersionFormat,
+        description: DescriptionSchema.optional(),
+        dependencies: DependenciesSchema.default({}),
+        registry: RegistryUrisSchema.optional(),
+        jaculus: JaculusSchema.optional(),
+        type: z.enum(["module"]).optional(),
+        main: z.string().optional(),
+        scripts: z.record(z.string(), z.string()).optional(),
+        exports: ExportsSchema.optional(),
+        types: z.string().optional(),
+    })
+    .catchall(z.unknown());
 
 export type DependencyObject = {
     name: string;

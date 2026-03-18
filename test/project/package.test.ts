@@ -91,6 +91,31 @@ describe("Package JSON", () => {
             expect(loaded.dependencies).to.be.an("object").that.is.empty;
         });
 
+        it("should preserve unknown top-level package.json fields", async () => {
+            const packageData = {
+                name: "metadata-package",
+                version: "1.0.0",
+                dependencies: {},
+                author: "Jane Doe",
+                license: "MIT",
+                keywords: ["jaculus", "tooling"],
+                files: ["dist"],
+                customTool: {
+                    enabled: true,
+                },
+            };
+
+            const packagePath = path.join(tempDir, "package.json");
+            fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
+
+            const loaded = await loadPackageJson(mockFs, packagePath);
+            await savePackageJson(mockFs, packagePath, loaded);
+
+            const roundTripped = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
+            expect(loaded).to.deep.equal(packageData);
+            expect(roundTripped).to.deep.equal(packageData);
+        });
+
         it("should throw error for invalid JSON format", async () => {
             const packagePath = path.join(tempDir, "package.json");
             fs.writeFileSync(packagePath, "{ invalid json }");
