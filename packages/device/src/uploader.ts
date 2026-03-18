@@ -55,6 +55,16 @@ interface RemoteFileInfo {
     action: SyncAction;
 }
 
+export interface UploaderProgress {
+    phase: "getDirHashes" | "uploadIfDifferent";
+    current: number;
+    total?: number;
+    filePath?: string;
+    action?: "delete" | "upload";
+}
+
+export type UploaderProgressCallback = (progress: UploaderProgress) => void;
+
 export class Uploader {
     private _in: InputPacketCommunicator;
     private _out: OutputPacketCommunicator;
@@ -377,7 +387,10 @@ export class Uploader {
         });
     }
 
-    public getDirHashes(path_: string): Promise<[string, string][]> {
+    public getDirHashes(
+        path_: string,
+        onProgress?: UploaderProgressCallback
+    ): Promise<[string, string][]> {
         this._logger?.verbose("Getting hashes of directory: " + path_);
         return new Promise((resolve, reject) => {
             let data: Uint8Array = new Uint8Array(0);
@@ -404,12 +417,22 @@ export class Uploader {
                         i += 20;
                         this._logger?.verbose(`${name} ${sha1}`);
                         result.push([name, sha1]);
+                        onProgress?.({
+                            phase: "getDirHashes",
+                            current: result.length,
+                            filePath: name,
+                        });
                         buffer.fill(0);
                         bufferIn = 0;
                     } else {
                         buffer[bufferIn++] = b;
                     }
                 }
+                onProgress?.({
+                    phase: "getDirHashes",
+                    current: result.length,
+                    total: result.length,
+                });
                 resolve(result);
                 return true;
             };
@@ -505,7 +528,8 @@ export class Uploader {
     public async uploadIfDifferent(
         remoteHashes: [string, string][],
         files: Record<string, Uint8Array>,
-        to: string
+        to: string,
+        onProgress?: UploaderProgressCallback
     ) {
         const filesInfo: Record<string, RemoteFileInfo> = Object.fromEntries(
             remoteHashes.map(([name, sha1]) => {
@@ -538,8 +562,12 @@ export class Uploader {
         }
 
         const existingFolders = new Set<string>();
+        const syncSteps = Object.values(filesInfo).filter(
+            (info) => info.action !== SyncAction.Noop
+        ).length;
         let countUploaded = 0;
         let countDeleted = 0;
+        let completedSteps = 0;
 
         for (const [rel_path, info] of Object.entries(filesInfo)) {
             const dest_path = `${to}/${rel_path}`;
@@ -547,14 +575,36 @@ export class Uploader {
                 case SyncAction.Noop:
                     break;
                 case SyncAction.Delete:
+                    onProgress?.({
+                        phase: "uploadIfDifferent",
+                        current: completedSteps,
+                        total: syncSteps,
+                        filePath: rel_path,
+                        action: "delete",
+                    });
                     try {
                         await this.deleteFile(dest_path);
                     } catch (err) {
                         this._logger?.verbose(`Error deleting file ${dest_path}: ${err}`);
                     }
                     ++countDeleted;
+                    ++completedSteps;
+                    onProgress?.({
+                        phase: "uploadIfDifferent",
+                        current: completedSteps,
+                        total: syncSteps,
+                        filePath: rel_path,
+                        action: "delete",
+                    });
                     break;
                 case SyncAction.Upload: {
+                    onProgress?.({
+                        phase: "uploadIfDifferent",
+                        current: completedSteps,
+                        total: syncSteps,
+                        filePath: rel_path,
+                        action: "upload",
+                    });
                     const parts = dest_path.split("/");
                     let cur_dir_part = "";
                     for (const p of parts.slice(0, parts.length - 1)) {
@@ -582,6 +632,14 @@ export class Uploader {
                     });
 
                     ++countUploaded;
+                    ++completedSteps;
+                    onProgress?.({
+                        phase: "uploadIfDifferent",
+                        current: completedSteps,
+                        total: syncSteps,
+                        filePath: rel_path,
+                        action: "upload",
+                    });
                     break;
                 }
             }

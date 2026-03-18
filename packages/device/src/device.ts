@@ -11,7 +11,8 @@ import { CobsEncoder } from "@jaculus/link/encoders/cobs";
 import { Uploader } from "./uploader.js";
 import { Controller, WifiMode, WifiStaMode } from "./controller.js";
 
-export { Uploader, Controller, WifiMode, WifiStaMode };
+export { Uploader, type UploaderProgress, type UploaderProgressCallback } from "./uploader.js";
+export { Controller, WifiMode, WifiStaMode };
 
 export class JacDevice {
     private _mux: Mux;
