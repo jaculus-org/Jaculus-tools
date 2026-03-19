@@ -9,6 +9,12 @@
     "author": {
         "name": "Petr Kubica (cubicap)"
     },
+    "contributors": [
+        {
+            "name": "Jakub Andrýsek (JakubAndrysek)",
+            "url": "https://kubaandrysek.cz/"
+        }
+    ],
     "license": "GPL-3.0-only",
     "type": "module",
     "bin": {
