@@ -2,14 +2,13 @@ import { Arg, Command, Env, Opt } from "./lib/command.js";
 import { stderr } from "process";
 import { getDevice } from "./util.js";
 import fs from "fs";
-import { Archive } from "@obsidize/tar-browserify";
-import pako from "pako";
 import { getUri } from "get-uri";
 import { concatUint8Arrays } from "@jaculus/common";
 import { JacDevice } from "@jaculus/device";
 import { logger } from "../logger.js";
 import { ProjectPackage } from "@jaculus/project";
 import { createFromPackage, updateFromPackage } from "@jaculus/project/creation";
+import { extractArchive } from "@jaculus/project/import";
 
 async function loadFromDevice(device: JacDevice): Promise<Uint8Array> {
     await device.controller.lock().catch((err) => {
@@ -65,18 +64,7 @@ async function loadPackage(
         archive = concatUint8Arrays(chunks);
     }
 
-    const dirs: string[] = [];
-    const files: Record<string, Uint8Array> = {};
-
-    for await (const entry of Archive.read(pako.ungzip(archive))) {
-        if (entry.isDirectory()) {
-            dirs.push(entry.fileName);
-        } else if (entry.isFile()) {
-            files[entry.fileName] = entry.content!;
-        }
-    }
-
-    return { dirs, files };
+    return await extractArchive(archive);
 }
 
 export const projectCreate = new Command("Create project from package", {

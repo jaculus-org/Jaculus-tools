@@ -41,6 +41,14 @@
         "./creation": {
             "types": "./dist/src/project-creation.d.ts",
             "import": "./dist/src/project-creation.js"
+        },
+        "./import": {
+            "types": "./dist/src/project-import.d.ts",
+            "import": "./dist/src/project-import.js"
+        },
+        "./export": {
+            "types": "./dist/src/project-export.d.ts",
+            "import": "./dist/src/project-export.js"
         }
     },
     "files": [
@@ -54,6 +62,7 @@
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
+        "fflate": "^0.8.2",
         "pako": "^2.1.0",
         "semver": "^7.7.3",
         "typescript": "^5.8.3",
