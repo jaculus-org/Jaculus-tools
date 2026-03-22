@@ -1,6 +1,6 @@
 import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link/communicator";
 import { Packet } from "@jaculus/link/linkTypes";
-import { Logger } from "@jaculus/common";
+import { Logger, type ProjectBundle } from "@jaculus/common";
 import { encodePath } from "./util.js";
 import crypto from "crypto";
 
@@ -523,6 +523,58 @@ export class Uploader {
             }
             packet.send();
         });
+    }
+
+    public async uploadFiles(
+        bundle: ProjectBundle,
+        to: string,
+        onProgress?: UploaderProgressCallback
+    ) {
+        try {
+            const remoteHashes = await this.getDirHashes(to, onProgress);
+            await this.uploadIfDifferent(remoteHashes, bundle.files, to, onProgress);
+        } catch {
+            this._logger?.info("Falling back to full upload");
+            await this.deleteDirectory(to).catch((err: unknown) => {
+                this._logger?.verbose("Error deleting directory: " + err);
+            });
+
+            await this.createDirectory(to).catch((err: unknown) => {
+                this._logger?.verbose("Error creating directory: " + err);
+            });
+
+            for (const dir of bundle.dirs) {
+                await this.createDirectory(`${to}/${dir}`).catch((err: unknown) => {
+                    this._logger?.verbose("Error creating directory: " + err);
+                });
+            }
+
+            const totalFiles = Object.keys(bundle.files).length;
+            let uploaded = 0;
+            for (const [filePath, content] of Object.entries(bundle.files)) {
+                const destPath = `${to}/${filePath}`;
+                onProgress?.({
+                    phase: "uploadIfDifferent",
+                    current: uploaded,
+                    total: totalFiles,
+                    filePath,
+                    action: "upload",
+                });
+                await this.writeFile(destPath, content).catch((cmd: UploaderCommand) => {
+                    throw "Failed to write file (" + destPath + "): " + UploaderCommandStrings[cmd];
+                });
+                uploaded++;
+                onProgress?.({
+                    phase: "uploadIfDifferent",
+                    current: uploaded,
+                    total: totalFiles,
+                    filePath,
+                    action: "upload",
+                });
+            }
+
+            this._logger?.info(`Full upload complete, ${uploaded} files written`);
+        }
     }
 
     public async uploadIfDifferent(

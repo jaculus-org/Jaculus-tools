@@ -4,11 +4,12 @@ import { tmpdir } from "os";
 import * as chai from "chai";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
-import type { Logger } from "../../packages/common/dist/logger.js";
-import { JaculusRequestError, RequestFunction } from "../../packages/common/dist/request.js";
-import { Project } from "../../packages/project/src/project.js";
-import { PackageJson, loadPackageJson } from "../../packages/project/src/package.js";
-import { Registry } from "../../packages/project/src/registry.js";
+import { Project } from "@jaculus/project";
+import { loadPackageJson, PackageJson } from "@jaculus/project/package";
+import { Registry } from "@jaculus/project/registry";
+import type { Logger } from "../../packages/common/src/logger.js";
+import type { RequestFunction } from "../../packages/common/src/request.js";
+import { JaculusRequestError } from "../../packages/common/dist/request.js";
 
 export const expect = chai.expect;
 export const registryBasePath = "file://data/test-registry/";
@@ -63,7 +64,7 @@ export async function generateTestRegistryPackages(registryBasePath: string): Pr
                 const packagePath = path.join(versionPath, "package");
                 const tarGzPath = path.join(versionPath, "package.tar.gz");
 
-                if (fs.existsSync(packagePath)) {
+                if (fs.existsSync(packagePath) && !fs.existsSync(tarGzPath)) {
                     await createTarGzPackage(packagePath, tarGzPath);
                 }
             }

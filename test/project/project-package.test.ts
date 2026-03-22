@@ -1,8 +1,5 @@
-import { Project, ProjectPackage } from "../../packages/project/src/project.js";
-import {
-    createFromPackage,
-    updateFromPackage,
-} from "../../packages/project/src/project-creation.js";
+import { Project, ProjectBundle } from "@jaculus/project";
+import { createFromBundle, updateFromBundle } from "@jaculus/project/creation";
 import {
     setupTest,
     createMockProject,
@@ -54,8 +51,8 @@ describe("Project - Package Operations", () => {
             try {
                 const projectPath = `${tempDir}/test-project`;
 
-                const pkg: ProjectPackage = {
-                    dirs: ["src", "lib"],
+                const bundle: ProjectBundle = {
+                    dirs: new Set(["src", "lib"]),
                     files: {
                         "src/index.js": new TextEncoder().encode("console.log('hello');"),
                         "lib/utils.js": new TextEncoder().encode("export const helper = () => {};"),
@@ -64,7 +61,7 @@ describe("Project - Package Operations", () => {
                     },
                 };
 
-                await createFromPackage(fs, projectPath, pkg, logger, false);
+                await createFromBundle(fs, projectPath, bundle, logger, false);
 
                 expectLoggerMessage(logger, ["Create"]);
                 expect(fs.existsSync(`${projectPath}/src`)).to.be.true;
@@ -83,14 +80,14 @@ describe("Project - Package Operations", () => {
             try {
                 const projectPath = `${tempDir}/test-project`;
 
-                const pkg: ProjectPackage = {
-                    dirs: ["src"],
+                const bundle: ProjectBundle = {
+                    dirs: new Set(["src"]),
                     files: {
                         "src/index.js": new TextEncoder().encode("test"),
                     },
                 };
 
-                await createFromPackage(fs, projectPath, pkg, logger, true);
+                await createFromBundle(fs, projectPath, bundle, logger, true);
                 expectLoggerMessage(logger, ["[dry-run]"]);
                 expect(fs.existsSync(projectPath)).to.be.false;
             } finally {
@@ -109,15 +106,15 @@ describe("Project - Package Operations", () => {
                 fs.mkdirSync(`${projectPath}/src`, { recursive: true });
                 fs.writeFileSync(`${projectPath}/src/index.js`, "existing content");
 
-                const pkg: ProjectPackage = {
-                    dirs: [],
+                const bundle: ProjectBundle = {
+                    dirs: new Set<string>(),
                     files: {
                         "src/index.js": new TextEncoder().encode("new content"),
                         "manifest.json": new TextEncoder().encode('{"skeletonFiles": ["src/*"]}'),
                     },
                 };
 
-                await updateFromPackage(fs, projectPath, pkg, logger, false);
+                await updateFromBundle(fs, projectPath, bundle, logger, false);
                 expectLoggerMessage(logger, ["Overwrite"]);
                 const content = fs.readFileSync(`${projectPath}/src/index.js`, "utf-8");
                 expect(content).to.equal("new content");
@@ -132,14 +129,14 @@ describe("Project - Package Operations", () => {
             try {
                 const projectPath = `${tempDir}/test-project`;
 
-                const pkg: ProjectPackage = {
-                    dirs: ["src/lib/utils"],
+                const bundle: ProjectBundle = {
+                    dirs: new Set(["src/lib/utils"]),
                     files: {
                         "src/lib/utils/helper.js": new TextEncoder().encode("test"),
                     },
                 };
 
-                await createFromPackage(fs, projectPath, pkg, logger, false);
+                await createFromBundle(fs, projectPath, bundle, logger, false);
                 expectLoggerMessage(logger, ["Create"]);
                 expect(fs.existsSync(`${projectPath}/src/lib/utils`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/src/lib/utils/helper.js`)).to.be.true;
@@ -154,15 +151,15 @@ describe("Project - Package Operations", () => {
                 const projectPath = `${tempDir}/existing-project`;
                 fs.mkdirSync(projectPath, { recursive: true });
 
-                const pkg: ProjectPackage = {
-                    dirs: [],
+                const bundle: ProjectBundle = {
+                    dirs: new Set<string>(),
                     files: {
                         "package.json": new TextEncoder().encode('{"name": "test"}'),
                     },
                 };
 
                 await expectAsyncError(
-                    () => createFromPackage(fs, projectPath, pkg, logger, false),
+                    () => createFromBundle(fs, projectPath, bundle, logger, false),
                     "already exists",
                     "Expected createFromPackage to throw an error"
                 );
@@ -181,8 +178,8 @@ describe("Project - Package Operations", () => {
                     dependencies: {},
                 });
 
-                const pkg: ProjectPackage = {
-                    dirs: [],
+                const bundle: ProjectBundle = {
+                    dirs: new Set<string>(),
                     files: {
                         "tsconfig.json": new TextEncoder().encode('{"compilerOptions": {}}'),
                         "src/index.js": new TextEncoder().encode("// should be filtered out"),
@@ -192,7 +189,7 @@ describe("Project - Package Operations", () => {
                     },
                 };
 
-                await updateFromPackage(fs, projectPath, pkg, logger, false);
+                await updateFromBundle(fs, projectPath, bundle, logger, false);
 
                 expectLoggerMessage(logger, ["tsconfig.json"]);
                 expect(fs.existsSync(`${projectPath}/tsconfig.json`)).to.be.true;
@@ -210,8 +207,8 @@ describe("Project - Package Operations", () => {
                     dependencies: {},
                 });
 
-                const pkg: ProjectPackage = {
-                    dirs: ["@types"],
+                const bundle: ProjectBundle = {
+                    dirs: new Set(["@types"]),
                     files: {
                         "@types/stdio.d.ts": new TextEncoder().encode("declare module 'stdio';"),
                         "tsconfig.json": new TextEncoder().encode('{"compilerOptions": {}}'),
@@ -219,7 +216,7 @@ describe("Project - Package Operations", () => {
                     },
                 };
 
-                await updateFromPackage(fs, projectPath, pkg, logger, false);
+                await updateFromBundle(fs, projectPath, bundle, logger, false);
                 expectLoggerMessage(logger, ["Create"]);
                 expect(fs.existsSync(`${projectPath}/@types/stdio.d.ts`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/tsconfig.json`)).to.be.true;
@@ -238,8 +235,8 @@ describe("Project - Package Operations", () => {
                     dependencies: {},
                 });
 
-                const pkg: ProjectPackage = {
-                    dirs: ["@types"],
+                const bundle: ProjectBundle = {
+                    dirs: new Set(["@types"]),
                     files: {
                         "@types/stdio.d.ts": new TextEncoder().encode("declare module 'stdio';"),
                         "tsconfig.json": new TextEncoder().encode('{"compilerOptions": {}}'),
@@ -247,7 +244,7 @@ describe("Project - Package Operations", () => {
                     },
                 };
 
-                await updateFromPackage(fs, projectPath, pkg, logger, false);
+                await updateFromBundle(fs, projectPath, bundle, logger, false);
                 expect(fs.existsSync(`${projectPath}/@types/stdio.d.ts`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/tsconfig.json`)).to.be.true;
             } finally {
@@ -261,13 +258,13 @@ describe("Project - Package Operations", () => {
             try {
                 const projectPath = `${tempDir}/non-existent`;
 
-                const pkg: ProjectPackage = {
-                    dirs: [],
+                const bundle: ProjectBundle = {
+                    dirs: new Set<string>(),
                     files: {},
                 };
 
                 await expectAsyncError(
-                    () => updateFromPackage(fs, projectPath, pkg, logger, false),
+                    () => updateFromBundle(fs, projectPath, bundle, logger, false),
                     "does not exist",
                     "Expected updateFromPackage to throw an error"
                 );
@@ -283,13 +280,13 @@ describe("Project - Package Operations", () => {
                 const projectPath = `${tempDir}/not-a-dir`;
                 fs.writeFileSync(projectPath, "I am a file, not a directory");
 
-                const pkg: ProjectPackage = {
-                    dirs: [],
+                const bundle: ProjectBundle = {
+                    dirs: new Set<string>(),
                     files: {},
                 };
 
                 await expectAsyncError(
-                    () => updateFromPackage(fs, projectPath, pkg, logger, false),
+                    () => updateFromBundle(fs, projectPath, bundle, logger, false),
                     "is not a directory",
                     "Expected updateFromPackage to throw an error"
                 );
@@ -310,8 +307,8 @@ describe("Project - Package Operations", () => {
                     skeletonFiles: ["*.config.js", "types/*.d.ts"],
                 };
 
-                const pkg: ProjectPackage = {
-                    dirs: ["types"],
+                const bundle: ProjectBundle = {
+                    dirs: new Set(["types"]),
                     files: {
                         "vite.config.js": new TextEncoder().encode("export default {}"),
                         "types/custom.d.ts": new TextEncoder().encode("declare module 'custom';"),
@@ -320,7 +317,7 @@ describe("Project - Package Operations", () => {
                     },
                 };
 
-                await updateFromPackage(fs, projectPath, pkg, logger, false);
+                await updateFromBundle(fs, projectPath, bundle, logger, false);
                 expect(fs.existsSync(`${projectPath}/vite.config.js`)).to.be.true;
                 expect(fs.existsSync(`${projectPath}/types/custom.d.ts`)).to.be.true;
                 // src/index.js should be filtered out as it doesn't match the skeleton patterns
@@ -342,15 +339,15 @@ describe("Project - Package Operations", () => {
                     skeletonFiles: ["valid.js", { invalid: "object" }, "another.js"],
                 };
 
-                const pkg: ProjectPackage = {
-                    dirs: [],
+                const bundle: ProjectBundle = {
+                    dirs: new Set<string>(),
                     files: {
                         "manifest.json": new TextEncoder().encode(JSON.stringify(manifest)),
                     },
                 };
 
                 await expectAsyncError(
-                    () => updateFromPackage(fs, projectPath, pkg, logger, false),
+                    () => updateFromBundle(fs, projectPath, bundle, logger, false),
                     "Invalid skeleton entry",
                     "Expected updateFromPackage to throw an error"
                 );
@@ -367,15 +364,15 @@ describe("Project - Package Operations", () => {
                     dependencies: {},
                 });
 
-                const pkg: ProjectPackage = {
-                    dirs: ["@types"],
+                const bundle: ProjectBundle = {
+                    dirs: new Set(["@types"]),
                     files: {
                         "@types/stdio.d.ts": new TextEncoder().encode("declare module 'stdio';"),
                         "tsconfig.json": new TextEncoder().encode('{"compilerOptions": {}}'),
                     },
                 };
 
-                await updateFromPackage(fs, projectPath, pkg, logger, true);
+                await updateFromBundle(fs, projectPath, bundle, logger, true);
                 expectLoggerMessage(logger, ["[dry-run]"]);
                 expect(fs.existsSync(`${projectPath}/@types/stdio.d.ts`)).to.be.false;
                 expect(fs.existsSync(`${projectPath}/tsconfig.json`)).to.be.false;

@@ -1,5 +1,4 @@
-import { extractTgzPackage } from "../../packages/project/src/fs.js";
-import { Registry } from "../../packages/project/src/registry.js";
+import { Registry } from "@jaculus/project/registry";
 import {
     createMockLogger,
     createGetRequest,
@@ -12,6 +11,7 @@ import {
     registryBasePath,
     generateTestRegistryPackages,
 } from "./testHelpers.js";
+import { extractTgzPackage } from "@jaculus/project/fs";
 
 function createRegistry(registryUris: string[], getRequest: ReturnType<typeof createGetRequest>) {
     return new Registry(registryUris, getRequest, createMockLogger());

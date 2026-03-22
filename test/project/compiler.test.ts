@@ -4,9 +4,9 @@ import * as fsReal from "fs";
 import { createRequire } from "module";
 import { tmpdir } from "os";
 import { configure, umount, InMemory, fs as fsVirt } from "@zenfs/core";
-import { compileProjectPath } from "../../packages/project/src/compiler/index.js";
-import { copyFolder } from "../../packages/project/src/fs.js";
+import { compileProjectPath } from "@jaculus/project/compiler";
 import { createMockLogger, expectAsyncError } from "./testHelpers.js";
+import { copyFolder } from "@jaculus/project/fs";
 
 const expect = chai.expect;
 const testProjectPath = path.resolve("./test/project/data/test-project");

@@ -20,6 +20,8 @@
         "@eslint/js": "^9.38.0",
         "@jaculus/link": "workspace:*",
         "@jaculus/project": "workspace:*",
+        "@jaculus/tools": "workspace:*",
+        "@jaculus/common": "workspace:*",
         "@obsidize/tar-browserify": "^6.3.2",
         "@types/chai": "^4.3.20",
         "@types/mocha": "^10.0.10",

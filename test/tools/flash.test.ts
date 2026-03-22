@@ -1,3 +1,4 @@
+import { ProjectBundle } from "@jaculus/project";
 import flash from "../../packages/tools/src/commands/flash.js";
 import { cleanupTestDir, createTestDir, expect, fs, path } from "../project/testHelpers.js";
 
@@ -41,13 +42,15 @@ describe("Flash command", () => {
                 unlock: async () => {},
             },
             uploader: {
-                getDirHashes: async () => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                getDirHashes: async (_path?: string) => {
                     throw new Error("unsupported");
                 },
                 uploadIfDifferent: async () => {
                     throw new Error("uploadIfDifferent should not be called in fallback mode");
                 },
-                deleteDirectory: async () => {},
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                deleteDirectory: async (_path?: string) => {},
                 createDirectory: async (dirPath: string) => {
                     const parentPath = path.dirname(dirPath);
                     if (dirPath !== "code" && !createdDirs.has(parentPath)) {
@@ -62,6 +65,18 @@ describe("Flash command", () => {
                         throw new Error(`Missing directory for file write: ${parentPath}`);
                     }
                     writeCalls.push(filePath);
+                },
+                uploadFiles: async (bundle: ProjectBundle, to: string) => {
+                    // Simulate the fallback path of uploadFiles
+                    await device.uploader.getDirHashes(to).catch(() => {});
+                    await device.uploader.deleteDirectory(to);
+                    await device.uploader.createDirectory(to);
+                    for (const dir of bundle.dirs) {
+                        await device.uploader.createDirectory(`${to}/${dir}`);
+                    }
+                    for (const filePath of Object.keys(bundle.files)) {
+                        await device.uploader.writeFile(`${to}/${filePath}`);
+                    }
                 },
             },
         };

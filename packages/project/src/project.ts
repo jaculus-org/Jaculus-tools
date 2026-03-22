@@ -9,14 +9,11 @@ import {
     PackageJson,
     getPackagePath,
 } from "./package.js";
-import { Logger } from "@jaculus/common";
+import { Logger, type ProjectBundle } from "@jaculus/common";
 
 export type ResolvedDependencies = Dependencies;
 
-export interface ProjectPackage {
-    dirs: string[];
-    files: Record<string, Uint8Array>;
-}
+export type { ProjectBundle };
 
 export interface JaclyBlocksFiles {
     [filePath: string]: object;
@@ -368,8 +365,9 @@ export class Project {
         return jaclyData;
     }
 
-    async getFlashFiles(): Promise<Record<string, Uint8Array>> {
-        const jaculusFiles: Record<string, Uint8Array> = {};
+    async getFlashFiles(): Promise<ProjectBundle> {
+        const files: Record<string, Uint8Array> = {};
+        const dirs = new Set<string>();
 
         const collectFlashFiles = async (dirPath: string, prefix: string = "") => {
             if (!this.fs.existsSync(dirPath)) return;
@@ -378,18 +376,22 @@ export class Project {
                 dirPath,
                 async (filePath: string, content: Uint8Array) => {
                     const relativePath = path.relative(dirPath, filePath).replace(/\\/g, "/");
-                    jaculusFiles[path.join(prefix, relativePath)] = content;
+                    const relPath = path.join(prefix, relativePath);
+                    files[relPath] = content;
+                    // Collect all parent dirs in parent-first order
+                    const segments = relPath.split("/");
+                    for (let i = 1; i < segments.length; i++) {
+                        dirs.add(segments.slice(0, i).join("/"));
+                    }
                 },
                 (filePath: string) =>
                     path.extname(filePath) === ".js" || path.basename(filePath) === "package.json"
             );
         };
 
-        jaculusFiles["package.json"] = this.fs.readFileSync(
-            path.join(this.projectPath, "package.json")
-        );
+        files["package.json"] = this.fs.readFileSync(path.join(this.projectPath, "package.json"));
         await collectFlashFiles(path.join(this.projectPath, "build"));
         await collectFlashFiles(path.join(this.projectPath, "node_modules"), "node_modules");
-        return jaculusFiles;
+        return { dirs, files };
     }
 }

@@ -1,10 +1,10 @@
 // Archive import utilities — extract TAR, TAR.GZ, and ZIP archives
-// into a ProjectPackage, plus base64url decoding.
+// into a ProjectBundle, plus base64url decoding.
 
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import { unzipSync } from "fflate";
-import { ProjectPackage } from "./project.js";
+import { ProjectBundle } from "./project.js";
 import { JaculusProjectType } from "./package.js";
 import { RequestFunction } from "@jaculus/common";
 
@@ -75,32 +75,32 @@ function stripPrefix(p: string, prefix: string): string {
 }
 
 // Strip common prefixes from file and dir paths (e.g., "package/" from archives).
-export function stripRootPrefix(pkg: ProjectPackage, prefixToStrip: string): ProjectPackage {
-    if (!prefixToStrip) return pkg;
+export function stripRootPrefix(bundle: ProjectBundle, prefixToStrip: string): ProjectBundle {
+    if (!prefixToStrip) return bundle;
 
     const strippedFiles: Record<string, Uint8Array> = {};
-    const strippedDirs: string[] = [];
+    const strippedDirs = new Set<string>();
 
-    for (const [p, content] of Object.entries(pkg.files)) {
+    for (const [p, content] of Object.entries(bundle.files)) {
         const strippedPath = stripPrefix(p, prefixToStrip);
         if (strippedPath) {
             strippedFiles[strippedPath] = content;
         }
     }
 
-    for (const dir of pkg.dirs) {
+    for (const dir of bundle.dirs) {
         const strippedPath = stripPrefix(dir, prefixToStrip.slice(0, -1));
         if (strippedPath && strippedPath !== "/") {
-            strippedDirs.push(strippedPath);
+            strippedDirs.add(strippedPath);
         }
     }
 
     return { dirs: strippedDirs, files: strippedFiles };
 }
 
-// Extract TAR or TAR.GZ archive into a ProjectPackage.
-async function extractTar(data: Uint8Array): Promise<ProjectPackage> {
-    const dirs: string[] = [];
+// Extract TAR or TAR.GZ archive into a ProjectBundle.
+async function extractTar(data: Uint8Array): Promise<ProjectBundle> {
+    const dirs = new Set<string>();
     const files: Record<string, Uint8Array> = {};
 
     // Determine if the data is gzipped based on magic bytes (0x1f 0x8b)
@@ -111,7 +111,7 @@ async function extractTar(data: Uint8Array): Promise<ProjectPackage> {
         const fileName = entry.fileName;
 
         if (entry.isDirectory()) {
-            dirs.push(fileName.endsWith("/") ? fileName.slice(0, -1) : fileName);
+            dirs.add(fileName.endsWith("/") ? fileName.slice(0, -1) : fileName);
         } else if (entry.isFile()) {
             files[fileName] = entry.content!;
         }
@@ -121,17 +121,17 @@ async function extractTar(data: Uint8Array): Promise<ProjectPackage> {
     return stripRootPrefix({ dirs, files }, prefixToStrip);
 }
 
-// Extract ZIP archive into a ProjectPackage.
-function extractZip(data: Uint8Array): ProjectPackage {
+// Extract ZIP archive into a ProjectBundle.
+function extractZip(data: Uint8Array): ProjectBundle {
     const unzipped = unzipSync(data);
-    const dirs: string[] = [];
+    const dirs = new Set<string>();
     const files: Record<string, Uint8Array> = {};
 
     for (const [p, content] of Object.entries(unzipped) as [string, Uint8Array][]) {
         if (p.endsWith("/") || content.length === 0) {
             const dirPath = p.endsWith("/") ? p.slice(0, -1) : p;
             if (dirPath) {
-                dirs.push(dirPath);
+                dirs.add(dirPath);
             }
         } else {
             files[p] = content;
@@ -143,7 +143,7 @@ function extractZip(data: Uint8Array): ProjectPackage {
 }
 
 // Detect archive format (ZIP vs TAR/TAR.GZ) and extract.
-export async function extractArchive(data: Uint8Array): Promise<ProjectPackage> {
+export async function extractArchive(data: Uint8Array): Promise<ProjectBundle> {
     const isZip =
         data.length >= 4 &&
         data[0] === 0x50 &&
@@ -159,7 +159,7 @@ export async function extractArchive(data: Uint8Array): Promise<ProjectPackage> 
 
 export interface PackageLoadResult {
     projectType: JaculusProjectType;
-    package: ProjectPackage;
+    package: ProjectBundle;
     fileCount: number;
 }
 

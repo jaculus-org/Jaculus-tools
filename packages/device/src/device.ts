@@ -12,6 +12,7 @@ import { Uploader } from "./uploader.js";
 import { Controller, WifiMode, WifiStaMode } from "./controller.js";
 
 export { Uploader, type UploaderProgress, type UploaderProgressCallback } from "./uploader.js";
+export { type ProjectBundle } from "@jaculus/common";
 export { Controller, WifiMode, WifiStaMode };
 
 export class JacDevice {

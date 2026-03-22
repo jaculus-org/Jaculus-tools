@@ -20,35 +20,43 @@
     "exports": {
         ".": {
             "types": "./dist/src/project.d.ts",
-            "import": "./dist/src/project.js"
+            "import": "./dist/src/project.js",
+            "default": "./dist/src/project.js"
         },
         "./compiler": {
             "types": "./dist/src/compiler/index.d.ts",
-            "import": "./dist/src/compiler/index.js"
+            "import": "./dist/src/compiler/index.js",
+            "default": "./dist/src/compiler/index.js"
         },
         "./fs": {
             "types": "./dist/src/fs.d.ts",
-            "import": "./dist/src/fs.js"
+            "import": "./dist/src/fs.js",
+            "default": "./dist/src/fs.js"
         },
         "./package": {
             "types": "./dist/src/package.d.ts",
-            "import": "./dist/src/package.js"
+            "import": "./dist/src/package.js",
+            "default": "./dist/src/package.js"
         },
         "./registry": {
             "types": "./dist/src/registry.d.ts",
-            "import": "./dist/src/registry.js"
+            "import": "./dist/src/registry.js",
+            "default": "./dist/src/registry.js"
         },
         "./creation": {
             "types": "./dist/src/project-creation.d.ts",
-            "import": "./dist/src/project-creation.js"
+            "import": "./dist/src/project-creation.js",
+            "default": "./dist/src/project-creation.js"
         },
         "./import": {
             "types": "./dist/src/project-import.d.ts",
-            "import": "./dist/src/project-import.js"
+            "import": "./dist/src/project-import.js",
+            "default": "./dist/src/project-import.js"
         },
         "./export": {
             "types": "./dist/src/project-export.d.ts",
-            "import": "./dist/src/project-export.js"
+            "import": "./dist/src/project-export.js",
+            "default": "./dist/src/project-export.js"
         }
     },
     "files": [

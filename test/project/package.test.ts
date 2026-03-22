@@ -1,8 +1,4 @@
-import {
-    loadPackageJson,
-    PackageJson,
-    savePackageJson,
-} from "../../packages/project/src/package.js";
+import { loadPackageJson, PackageJson, savePackageJson } from "@jaculus/project/package";
 import {
     cleanupTestDir,
     createTestDir,

@@ -6,8 +6,8 @@ import { getUri } from "get-uri";
 import { concatUint8Arrays } from "@jaculus/common";
 import { JacDevice } from "@jaculus/device";
 import { logger } from "../logger.js";
-import { ProjectPackage } from "@jaculus/project";
-import { createFromPackage, updateFromPackage } from "@jaculus/project/creation";
+import { ProjectBundle } from "@jaculus/project";
+import { createFromBundle, updateFromBundle } from "@jaculus/project/creation";
 import { extractArchive } from "@jaculus/project/import";
 
 async function loadFromDevice(device: JacDevice): Promise<Uint8Array> {
@@ -32,7 +32,7 @@ async function loadFromDevice(device: JacDevice): Promise<Uint8Array> {
 async function loadPackage(
     options: Record<string, string | boolean>,
     env: Env
-): Promise<ProjectPackage> {
+): Promise<ProjectBundle> {
     const pkgUri = options["package"] as string;
     const fromDevice = options["from-device"] as boolean;
 
@@ -76,7 +76,7 @@ export const projectCreate = new Command("Create project from package", {
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
-        await createFromPackage(fs, outPath, pkg, logger, dryRun);
+        await createFromBundle(fs, outPath, pkg, logger, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
@@ -96,7 +96,7 @@ export const projectUpdate = new Command("Update existing project from package s
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
-        await updateFromPackage(fs, outPath, pkg, logger, dryRun);
+        await updateFromBundle(fs, outPath, pkg, logger, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),

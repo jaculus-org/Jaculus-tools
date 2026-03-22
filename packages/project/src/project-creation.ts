@@ -1,17 +1,17 @@
 import { Logger } from "@jaculus/common";
 import { FSInterface } from "./fs.js";
-import { ProjectError, ProjectPackage } from "./project.js";
+import { ProjectError, ProjectBundle } from "./project.js";
 import path from "path";
 
-export async function unpackPackage(
+export async function unpackBundle(
     fs: FSInterface,
     projectPath: string,
-    pkg: ProjectPackage,
+    bundle: ProjectBundle,
     filter: (fileName: string) => boolean,
     logger: Logger,
     dryRun: boolean = false
 ): Promise<void> {
-    for (const dir of pkg.dirs) {
+    for (const dir of bundle.dirs) {
         const source = dir;
         const fullPath = path.join(projectPath, source);
         if (!fs.existsSync(fullPath) && !dryRun) {
@@ -20,7 +20,7 @@ export async function unpackPackage(
         }
     }
 
-    for (const [fileName, data] of Object.entries(pkg.files)) {
+    for (const [fileName, data] of Object.entries(bundle.files)) {
         const source = fileName;
 
         if (!filter(source)) {
@@ -42,10 +42,10 @@ export async function unpackPackage(
     }
 }
 
-export async function createFromPackage(
+export async function createFromBundle(
     fs: FSInterface,
     projectPath: string,
-    pkg: ProjectPackage,
+    bundle: ProjectBundle,
     logger: Logger,
     dryRun: boolean = false,
     validateFolder: boolean = true
@@ -61,13 +61,13 @@ export async function createFromPackage(
         return true;
     };
 
-    await unpackPackage(fs, projectPath, pkg, filter, logger, dryRun);
+    await unpackBundle(fs, projectPath, bundle, filter, logger, dryRun);
 }
 
-export async function updateFromPackage(
+export async function updateFromBundle(
     fs: FSInterface,
     projectPath: string,
-    pkg: ProjectPackage,
+    bundle: ProjectBundle,
     logger: Logger,
     dryRun: boolean = false
 ): Promise<void> {
@@ -80,8 +80,8 @@ export async function updateFromPackage(
     }
 
     let manifest;
-    if (pkg.files["manifest.json"]) {
-        manifest = JSON.parse(new TextDecoder().decode(pkg.files["manifest.json"]));
+    if (bundle.files["manifest.json"]) {
+        manifest = JSON.parse(new TextDecoder().decode(bundle.files["manifest.json"]));
     }
 
     let skeleton: string[];
@@ -111,5 +111,5 @@ export async function updateFromPackage(
         return false;
     };
 
-    await unpackPackage(fs, projectPath, pkg, filter, logger, dryRun);
+    await unpackBundle(fs, projectPath, bundle, filter, logger, dryRun);
 }
