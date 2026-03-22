@@ -7,9 +7,9 @@ import { Logger } from "@jaculus/common";
 
 function printMessage(message: string | ts.DiagnosticMessageChain, logger: Logger, indent = 0) {
     if (typeof message === "string") {
-        logger.warn(" ".repeat(indent * 2) + message + "\n");
+        logger.warn(" ".repeat(indent * 2) + message);
     } else {
-        logger.warn(" ".repeat(indent * 2) + message.messageText + "\n");
+        logger.warn(" ".repeat(indent * 2) + message.messageText);
         if (message.next) {
             for (const next of message.next) {
                 printMessage(next, logger, indent + 1);
@@ -137,7 +137,8 @@ export async function compileProjectTsconfig(
     )
 ): Promise<boolean> {
     const { options, fileNames } = parseTsConfig(configJson, system, logger);
-    logger.info("Compiling files: [" + fileNames.join(", ") + "]\n");
+    logger.info("Compiling project");
+    logger.verbose("Project files: [" + fileNames.join(", ") + "]");
 
     const host = tsvfs.createVirtualCompilerHost(system, options, tsLibsPath);
     const { program, emitResult } = buildAndEmit(fileNames, options, host);

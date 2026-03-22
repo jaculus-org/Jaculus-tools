@@ -93,7 +93,7 @@ describe("TypeScript Compiler", () => {
                 expect(result).to.be.true;
                 expect(logger.output(["error", "warn"])).to.be.empty;
                 expect(logger.output(["info", "verbose", "debug", "silly"])).to.include(
-                    "Compiling files:"
+                    "Compiling project"
                 );
 
                 const buildExists = config.fs.existsSync(path.join(testData.inputPath, "build"));

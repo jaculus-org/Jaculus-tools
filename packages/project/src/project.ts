@@ -77,7 +77,7 @@ export class Project {
     }
 
     async install(registry: Registry): Promise<Dependencies> {
-        this.logger.info("Resolving project dependencies...\n");
+        this.logger.info("Resolving project dependencies...");
         const pkg = await this.loadProjectPackageJson();
         const resolvedDeps = await this.resolveDependencies(pkg.dependencies, registry);
         await this.installDependencies(registry, resolvedDeps);
@@ -202,7 +202,7 @@ export class Project {
                 }
             } catch (error) {
                 this.logger.error(
-                    `Failed to resolve dependencies for '${dep.name}@${dep.version}': ${error}\n`
+                    `Failed to resolve dependencies for '${dep.name}@${dep.version}': ${error}`
                 );
                 throw error;
             }
@@ -223,18 +223,16 @@ export class Project {
         // install all resolved dependencies
         for (const [libName, libVersion] of Object.entries(dependencies)) {
             try {
-                this.logger.info(` - Installing library '${libName}' version '${libVersion}'`);
+                this.logger.verbose(` - Installing library '${libName}' version '${libVersion}'`);
                 const packageData = await registry.getPackageTgz(libName, libVersion);
                 const installPath = getPackagePath(this.projectPath, libName);
                 await extractTgzPackage(packageData, this.fs, installPath);
             } catch (error) {
-                this.logger.error(
-                    `Failed to install library '${libName}@${libVersion}': ${error}\n`
-                );
+                this.logger.error(`Failed to install library '${libName}@${libVersion}': ${error}`);
                 throw error;
             }
         }
-        this.logger.info("All dependencies resolved and installed successfully.\n");
+        this.logger.info("All dependencies resolved and installed successfully.");
     }
 
     private async addLibVersion(
@@ -299,7 +297,7 @@ export class Project {
                 const fileContent = await this.fs.promises.readFile(fullPath, "utf-8");
                 blockFiles[fullPath] = JSON.parse(fileContent);
             } catch (e) {
-                this.logger.error(`Failed to read/parse JacLy block file '${fullPath}': ${e}\n`);
+                this.logger.error(`Failed to read/parse JacLy block file '${fullPath}': ${e}`);
                 throw e;
             }
         }
@@ -321,7 +319,7 @@ export class Project {
             return JSON.parse(fileContent);
         } catch (e) {
             this.logger.error(
-                `Failed to read/parse JacLy translation file '${translationFile}': ${e}\n`
+                `Failed to read/parse JacLy translation file '${translationFile}': ${e}`
             );
             throw e;
         }
@@ -347,7 +345,7 @@ export class Project {
             try {
                 libPkg = await loadPackageJson(this.fs, pkgJsonPath);
             } catch (e) {
-                this.logger.warn(`Failed to load package.json for '${pkgDir}': ${e}. Skipping.\n`);
+                this.logger.warn(`Failed to load package.json for '${pkgDir}': ${e}. Skipping.`);
                 continue;
             }
 
