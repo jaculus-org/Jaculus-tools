@@ -14,7 +14,7 @@ const cmd = new Command("Remove a library from the project package.json", {
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
         const project = new Project(fs, projectPath, logger);
-        const registry = new Registry(pkg.registry, uriRequest, logger);
+        const registry = new Registry(pkg.jaculus?.registry, uriRequest, logger);
         await project.removeLibrary(registry, libraryName);
     },
     args: [new Arg("library", "Library name to remove from the project", { required: true })],

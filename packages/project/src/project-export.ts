@@ -6,12 +6,6 @@ import pako from "pako";
 import { zipSync } from "fflate";
 import { FSInterface } from "./fs.js";
 
-// Encode binary data to a base64url string (RFC 4648 §5, no padding).
-export function encodeBase64Url(data: Uint8Array): string {
-    const binStr = Array.from(data, (byte) => String.fromCharCode(byte)).join("");
-    return btoa(binStr).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 // Recursively collect all files from a directory.
 export async function collectFiles(
     fs: FSInterface,

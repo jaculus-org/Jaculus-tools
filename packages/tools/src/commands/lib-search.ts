@@ -17,7 +17,7 @@ const cmd = new Command("Search libraries in configured registries", {
         }
 
         const pkg = await loadPackageJson(fs, path.join(process.cwd(), "package.json"));
-        const registry = new Registry(pkg?.registry, uriRequest, logger);
+        const registry = new Registry(pkg.jaculus?.registry, uriRequest, logger);
 
         const libraries = await registry.listPackages();
         const matches = allLibs

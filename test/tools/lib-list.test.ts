@@ -20,7 +20,11 @@ describe("lib-list command", () => {
             dependencies: {
                 "led-strip": "0.0.5",
             },
-            registry: [pathToFileURL(path.resolve("test/project/data/test-registry/")).toString()],
+            jaculus: {
+                registry: [
+                    pathToFileURL(path.resolve("test/project/data/test-registry/")).toString(),
+                ],
+            },
         });
 
         const originalWrite = process.stdout.write;
@@ -34,7 +38,7 @@ describe("lib-list command", () => {
 
         try {
             process.chdir(projectPath);
-            await libList.run(["--resolved"], {}, {});
+            await libList.run(["--all"], {}, {});
         } finally {
             process.chdir(originalCwd);
             process.stdout.write = originalWrite;

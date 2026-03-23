@@ -24,9 +24,11 @@ const RegistryUrisSchema = z.array(z.string());
 export const JaculusProjectTypeSchema = z.enum(["code", "jacly"]);
 
 const JaculusSchema = z.object({
+    registry: RegistryUrisSchema.optional(),
     blocks: z.string().optional(),
     projectType: JaculusProjectTypeSchema.optional(),
     template: z.boolean().optional(),
+    projectVersion: z.number().optional(),
     jaclyVersion: VersionFormat.optional(),
     jaclyGitHash: z.string().optional(),
 });
@@ -41,7 +43,6 @@ const PackageJsonSchema = z
         version: VersionFormat,
         description: DescriptionSchema.optional(),
         dependencies: DependenciesSchema.default({}),
-        registry: RegistryUrisSchema.optional(),
         jaculus: JaculusSchema.optional(),
         type: z.enum(["module"]).optional(),
         main: z.string().optional(),

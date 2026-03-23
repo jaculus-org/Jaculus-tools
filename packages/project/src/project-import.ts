@@ -8,20 +8,6 @@ import { ProjectBundle } from "./project.js";
 import { JaculusProjectType } from "./package.js";
 import { RequestFunction } from "@jaculus/common";
 
-// Decode a base64url string (RFC 4648 §5) back to binary data.
-export function decodeBase64Url(str: string): Uint8Array {
-    let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
-    while (base64.length % 4 !== 0) {
-        base64 += "=";
-    }
-    const binStr = atob(base64);
-    const bytes = new Uint8Array(binStr.length);
-    for (let i = 0; i < binStr.length; i++) {
-        bytes[i] = binStr.charCodeAt(i);
-    }
-    return bytes;
-}
-
 // Detect if archive contains a single root folder with all files inside it.
 // Returns the prefix to strip if detected, empty string otherwise.
 export function detectRootPrefix(files: Record<string, Uint8Array>): string {

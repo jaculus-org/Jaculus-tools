@@ -16,7 +16,9 @@ const cmd = new Command("List libraries from project package.json", {
         const project = new Project(fs, projectPath, logger);
         const registry = all
             ? new Registry(
-                  (await loadPackageJson(fs, path.join(projectPath, "package.json"))).registry,
+                  (
+                      await loadPackageJson(fs, path.join(projectPath, "package.json"))
+                  ).jaculus?.registry,
                   uriRequest,
                   logger
               )
