@@ -11,6 +11,9 @@ importers:
       '@eslint/js':
         specifier: ^9.38.0
         version: 9.38.0
+      '@jaculus/common':
+        specifier: workspace:*
+        version: link:packages/common
       '@jaculus/link':
         specifier: workspace:*
         version: link:packages/link
@@ -50,6 +53,9 @@ importers:
       husky:
         specifier: ^9.1.7
         version: 9.1.7
+      jaculus-tools:
+        specifier: workspace:*
+        version: link:packages/tools
       jiti:
         specifier: ^2.5.1
         version: 2.6.1
