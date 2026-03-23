@@ -11,17 +11,17 @@ import { uriRequest } from "../util.js";
 const cmd = new Command("List libraries from project package.json", {
     action: async (options: Record<string, string | boolean>) => {
         const projectPath = process.cwd();
-        const includeResolvedLibs = options["resolved"] as boolean;
+        const all = options["all"] as boolean;
 
         const project = new Project(fs, projectPath, logger);
-        const registry = includeResolvedLibs
+        const registry = all
             ? new Registry(
                   (await loadPackageJson(fs, path.join(projectPath, "package.json"))).registry,
                   uriRequest,
                   logger
               )
             : undefined;
-        const dependencies = await project.listDependencies(includeResolvedLibs, registry);
+        const dependencies = await project.listDependencies(all, registry);
         const list = Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b));
         if (list.length === 0) {
             stdout.write("No libraries found.\n");
@@ -33,7 +33,7 @@ const cmd = new Command("List libraries from project package.json", {
         }
     },
     options: {
-        resolved: new Opt("Include resolved transitive dependencies", { isFlag: true }),
+        all: new Opt("Include transitive dependencies", { isFlag: true }),
     },
     chainable: true,
 });
