@@ -59,7 +59,8 @@ function readProjectTsconfig(
     system: ts.System,
     projectPath: string,
     outDir: string,
-    logger: Logger
+    logger: Logger,
+    validateProjectTsCfg: boolean = true
 ): Record<string, unknown> {
     const tsconfig = ts.findConfigFile("./", system.fileExists, "tsconfig.json");
     if (!tsconfig) {
@@ -73,7 +74,9 @@ function readProjectTsconfig(
     }
 
     configJsonFile.config.compilerOptions ??= {};
-    validateProjectTsconfig(configJsonFile.config.compilerOptions, outDir);
+    if (validateProjectTsCfg) {
+        validateProjectTsconfig(configJsonFile.config.compilerOptions, outDir);
+    }
     return configJsonFile.config;
 }
 
@@ -159,6 +162,7 @@ export async function compileProjectTsconfig(
  * @param projectPath Path to the project directory (should contain tsconfig.json)
  * @param logger Logger for outputting messages and diagnostics
  * @param noCheck If true, compiles without type checking, emitting JavaScript even if there are type errors
+ * @param validateProjectTsCfg If true, validates the project's tsconfig.json
  * @param tsLibsPath Optional path to TypeScript libraries (lib.d.ts, etc.), defaults to the directory of the installed TypeScript package
  * @returns Promise that resolves to true if compilation succeeded
  */
@@ -167,13 +171,20 @@ export async function compileProjectPath(
     projectPath: string,
     logger: Logger,
     noCheck: boolean = false,
+    validateProjectTsCfg: boolean = true,
     tsLibsPath: string = path.dirname(
         fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
     )
 ): Promise<boolean> {
     const outDir = "build";
     const system = tsvfs.createSystem(fs, projectPath);
-    const configJson = readProjectTsconfig(system, projectPath, outDir, logger);
+    const configJson = readProjectTsconfig(
+        system,
+        projectPath,
+        outDir,
+        logger,
+        validateProjectTsCfg
+    );
 
     return await compileProjectTsconfig(configJson, system, logger, noCheck, tsLibsPath);
 }
