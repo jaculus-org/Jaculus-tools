@@ -108,8 +108,8 @@ export class Controller {
         return false;
     }
 
-    public start(programPath: string = ""): Promise<void> {
-        this._logger?.verbose("Starting program: " + (programPath ? programPath : ""));
+    public start(entryPoint: string = ""): Promise<void> {
+        this._logger?.verbose("Starting program: " + (entryPoint ? entryPoint : ""));
         return new TimeoutPromise(
             TIMEOUT_MS,
             (resolve, reject) => {
@@ -124,7 +124,7 @@ export class Controller {
 
                 const packet = this._out.buildPacket();
                 packet.put(ControllerCommand.START);
-                for (const c of programPath) {
+                for (const c of entryPoint) {
                     packet.put(c.charCodeAt(0));
                 }
                 packet.send();

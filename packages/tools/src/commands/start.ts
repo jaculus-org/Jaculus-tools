@@ -33,7 +33,7 @@ const cmd = new Command("Start a program", {
         stdout.write("Started\n");
     },
     options: {
-        entry: new Opt("Remote file to run", { defaultValue: "index.js", required: true }),
+        entry: new Opt("Remote file to run", { defaultValue: "", required: true }),
     },
     chainable: true,
 });

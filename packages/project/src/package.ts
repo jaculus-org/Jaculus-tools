@@ -28,9 +28,8 @@ const JaculusSchema = z.object({
     blocks: z.string().optional(),
     projectType: JaculusProjectTypeSchema.optional(),
     template: z.boolean().optional(),
-    projectVersion: z.number().optional(),
+    projectFormatVersion: z.number().optional(),
     jaclyVersion: VersionFormat.optional(),
-    jaclyGitHash: z.string().optional(),
 });
 
 const ExportKeyValueSchema = z.record(z.string(), z.string());
@@ -43,12 +42,13 @@ const PackageJsonSchema = z
         version: VersionFormat,
         description: DescriptionSchema.optional(),
         dependencies: DependenciesSchema.default({}),
-        jaculus: JaculusSchema.optional(),
+        files: z.array(z.string()).optional(),
         type: z.enum(["module"]).optional(),
         main: z.string().optional(),
         scripts: z.record(z.string(), z.string()).optional(),
         exports: ExportsSchema.optional(),
         types: z.string().optional(),
+        jaculus: JaculusSchema.optional(),
     })
     .catchall(z.unknown());
 

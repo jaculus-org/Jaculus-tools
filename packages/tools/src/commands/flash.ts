@@ -99,7 +99,6 @@ const cmd = new Command("Flash code to device (replace contents of ./code)", {
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
         const projectPath = options["path"] as string;
-        const programPath = options["programPath"] as string;
 
         const device = await getDevice(port, baudrate, socket, env);
         const project = new Project(fs, projectPath, logger);
@@ -123,7 +122,13 @@ const cmd = new Command("Flash code to device (replace contents of ./code)", {
             progressReporter.stop();
         }
 
-        await device.controller.start(programPath).catch((err: unknown) => {
+        // if does not exist package.json in the bundle, use index.js (backwards compatibility)
+        let entryPoint = ""; // deduced from package.json
+        if (!bundle.files["package.json"]) {
+            entryPoint = "index.js";
+        }
+
+        await device.controller.start(entryPoint).catch((err: unknown) => {
             logger.verbose("Error starting program: " + err);
             throw 1;
         });

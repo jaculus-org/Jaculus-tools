@@ -1,4 +1,5 @@
 import path from "path";
+import { minimatch } from "minimatch";
 import { extractTgzPackage, FSInterface, traverseDirectory } from "./fs.js";
 import { Registry } from "./registry.js";
 import {
@@ -363,33 +364,117 @@ export class Project {
         return jaclyData;
     }
 
-    async getFlashFiles(): Promise<ProjectBundle> {
-        const files: Record<string, Uint8Array> = {};
-        const dirs = new Set<string>();
+    private isFlashNodeModuleFile = (filePath: string): boolean => {
+        const base = path.basename(filePath);
+        return base === "package.json" || path.extname(filePath) === ".js";
+    };
 
-        const collectFlashFiles = async (dirPath: string, prefix: string = "") => {
-            if (!this.fs.existsSync(dirPath)) return;
-            await traverseDirectory(
-                this.fs.promises,
-                dirPath,
-                async (filePath: string, content: Uint8Array) => {
-                    const relativePath = path.relative(dirPath, filePath).replace(/\\/g, "/");
-                    const relPath = path.join(prefix, relativePath);
-                    files[relPath] = content;
-                    // Collect all parent dirs in parent-first order
-                    const segments = relPath.split("/");
-                    for (let i = 1; i < segments.length; i++) {
-                        dirs.add(segments.slice(0, i).join("/"));
-                    }
-                },
-                (filePath: string) =>
-                    path.extname(filePath) === ".js" || path.basename(filePath) === "package.json"
-            );
+    private isIgnoredProjectEntry(name: string): boolean {
+        const base = path.basename(name);
+        return base === "node_modules" || base.startsWith(".") || base === "package-lock.json";
+    }
+
+    private isIgnoredNodeModulesEntry(name: string): boolean {
+        const base = path.basename(name);
+        return base.startsWith(".") || base === "package-lock.json";
+    }
+
+    private async collectFlashFiles(
+        files: Record<string, Uint8Array>,
+        dirPath: string,
+        rawPrefix: string = "",
+        filter?: (f: string) => boolean,
+        isIgnored: (entryPath: string) => boolean = this.isIgnoredProjectEntry.bind(this)
+    ): Promise<void> {
+        if (!this.fs.existsSync(dirPath)) return;
+
+        const prefix = rawPrefix.replace(/\\/g, "/").replace(/\/$/, "");
+        await traverseDirectory(
+            this.fs.promises,
+            dirPath,
+            async (filePath: string, content: Uint8Array) => {
+                const relPath = path.relative(dirPath, filePath).replace(/\\/g, "/");
+                files[prefix ? `${prefix}/${relPath}` : relPath] = content;
+            },
+            (f) => !isIgnored(f) && (!filter || filter(f)),
+            (d) => !isIgnored(d)
+        );
+    }
+
+    private async collectPackageFlashFiles(
+        files: Record<string, Uint8Array>,
+        pkgPath: string,
+        pkg: PackageJson
+    ): Promise<void> {
+        const matchesPackageFilesPattern = (relPath: string, patterns: string[]): boolean => {
+            if (relPath === "package.json") {
+                return true;
+            }
+
+            for (const pattern of patterns) {
+                const posixPattern = pattern.replace(/\\/g, "/").replace(/^\.\//, "");
+                const cleanPattern = posixPattern.replace(/\/$/, "");
+
+                if (minimatch(relPath, posixPattern) || minimatch(relPath, `${cleanPattern}/**`)) {
+                    return true;
+                }
+            }
+
+            return false;
         };
 
-        files["package.json"] = this.fs.readFileSync(path.join(this.projectPath, "package.json"));
-        await collectFlashFiles(path.join(this.projectPath, "build"));
-        await collectFlashFiles(path.join(this.projectPath, "node_modules"), "node_modules");
+        const filesArray = pkg.files && pkg.files.length > 0 ? pkg.files : ["*"];
+
+        files["package.json"] = await this.fs.promises.readFile(pkgPath);
+        await this.collectFlashFiles(
+            files,
+            path.join(this.projectPath, "node_modules"),
+            "node_modules",
+            this.isFlashNodeModuleFile.bind(this),
+            this.isIgnoredNodeModulesEntry.bind(this)
+        );
+
+        await this.collectFlashFiles(files, this.projectPath, "", (filePath: string) => {
+            const relPath = path.relative(this.projectPath, filePath).replace(/\\/g, "/");
+            return matchesPackageFilesPattern(relPath, filesArray);
+        });
+
+        if (pkg.main) {
+            const mainPath = path.join(this.projectPath, pkg.main);
+            if (this.fs.existsSync(mainPath)) {
+                files[pkg.main.replace(/\\/g, "/")] = await this.fs.promises.readFile(mainPath);
+            }
+        }
+    }
+
+    private async collectBuildFlashFiles(files: Record<string, Uint8Array>): Promise<void> {
+        await this.collectFlashFiles(
+            files,
+            path.join(this.projectPath, "build"),
+            "",
+            (filePath) => path.extname(filePath) === ".js"
+        );
+    }
+
+    async getFlashFiles(): Promise<ProjectBundle> {
+        const files: Record<string, Uint8Array> = {};
+        const pkgPath = path.join(this.projectPath, "package.json");
+
+        if (this.fs.existsSync(pkgPath)) {
+            const pkg = await loadPackageJson(this.fs, pkgPath);
+            await this.collectPackageFlashFiles(files, pkgPath, pkg);
+        } else {
+            await this.collectBuildFlashFiles(files);
+        }
+
+        const dirs = new Set<string>();
+        for (const filePath of Object.keys(files)) {
+            const segments = filePath.split("/");
+            for (let i = 1; i < segments.length; i++) {
+                dirs.add(segments.slice(0, i).join("/"));
+            }
+        }
+
         return { dirs, files };
     }
 }
