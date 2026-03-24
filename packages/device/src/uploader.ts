@@ -60,7 +60,7 @@ export interface UploaderProgress {
     current: number;
     total?: number;
     filePath?: string;
-    action?: "delete" | "upload";
+    action?: "delete" | "upload" | "create-dir";
 }
 
 export type UploaderProgressCallback = (progress: UploaderProgress) => void;
@@ -543,10 +543,21 @@ export class Uploader {
                 this._logger?.verbose("Error creating directory: " + err);
             });
 
+            const totalDirs = bundle.dirs.size;
+            let created = 0;
             for (const dir of bundle.dirs) {
+                onProgress?.({
+                    phase: "uploadIfDifferent",
+                    current: created,
+                    total: totalDirs,
+                    filePath: dir,
+                    action: "create-dir",
+                });
+
                 await this.createDirectory(`${to}/${dir}`).catch((err: unknown) => {
                     this._logger?.verbose("Error creating directory: " + err);
                 });
+                created++;
             }
 
             const totalFiles = Object.keys(bundle.files).length;
@@ -564,13 +575,6 @@ export class Uploader {
                     throw "Failed to write file (" + destPath + "): " + UploaderCommandStrings[cmd];
                 });
                 uploaded++;
-                onProgress?.({
-                    phase: "uploadIfDifferent",
-                    current: uploaded,
-                    total: totalFiles,
-                    filePath,
-                    action: "upload",
-                });
             }
 
             this._logger?.info(`Full upload complete, ${uploaded} files written`);

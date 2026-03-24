@@ -23,6 +23,7 @@ class FlashProgressReporter {
             {
                 format,
                 hideCursor: true,
+                stopOnComplete: true,
                 clearOnComplete: true,
             },
             cliProgress.Presets.rect
@@ -55,6 +56,10 @@ class FlashProgressReporter {
                 file: progress.filePath ?? "",
             },
         });
+
+        if (progress.total !== undefined && progress.current >= progress.total) {
+            this.stop();
+        }
     };
 
     public update(state: ProgressBarState) {
