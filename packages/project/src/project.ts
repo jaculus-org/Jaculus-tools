@@ -364,27 +364,27 @@ export class Project {
         return jaclyData;
     }
 
-    private isFlashNodeModuleFile = (filePath: string): boolean => {
+    private isFlashFile(filePath: string): boolean {
         const base = path.basename(filePath);
         return base === "package.json" || path.extname(filePath) === ".js";
-    };
+    }
 
-    private isIgnoredProjectEntry(name: string): boolean {
+    private isIgnoredProject(name: string): boolean {
         const base = path.basename(name);
         return base === "node_modules" || base.startsWith(".") || base === "package-lock.json";
     }
 
-    private isIgnoredNodeModulesEntry(name: string): boolean {
+    private isIgnoredModule(name: string): boolean {
         const base = path.basename(name);
         return base.startsWith(".") || base === "package-lock.json";
     }
 
-    private async collectFlashFiles(
+    private async collectFiles(
         files: Record<string, Uint8Array>,
         dirPath: string,
         rawPrefix: string = "",
         filter?: (f: string) => boolean,
-        isIgnored: (entryPath: string) => boolean = this.isIgnoredProjectEntry.bind(this)
+        isIgnored: (entryPath: string) => boolean = this.isIgnoredProject.bind(this)
     ): Promise<void> {
         if (!this.fs.existsSync(dirPath)) return;
 
@@ -401,7 +401,7 @@ export class Project {
         );
     }
 
-    private async collectPackageFlashFiles(
+    private async collectFlashFiles(
         files: Record<string, Uint8Array>,
         pkgPath: string,
         pkg: PackageJson
@@ -426,15 +426,15 @@ export class Project {
         const filesArray = pkg.files && pkg.files.length > 0 ? pkg.files : ["*"];
 
         files["package.json"] = await this.fs.promises.readFile(pkgPath);
-        await this.collectFlashFiles(
+        await this.collectFiles(
             files,
             path.join(this.projectPath, "node_modules"),
             "node_modules",
-            this.isFlashNodeModuleFile.bind(this),
-            this.isIgnoredNodeModulesEntry.bind(this)
+            this.isFlashFile.bind(this),
+            this.isIgnoredModule.bind(this)
         );
 
-        await this.collectFlashFiles(files, this.projectPath, "", (filePath: string) => {
+        await this.collectFiles(files, this.projectPath, "", (filePath: string) => {
             const relPath = path.relative(this.projectPath, filePath).replace(/\\/g, "/");
             return matchesPackageFilesPattern(relPath, filesArray);
         });
@@ -447,8 +447,8 @@ export class Project {
         }
     }
 
-    private async collectBuildFlashFiles(files: Record<string, Uint8Array>): Promise<void> {
-        await this.collectFlashFiles(
+    private async collectLegacyFlashFiles(files: Record<string, Uint8Array>): Promise<void> {
+        await this.collectFiles(
             files,
             path.join(this.projectPath, "build"),
             "",
@@ -462,9 +462,9 @@ export class Project {
 
         if (this.fs.existsSync(pkgPath)) {
             const pkg = await loadPackageJson(this.fs, pkgPath);
-            await this.collectPackageFlashFiles(files, pkgPath, pkg);
+            await this.collectFlashFiles(files, pkgPath, pkg);
         } else {
-            await this.collectBuildFlashFiles(files);
+            await this.collectLegacyFlashFiles(files);
         }
 
         const dirs = new Set<string>();
