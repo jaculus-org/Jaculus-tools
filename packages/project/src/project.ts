@@ -364,17 +364,17 @@ export class Project {
         return jaclyData;
     }
 
-    private isFlashFile(filePath: string): boolean {
+    private static isFlashFile(filePath: string): boolean {
         const base = path.basename(filePath);
         return base === "package.json" || path.extname(filePath) === ".js";
     }
 
-    private isIgnoredProject(name: string): boolean {
+    private static isIgnoredProject(name: string): boolean {
         const base = path.basename(name);
         return base === "node_modules" || base.startsWith(".") || base === "package-lock.json";
     }
 
-    private isIgnoredModule(name: string): boolean {
+    private static isIgnoredModule(name: string): boolean {
         const base = path.basename(name);
         return base.startsWith(".") || base === "package-lock.json";
     }
@@ -384,7 +384,7 @@ export class Project {
         dirPath: string,
         rawPrefix: string = "",
         filter?: (f: string) => boolean,
-        isIgnored: (entryPath: string) => boolean = this.isIgnoredProject.bind(this)
+        isIgnored: (entryPath: string) => boolean = Project.isIgnoredProject
     ): Promise<void> {
         if (!this.fs.existsSync(dirPath)) return;
 
@@ -430,8 +430,8 @@ export class Project {
             files,
             path.join(this.projectPath, "node_modules"),
             "node_modules",
-            this.isFlashFile.bind(this),
-            this.isIgnoredModule.bind(this)
+            Project.isFlashFile,
+            Project.isIgnoredModule
         );
 
         await this.collectFiles(files, this.projectPath, "", (filePath: string) => {
