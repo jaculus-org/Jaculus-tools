@@ -9,6 +9,7 @@ import * as z from "zod";
 import { getRequestJson, JaculusRequestError, Logger, RequestFunction } from "@jaculus/common";
 
 export const DefaultRegistryUrl = ["https://registry.jaculus.org"];
+export const DevRegistryUrl = "http://127.0.0.1:3737";
 
 /**
  *
@@ -78,10 +79,14 @@ export class Registry {
     constructor(
         registryUri: string[] | undefined,
         public getRequest: RequestFunction,
-        logger: Logger
+        logger: Logger,
+        devRegistry?: boolean
     ) {
         this.registryUri = registryUri || DefaultRegistryUrl;
         this.logger = logger;
+        if (devRegistry) {
+            this.registryUri.unshift(DevRegistryUrl);
+        }
     }
 
     // return list of objects with id and description of all packages in the registry, excluding templates

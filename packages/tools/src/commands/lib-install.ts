@@ -1,20 +1,21 @@
-import { Arg, Command } from "./lib/command.js";
+import { Arg, Command, Opt } from "./lib/command.js";
 import fs from "fs";
 import { uriRequest } from "../util.js";
 import path from "path";
 import { loadPackageJson, splitLibraryNameVersion } from "@jaculus/project/package";
 import { Project } from "@jaculus/project";
-import { Registry } from "@jaculus/project/registry";
+import { DevRegistryUrl, Registry } from "@jaculus/project/registry";
 import { logger } from "../logger.js";
 
 const cmd = new Command("Install Jaculus libraries base on project's package.json", {
-    action: async (_options: Record<string, string | boolean>, args: Record<string, string>) => {
+    action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
         const libraryName = args["library"] as string;
+        const devRegistry = options["dev-registry"] as boolean;
         const projectPath = process.cwd();
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
         const project = new Project(fs, projectPath, logger);
-        const registry = new Registry(pkg.jaculus?.registry, uriRequest, logger);
+        const registry = new Registry(pkg.jaculus?.registry, uriRequest, logger, devRegistry);
 
         const { name, version } = splitLibraryNameVersion(libraryName);
         if (name && version) {
@@ -32,6 +33,11 @@ const cmd = new Command("Install Jaculus libraries base on project's package.jso
             { defaultValue: "" }
         ),
     ],
+    options: {
+        "dev-registry": new Opt(`Try to use ${DevRegistryUrl} for library installation`, {
+            isFlag: true,
+        }),
+    },
     chainable: true,
 });
 
