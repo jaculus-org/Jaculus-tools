@@ -9,10 +9,28 @@
     "author": {
         "name": "Petr Kubica (cubicap)"
     },
+    "contributors": [
+        {
+            "name": "Jakub Andrýsek (JakubAndrysek)",
+            "url": "https://kubaandrysek.cz/"
+        }
+    ],
     "license": "GPL-3.0-only",
     "type": "module",
-    "main": "./dist/package.js",
-    "types": "./dist/package.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/package.d.ts",
+            "import": "./dist/package.js"
+        },
+        "./boards": {
+            "types": "./dist/boards.d.ts",
+            "import": "./dist/boards.js"
+        },
+        "./manifest": {
+            "types": "./dist/manifest.d.ts",
+            "import": "./dist/manifest.js"
+        }
+    },
     "files": [
         "dist"
     ],
@@ -24,11 +42,13 @@
     },
     "dependencies": {
         "@cubicap/esptool-js": "^0.3.2",
-        "@obsidize/tar-browserify": "^6.1.0",
+        "@jaculus/common": "workspace:*",
+        "@obsidize/tar-browserify": "^6.3.2",
         "cli-progress": "^3.12.0",
         "get-uri": "^6.0.4",
         "pako": "^2.1.0",
-        "serialport": "^13.0.0"
+        "serialport": "^13.0.0",
+        "zod": "^4.1.12"
     },
     "devDependencies": {
         "@types/cli-progress": "^3.11.6",

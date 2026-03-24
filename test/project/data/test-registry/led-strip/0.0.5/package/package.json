@@ -1,0 +1,13 @@
+{
+    "name": "led-strip",
+    "version": "0.0.5",
+    "author": "kubaandrysek",
+    "license": "MIT",
+    "description": "LED Strip control library",
+    "type": "module",
+    "main": "",
+    "types": "dist/types/index.d.ts",
+    "dependencies": {
+        "color": "0.0.2"
+    }
+}

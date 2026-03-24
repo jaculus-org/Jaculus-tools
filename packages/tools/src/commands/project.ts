@@ -2,12 +2,13 @@ import { Arg, Command, Env, Opt } from "./lib/command.js";
 import { stderr } from "process";
 import { getDevice } from "./util.js";
 import fs from "fs";
-import { Archive } from "@obsidize/tar-browserify";
-import pako from "pako";
 import { getUri } from "get-uri";
-import { createProject, updateProject, ProjectPackage } from "@jaculus/project";
+import { concatUint8Arrays } from "@jaculus/common";
 import { JacDevice } from "@jaculus/device";
 import { logger } from "../logger.js";
+import { ProjectBundle } from "@jaculus/project";
+import { createFromBundle, updateFromBundle } from "@jaculus/project/creation";
+import { extractArchive } from "@jaculus/project/import";
 
 async function loadFromDevice(device: JacDevice): Promise<Uint8Array> {
     await device.controller.lock().catch((err) => {
@@ -31,7 +32,7 @@ async function loadFromDevice(device: JacDevice): Promise<Uint8Array> {
 async function loadPackage(
     options: Record<string, string | boolean>,
     env: Env
-): Promise<ProjectPackage> {
+): Promise<ProjectBundle> {
     const pkgUri = options["package"] as string;
     const fromDevice = options["from-device"] as boolean;
 
@@ -56,25 +57,14 @@ async function loadPackage(
         archive = await loadFromDevice(device);
     } else {
         const stream = await getUri(pkgUri);
-        const chunks = [];
+        const chunks: Uint8Array[] = [];
         for await (const chunk of stream) {
-            chunks.push(chunk);
+            chunks.push(chunk as Uint8Array);
         }
-        archive = Buffer.concat(chunks);
+        archive = concatUint8Arrays(chunks);
     }
 
-    const dirs: string[] = [];
-    const files: Record<string, Uint8Array> = {};
-
-    for await (const entry of Archive.read(pako.ungzip(archive))) {
-        if (entry.isDirectory()) {
-            dirs.push(entry.fileName);
-        } else if (entry.isFile()) {
-            files[entry.fileName] = entry.content!;
-        }
-    }
-
-    return { dirs, files };
+    return await extractArchive(archive);
 }
 
 export const projectCreate = new Command("Create project from package", {
@@ -86,8 +76,7 @@ export const projectCreate = new Command("Create project from package", {
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
-
-        await createProject(fs, outPath, pkg, stderr, dryRun);
+        await createFromBundle(fs, outPath, pkg, logger, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),
@@ -107,8 +96,7 @@ export const projectUpdate = new Command("Update existing project from package s
         const outPath = args["path"] as string;
         const dryRun = options["dry-run"] as boolean;
         const pkg = await loadPackage(options, env);
-
-        await updateProject(fs, outPath, pkg, stderr, dryRun);
+        await updateFromBundle(fs, outPath, pkg, logger, dryRun);
     },
     options: {
         package: new Opt("Uri pointing to the package file"),

@@ -1,7 +1,9 @@
 import { getUri } from "get-uri";
+import { concatUint8Arrays } from "@jaculus/common";
 import { Archive } from "@obsidize/tar-browserify";
 import pako from "pako";
 import * as espPlatform from "./esp32/esp32.js";
+import { Manifest, parseManifest } from "./manifest.js";
 
 /**
  * Module for loading and flashing package files
@@ -17,67 +19,6 @@ import * as espPlatform from "./esp32/esp32.js";
  *
  * Example manifest.json can be found in the flasher module.
  */
-
-export class Manifest {
-    private board: string;
-    private version: string;
-    private platform: string;
-    private config: Record<string, any>;
-
-    constructor(board: string, version: string, platform: string, config: Record<string, any>) {
-        this.board = board;
-        this.version = version;
-        this.platform = platform;
-        this.config = config;
-    }
-
-    public getBoard(): string {
-        return this.board;
-    }
-
-    public getVersion(): string {
-        return this.version;
-    }
-
-    public getPlatform(): string {
-        return this.platform;
-    }
-
-    public getConfig(): Record<string, any> {
-        return this.config;
-    }
-}
-
-/**
- * Parse the manifest file
- * @param data Manifest file data
- * @returns The manifest
- */
-function parseManifest(data: string) {
-    const manifest = JSON.parse(data);
-
-    const board = manifest["board"];
-    if (!board) {
-        throw new Error("No board defined in manifest");
-    }
-
-    const version = manifest["version"];
-    if (!version) {
-        throw new Error("No version defined in manifest");
-    }
-
-    const platform = manifest["platform"];
-    if (!platform) {
-        throw new Error("No platform defined in manifest");
-    }
-
-    const config = manifest["config"];
-    if (!config) {
-        throw new Error("No config defined in manifest");
-    }
-
-    return new Manifest(board, version, platform, config);
-}
 
 export class Package {
     private manifest: Manifest;
@@ -97,7 +38,7 @@ export class Package {
     }
 
     public async flash(port: string, noErase: boolean): Promise<void> {
-        switch (this.manifest.getPlatform()) {
+        switch (this.manifest.platform) {
             case "esp32":
                 await espPlatform.flash(this, port, noErase);
                 break;
@@ -107,7 +48,7 @@ export class Package {
     }
 
     public info(): string {
-        switch (this.manifest.getPlatform()) {
+        switch (this.manifest.platform) {
             case "esp32":
                 return espPlatform.info(this);
             default:
@@ -123,13 +64,13 @@ export class Package {
  */
 export async function loadPackage(uri: string): Promise<Package> {
     const stream = await getUri(uri);
-    const chunks = [];
+    const chunks: Uint8Array[] = [];
     for await (const chunk of stream) {
-        chunks.push(chunk);
+        chunks.push(chunk as Uint8Array);
     }
-    const archive = Buffer.concat(chunks);
+    const archive = concatUint8Arrays(chunks);
 
-    let manifest: Manifest = new Manifest("", "", "", {});
+    let manifest: Manifest | null = null;
     const files: Record<string, Uint8Array> = {};
 
     for await (const entry of Archive.read(pako.ungzip(archive))) {
@@ -143,5 +84,8 @@ export async function loadPackage(uri: string): Promise<Package> {
         }
     }
 
+    if (!manifest) {
+        throw new Error("No manifest.json found in package");
+    }
     return new Package(manifest, files);
 }

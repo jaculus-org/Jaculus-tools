@@ -1,14 +1,17 @@
-import { copyFolder } from "@jaculus/project/fs";
 import * as chai from "chai";
 import * as path from "path";
-import { compile } from "@jaculus/project/compiler";
 import * as fsReal from "fs";
+import { createRequire } from "module";
 import { tmpdir } from "os";
 import { configure, umount, InMemory, fs as fsVirt } from "@zenfs/core";
-import { fileURLToPath } from "url";
+import { compileProjectPath } from "@jaculus/project/compiler";
+import { createMockLogger, expectAsyncError } from "./testHelpers.js";
+import { copyFolder } from "@jaculus/project/fs";
 
 const expect = chai.expect;
 const testProjectPath = path.resolve("./test/project/data/test-project");
+const require = createRequire(import.meta.url);
+const tsLibsSource = path.dirname(require.resolve("typescript"));
 
 interface TestConfig {
     name: string;
@@ -26,7 +29,7 @@ describe("TypeScript Compiler", () => {
             setup: async () => {
                 const tempDir = fsReal.mkdtempSync(path.join(tmpdir(), "jaculus-test-"));
                 await copyFolder(fsReal, testProjectPath, fsReal, tempDir);
-                return { inputPath: tempDir };
+                return { inputPath: tempDir, tsLibsPath: tsLibsSource };
             },
             cleanup: async () => {},
         },
@@ -45,9 +48,6 @@ describe("TypeScript Compiler", () => {
                     },
                 });
 
-                const tsLibsSource = path.dirname(
-                    fileURLToPath(import.meta.resolve?.("typescript") ?? "typescript")
-                );
                 await copyFolder(fsReal, tsLibsSource, fsVirt as any, tsLibsPath, false);
                 await copyFolder(fsReal, testProjectPath, fsVirt as any, pathPrefix);
 
@@ -71,8 +71,6 @@ describe("TypeScript Compiler", () => {
 
             afterEach(async () => {
                 await config.cleanup();
-
-                // Clean up any temporary directories created for Node.js tests
                 tempDirs.forEach((dir) => {
                     if (fsReal.existsSync(dir)) {
                         fsReal.rmSync(dir, { recursive: true, force: true });
@@ -82,28 +80,21 @@ describe("TypeScript Compiler", () => {
             });
 
             it("should successfully compile a simple TypeScript project", async () => {
-                let errorOutput = "";
-                const errorStream = {
-                    write: (chunk: string) => {
-                        errorOutput += chunk;
-                    },
-                };
+                const logger = createMockLogger();
 
-                const result = await compile(
+                const result = await compileProjectPath(
                     config.fs,
                     testData.inputPath,
-                    "build",
-                    errorStream,
+                    logger,
                     undefined,
                     testData.tsLibsPath
                 );
 
-                if (!result) {
-                    console.log("Compilation errors:", errorOutput);
-                }
-
                 expect(result).to.be.true;
-                expect(errorOutput).to.be.empty;
+                expect(logger.output(["error", "warn"])).to.be.empty;
+                expect(logger.output(["info", "verbose", "debug", "silly"])).to.include(
+                    "Compiling project"
+                );
 
                 const buildExists = config.fs.existsSync(path.join(testData.inputPath, "build"));
                 expect(buildExists).to.be.true;
@@ -123,7 +114,6 @@ describe("TypeScript Compiler", () => {
             });
 
             it("should handle compilation errors gracefully", async () => {
-                // Create a temporary directory for this test
                 let testDir: string;
                 if (config.name === "Node.js FS") {
                     testDir = fsReal.mkdtempSync(path.join(tmpdir(), "jaculus-error-test-"));
@@ -170,25 +160,19 @@ describe("TypeScript Compiler", () => {
 
                 config.fs.writeFileSync(path.join(testDir, "src", "index.ts"), invalidCode);
 
-                let errorOutput = "";
-                const errorStream = {
-                    write: (chunk: string) => {
-                        errorOutput += chunk;
-                    },
-                };
+                const logger = createMockLogger();
 
-                const result = await compile(
+                const result = await compileProjectPath(
                     config.fs,
                     testDir,
-                    "build",
-                    errorStream,
+                    logger,
                     undefined,
                     testData.tsLibsPath
                 );
 
                 expect(result).to.be.false;
-                expect(errorOutput).to.not.be.empty;
-                expect(errorOutput).to.include("not assignable to type");
+                expect(logger.output(["error", "warn"])).to.not.be.empty;
+                expect(logger.output(["error", "warn"])).to.include("not assignable to type");
             });
 
             it("should throw error when tsconfig.json is missing", async () => {
@@ -205,24 +189,66 @@ describe("TypeScript Compiler", () => {
                 config.fs.mkdirSync(testDir, { recursive: true });
                 config.fs.mkdirSync(path.join(testDir, "src"), { recursive: true });
 
-                const errorStream = {
-                    write: () => {},
-                };
+                const logger = createMockLogger();
 
-                try {
-                    await compile(
-                        config.fs,
-                        testDir,
-                        "build",
-                        errorStream,
-                        undefined,
-                        testData.tsLibsPath
+                await expectAsyncError(
+                    () =>
+                        compileProjectPath(
+                            config.fs,
+                            testDir,
+                            logger,
+                            undefined,
+                            testData.tsLibsPath
+                        ),
+                    "Could not find tsconfig.json",
+                    "Expected compile to throw an error"
+                );
+            });
+
+            it("should reject unsupported compilerOptions overrides in tsconfig.json", async () => {
+                let testDir: string;
+                if (config.name === "Node.js FS") {
+                    testDir = fsReal.mkdtempSync(
+                        path.join(tmpdir(), "jaculus-invalid-config-test-")
                     );
-                    expect.fail("Expected compile to throw an error");
-                } catch (error) {
-                    expect(error).to.be.an("error");
-                    expect((error as Error).message).to.include("Could not find tsconfig.json");
+                    tempDirs.push(testDir);
+                } else {
+                    testDir = "/invalid-config-test/";
                 }
+
+                config.fs.mkdirSync(testDir, { recursive: true });
+                config.fs.mkdirSync(path.join(testDir, "src"), { recursive: true });
+                config.fs.writeFileSync(
+                    path.join(testDir, "tsconfig.json"),
+                    JSON.stringify(
+                        {
+                            compilerOptions: {
+                                module: "commonjs",
+                            },
+                        },
+                        null,
+                        2
+                    )
+                );
+                config.fs.writeFileSync(
+                    path.join(testDir, "src", "index.ts"),
+                    "export const value = 42;\n"
+                );
+
+                const logger = createMockLogger();
+
+                await expectAsyncError(
+                    () =>
+                        compileProjectPath(
+                            config.fs,
+                            testDir,
+                            logger,
+                            undefined,
+                            testData.tsLibsPath
+                        ),
+                    "tsconfig.json must have module set to one of",
+                    "Expected invalid compilerOptions.module to throw an error"
+                );
             });
         });
     });

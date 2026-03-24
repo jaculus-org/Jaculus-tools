@@ -81,9 +81,7 @@ class UploadReporter {
 }
 
 export async function flash(Package: Package, path: string, noErase: boolean): Promise<void> {
-    const config = Package.getManifest().getConfig();
-
-    const flashBaud = parseInt(config["flashBaud"] ?? 921600);
+    const config = Package.getManifest().config;
 
     const partitions = config["partitions"];
     if (!partitions) {
@@ -107,7 +105,7 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
     const loaderOptions: any = {
         debugLogging: false,
         transport: new NodeTransport(port),
-        baudrate: flashBaud,
+        baudrate: config.flashBaud || 921600,
         romBaudrate: 115200,
         terminal: {
             clean: () => {},
@@ -194,7 +192,7 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
 }
 
 export function info(Package: Package): string {
-    const config = Package.getManifest().getConfig();
+    const config = Package.getManifest().config;
 
     let output = "Chip type: " + config["chip"] + "\n";
     if (config["flashBaud"]) {

@@ -9,6 +9,12 @@
     "author": {
         "name": "Petr Kubica (cubicap)"
     },
+    "contributors": [
+        {
+            "name": "Jakub Andrýsek (JakubAndrysek)",
+            "url": "https://kubaandrysek.cz/"
+        }
+    ],
     "license": "GPL-3.0-only",
     "type": "module",
     "bin": {
@@ -33,14 +39,16 @@
         "@jaculus/firmware": "workspace:*",
         "@jaculus/link": "workspace:*",
         "@jaculus/project": "workspace:*",
-        "@obsidize/tar-browserify": "^6.1.0",
+        "@obsidize/tar-browserify": "^6.3.2",
         "chalk": "^5.4.1",
+        "cli-progress": "^3.12.0",
         "get-uri": "^6.0.4",
         "pako": "^2.1.0",
         "serialport": "^13.0.0",
         "winston": "^3.17.0"
     },
     "devDependencies": {
+        "@types/cli-progress": "^3.11.6",
         "@types/node": "^24.0.7",
         "@types/pako": "^2.0.4",
         "rimraf": "^6.0.1",

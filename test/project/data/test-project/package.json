@@ -1,0 +1,7 @@
+{
+    "name": "test-project",
+    "version": "1.0.0",
+    "dependencies": {
+        "core": "0.0.24"
+    }
+}

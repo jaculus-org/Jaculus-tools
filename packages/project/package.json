@@ -9,20 +9,46 @@
     "author": {
         "name": "Petr Kubica (cubicap)"
     },
+    "contributors": [
+        {
+            "name": "Jakub Andrýsek (JakubAndrysek)",
+            "url": "https://kubaandrysek.cz/"
+        }
+    ],
     "license": "GPL-3.0-only",
     "type": "module",
     "exports": {
         ".": {
-            "types": "./dist/src/project/index.d.ts",
-            "import": "./dist/src/project/index.js"
+            "types": "./dist/src/project.d.ts",
+            "import": "./dist/src/project.js"
         },
         "./compiler": {
             "types": "./dist/src/compiler/index.d.ts",
             "import": "./dist/src/compiler/index.js"
         },
         "./fs": {
-            "types": "./dist/src/fs/index.d.ts",
-            "import": "./dist/src/fs/index.js"
+            "types": "./dist/src/fs.d.ts",
+            "import": "./dist/src/fs.js"
+        },
+        "./package": {
+            "types": "./dist/src/package.d.ts",
+            "import": "./dist/src/package.js"
+        },
+        "./registry": {
+            "types": "./dist/src/registry.d.ts",
+            "import": "./dist/src/registry.js"
+        },
+        "./creation": {
+            "types": "./dist/src/project-creation.d.ts",
+            "import": "./dist/src/project-creation.js"
+        },
+        "./import": {
+            "types": "./dist/src/project-import.d.ts",
+            "import": "./dist/src/project-import.js"
+        },
+        "./export": {
+            "types": "./dist/src/project-export.d.ts",
+            "import": "./dist/src/project-export.js"
         }
     },
     "files": [
@@ -36,10 +62,17 @@
     },
     "dependencies": {
         "@jaculus/common": "workspace:*",
-        "typescript": "^5.8.3"
+        "fflate": "^0.8.2",
+        "minimatch": "^10.2.4",
+        "pako": "^2.1.0",
+        "semver": "^7.7.3",
+        "typescript": "^5.8.3",
+        "zod": "^4.1.12"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",
+        "@types/pako": "^2.0.4",
+        "@types/semver": "^7.7.1",
         "rimraf": "^6.0.1"
     }
 }

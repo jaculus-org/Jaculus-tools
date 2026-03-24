@@ -1,7 +1,8 @@
 import { InputPacketCommunicator, OutputPacketCommunicator } from "@jaculus/link/communicator";
 import { Packet } from "@jaculus/link/linkTypes";
-import { Logger } from "@jaculus/common";
+import { Logger, type ProjectBundle } from "@jaculus/common";
 import { encodePath } from "./util.js";
+import crypto from "crypto";
 
 export enum UploaderCommand {
     READ_FILE = 0x01,
@@ -42,6 +43,27 @@ export const UploaderCommandStrings: Record<UploaderCommand, string> = {
     [UploaderCommand.LOCK_NOT_OWNED]: "LOCK_NOT_OWNED",
     [UploaderCommand.GET_DIR_HASHES]: "GET_DIR_HASHES",
 };
+
+enum SyncAction {
+    Noop,
+    Delete,
+    Upload,
+}
+
+interface RemoteFileInfo {
+    sha1: string;
+    action: SyncAction;
+}
+
+export interface UploaderProgress {
+    phase: "getDirHashes" | "uploadIfDifferent";
+    current: number;
+    total?: number;
+    filePath?: string;
+    action?: "delete" | "upload" | "create-dir";
+}
+
+export type UploaderProgressCallback = (progress: UploaderProgress) => void;
 
 export class Uploader {
     private _in: InputPacketCommunicator;
@@ -365,7 +387,10 @@ export class Uploader {
         });
     }
 
-    public getDirHashes(path_: string): Promise<[string, string][]> {
+    public getDirHashes(
+        path_: string,
+        onProgress?: UploaderProgressCallback
+    ): Promise<[string, string][]> {
         this._logger?.verbose("Getting hashes of directory: " + path_);
         return new Promise((resolve, reject) => {
             let data: Uint8Array = new Uint8Array(0);
@@ -392,12 +417,22 @@ export class Uploader {
                         i += 20;
                         this._logger?.verbose(`${name} ${sha1}`);
                         result.push([name, sha1]);
+                        onProgress?.({
+                            phase: "getDirHashes",
+                            current: result.length,
+                            filePath: name,
+                        });
                         buffer.fill(0);
                         bufferIn = 0;
                     } else {
                         buffer[bufferIn++] = b;
                     }
                 }
+                onProgress?.({
+                    phase: "getDirHashes",
+                    current: result.length,
+                    total: result.length,
+                });
                 resolve(result);
                 return true;
             };
@@ -488,5 +523,184 @@ export class Uploader {
             }
             packet.send();
         });
+    }
+
+    public async uploadFiles(
+        bundle: ProjectBundle,
+        to: string,
+        onProgress?: UploaderProgressCallback
+    ) {
+        try {
+            const remoteHashes = await this.getDirHashes(to, onProgress);
+            await this.uploadIfDifferent(remoteHashes, bundle.files, to, onProgress);
+        } catch {
+            this._logger?.info("Falling back to full upload");
+            await this.deleteDirectory(to).catch((err: unknown) => {
+                this._logger?.verbose("Error deleting directory: " + err);
+            });
+
+            await this.createDirectory(to).catch((err: unknown) => {
+                this._logger?.verbose("Error creating directory: " + err);
+            });
+
+            const totalDirs = bundle.dirs.size;
+            let created = 0;
+            for (const dir of bundle.dirs) {
+                onProgress?.({
+                    phase: "uploadIfDifferent",
+                    current: created,
+                    total: totalDirs,
+                    filePath: dir,
+                    action: "create-dir",
+                });
+
+                await this.createDirectory(`${to}/${dir}`).catch((err: unknown) => {
+                    this._logger?.verbose("Error creating directory: " + err);
+                });
+                created++;
+            }
+
+            const totalFiles = Object.keys(bundle.files).length;
+            let uploaded = 0;
+            for (const [filePath, content] of Object.entries(bundle.files)) {
+                const destPath = `${to}/${filePath}`;
+                onProgress?.({
+                    phase: "uploadIfDifferent",
+                    current: uploaded,
+                    total: totalFiles,
+                    filePath,
+                    action: "upload",
+                });
+                await this.writeFile(destPath, content).catch((cmd: UploaderCommand) => {
+                    throw "Failed to write file (" + destPath + "): " + UploaderCommandStrings[cmd];
+                });
+                uploaded++;
+            }
+
+            this._logger?.info(`Full upload complete, ${uploaded} files written`);
+        }
+    }
+
+    public async uploadIfDifferent(
+        remoteHashes: [string, string][],
+        files: Record<string, Uint8Array>,
+        to: string,
+        onProgress?: UploaderProgressCallback
+    ) {
+        const filesInfo: Record<string, RemoteFileInfo> = Object.fromEntries(
+            remoteHashes.map(([name, sha1]) => {
+                return [
+                    name,
+                    {
+                        sha1: sha1,
+                        action: SyncAction.Delete,
+                    },
+                ];
+            })
+        );
+
+        for (const [filePath, data] of Object.entries(files)) {
+            const sha1 = crypto.createHash("sha1").update(data).digest("hex");
+            const info = filesInfo[filePath];
+            if (info === undefined) {
+                filesInfo[filePath] = {
+                    sha1: sha1,
+                    action: SyncAction.Upload,
+                };
+                this._logger?.verbose(`${filePath} is new, will upload`);
+            } else if (info.sha1 === sha1) {
+                info.action = SyncAction.Noop;
+                this._logger?.verbose(`${filePath} has same sha1 on device and on disk, skipping`);
+            } else {
+                info.action = SyncAction.Upload;
+                this._logger?.verbose(`${filePath} is different, will upload`);
+            }
+        }
+
+        const existingFolders = new Set<string>();
+        const syncSteps = Object.values(filesInfo).filter(
+            (info) => info.action !== SyncAction.Noop
+        ).length;
+        let countUploaded = 0;
+        let countDeleted = 0;
+        let completedSteps = 0;
+
+        for (const [rel_path, info] of Object.entries(filesInfo)) {
+            const dest_path = `${to}/${rel_path}`;
+            switch (info.action) {
+                case SyncAction.Noop:
+                    break;
+                case SyncAction.Delete:
+                    onProgress?.({
+                        phase: "uploadIfDifferent",
+                        current: completedSteps,
+                        total: syncSteps,
+                        filePath: rel_path,
+                        action: "delete",
+                    });
+                    try {
+                        await this.deleteFile(dest_path);
+                    } catch (err) {
+                        this._logger?.verbose(`Error deleting file ${dest_path}: ${err}`);
+                    }
+                    ++countDeleted;
+                    ++completedSteps;
+                    onProgress?.({
+                        phase: "uploadIfDifferent",
+                        current: completedSteps,
+                        total: syncSteps,
+                        filePath: rel_path,
+                        action: "delete",
+                    });
+                    break;
+                case SyncAction.Upload: {
+                    onProgress?.({
+                        phase: "uploadIfDifferent",
+                        current: completedSteps,
+                        total: syncSteps,
+                        filePath: rel_path,
+                        action: "upload",
+                    });
+                    const parts = dest_path.split("/");
+                    let cur_dir_part = "";
+                    for (const p of parts.slice(0, parts.length - 1)) {
+                        if (p === "") {
+                            continue;
+                        }
+                        const abs_p = cur_dir_part + p;
+                        if (!existingFolders.has(abs_p)) {
+                            await this.createDirectory(abs_p).catch((err: unknown) => {
+                                this._logger?.error("Error creating directory: " + err);
+                            });
+                            existingFolders.add(abs_p);
+                        }
+                        cur_dir_part += `${p}/`;
+                    }
+
+                    const data = files[rel_path];
+                    await this.writeFile(dest_path, data).catch((cmd: UploaderCommand) => {
+                        throw (
+                            "Failed to write file (" +
+                            dest_path +
+                            "): " +
+                            UploaderCommandStrings[cmd]
+                        );
+                    });
+
+                    ++countUploaded;
+                    ++completedSteps;
+                    onProgress?.({
+                        phase: "uploadIfDifferent",
+                        current: completedSteps,
+                        total: syncSteps,
+                        filePath: rel_path,
+                        action: "upload",
+                    });
+                    break;
+                }
+            }
+        }
+
+        this._logger?.info(`Files synced, ${countUploaded} uploaded, ${countDeleted} deleted`);
     }
 }

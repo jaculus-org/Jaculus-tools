@@ -1,0 +1,11 @@
+[
+    {
+        "id": "core"
+    },
+    {
+        "id": "led-strip"
+    },
+    {
+        "id": "color"
+    }
+]
