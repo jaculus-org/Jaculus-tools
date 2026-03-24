@@ -87,6 +87,7 @@ describe("TypeScript Compiler", () => {
                     testData.inputPath,
                     logger,
                     undefined,
+                    true,
                     testData.tsLibsPath
                 );
 
