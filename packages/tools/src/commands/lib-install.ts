@@ -10,15 +10,13 @@ import { logger } from "../logger.js";
 const cmd = new Command("Install Jaculus libraries base on project's package.json", {
     action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
         const libraryName = args["library"] as string;
-        const devRegistry = options["dev-registry"] as string | undefined;
+        const userRegistry = options["user-registry"] as string | undefined;
         const projectPath = process.cwd();
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
         const project = new Project(fs, projectPath, logger);
 
-        console.log("Using registry:", devRegistry);
-
-        const registry = new Registry(pkg.jaculus?.registry, uriRequest, logger, devRegistry);
+        const registry = new Registry(pkg.jaculus?.registry, uriRequest, logger, userRegistry);
 
         const { name, version } = splitLibraryNameVersion(libraryName);
         if (name && version) {
@@ -37,9 +35,12 @@ const cmd = new Command("Install Jaculus libraries base on project's package.jso
         ),
     ],
     options: {
-        "dev-registry": new Opt(`Force to use development registry (provided URI)`, {
-            required: false,
-        }),
+        "user-registry": new Opt(
+            `Preferred registry URI. If a package exists in multiple registries, this one is used first.`,
+            {
+                required: false,
+            }
+        ),
     },
     chainable: true,
 });

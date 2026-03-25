@@ -79,12 +79,12 @@ export class Registry {
         registryUri: string[] | undefined,
         public getRequest: RequestFunction,
         logger: Logger,
-        devRegistry?: string
+        userRegistry?: string
     ) {
         this.registryUri = registryUri || DefaultRegistryUrl;
         this.logger = logger;
-        if (devRegistry) {
-            this.registryUri.unshift(devRegistry);
+        if (userRegistry) {
+            this.registryUri.unshift(userRegistry);
         }
     }
 
