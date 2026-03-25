@@ -4,17 +4,20 @@ import { uriRequest } from "../util.js";
 import path from "path";
 import { loadPackageJson, splitLibraryNameVersion } from "@jaculus/project/package";
 import { Project } from "@jaculus/project";
-import { DevRegistryUrl, Registry } from "@jaculus/project/registry";
+import { Registry } from "@jaculus/project/registry";
 import { logger } from "../logger.js";
 
 const cmd = new Command("Install Jaculus libraries base on project's package.json", {
     action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
         const libraryName = args["library"] as string;
-        const devRegistry = options["dev-registry"] as boolean;
+        const devRegistry = options["dev-registry"] as string | undefined;
         const projectPath = process.cwd();
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
         const project = new Project(fs, projectPath, logger);
+
+        console.log("Using registry:", devRegistry);
+
         const registry = new Registry(pkg.jaculus?.registry, uriRequest, logger, devRegistry);
 
         const { name, version } = splitLibraryNameVersion(libraryName);
@@ -34,8 +37,8 @@ const cmd = new Command("Install Jaculus libraries base on project's package.jso
         ),
     ],
     options: {
-        "dev-registry": new Opt(`Try to use ${DevRegistryUrl} for library installation`, {
-            isFlag: true,
+        "dev-registry": new Opt(`Force to use development registry (provided URI)`, {
+            required: false,
         }),
     },
     chainable: true,

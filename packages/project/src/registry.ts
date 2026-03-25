@@ -9,7 +9,6 @@ import * as z from "zod";
 import { getRequestJson, JaculusRequestError, Logger, RequestFunction } from "@jaculus/common";
 
 export const DefaultRegistryUrl = ["https://registry.jaculus.org"];
-export const DevRegistryUrl = "http://127.0.0.1:3737";
 
 /**
  *
@@ -80,12 +79,12 @@ export class Registry {
         registryUri: string[] | undefined,
         public getRequest: RequestFunction,
         logger: Logger,
-        devRegistry?: boolean
+        devRegistry?: string
     ) {
         this.registryUri = registryUri || DefaultRegistryUrl;
         this.logger = logger;
         if (devRegistry) {
-            this.registryUri.unshift(DevRegistryUrl);
+            this.registryUri.unshift(devRegistry);
         }
     }
 
