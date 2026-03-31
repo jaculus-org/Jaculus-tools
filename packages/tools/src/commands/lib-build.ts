@@ -6,7 +6,7 @@ import { logger } from "../logger.js";
 const cmd = new Command("List libraries from project package.json", {
     action: async (options: Record<string, string | boolean>) => {
         const noCheck = options["no-check"] as boolean;
-        if (await compileProjectPath(fs, process.cwd(), logger, noCheck)) {
+        if (await compileProjectPath(fs, process.cwd(), logger, noCheck, false)) {
             logger.info("Compiled successfully\n");
         } else {
             logger.error("Compilation failed\n");

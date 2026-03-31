@@ -1,4 +1,4 @@
-import { Arg, Command } from "./lib/command.js";
+import { Arg, Command, Opt } from "./lib/command.js";
 import fs from "fs";
 import { uriRequest } from "../util.js";
 import path from "path";
@@ -8,13 +8,15 @@ import { Registry } from "@jaculus/project/registry";
 import { logger } from "../logger.js";
 
 const cmd = new Command("Install Jaculus libraries base on project's package.json", {
-    action: async (_options: Record<string, string | boolean>, args: Record<string, string>) => {
+    action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
         const libraryName = args["library"] as string;
+        const userRegistry = options["user-registry"] as string | undefined;
         const projectPath = process.cwd();
 
         const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
         const project = new Project(fs, projectPath, logger);
-        const registry = new Registry(pkg.jaculus?.registry, uriRequest, logger);
+
+        const registry = new Registry(pkg.jaculus?.registry, uriRequest, logger, userRegistry);
 
         const { name, version } = splitLibraryNameVersion(libraryName);
         if (name && version) {
@@ -32,6 +34,14 @@ const cmd = new Command("Install Jaculus libraries base on project's package.jso
             { defaultValue: "" }
         ),
     ],
+    options: {
+        "user-registry": new Opt(
+            `Preferred registry URI. If a package exists in multiple registries, this one is used first.`,
+            {
+                required: false,
+            }
+        ),
+    },
     chainable: true,
 });
 

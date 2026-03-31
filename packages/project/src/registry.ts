@@ -78,10 +78,14 @@ export class Registry {
     constructor(
         registryUri: string[] | undefined,
         public getRequest: RequestFunction,
-        logger: Logger
+        logger: Logger,
+        userRegistry?: string
     ) {
         this.registryUri = registryUri || DefaultRegistryUrl;
         this.logger = logger;
+        if (userRegistry) {
+            this.registryUri.unshift(userRegistry);
+        }
     }
 
     // return list of objects with id and description of all packages in the registry, excluding templates
