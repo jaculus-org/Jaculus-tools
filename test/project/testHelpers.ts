@@ -155,8 +155,11 @@ export function createPackageJson(
         name: "test-project",
         version: "0.0.1",
         dependencies,
-        registry,
         ...additionalFields,
+        jaculus: {
+            registry,
+            ...(additionalFields.jaculus || {}),
+        },
     };
 
     fs.mkdirSync(projectPath, { recursive: true });
@@ -176,7 +179,7 @@ export async function createMockRegistry(
     logger: Logger = createMockLogger()
 ): Promise<Registry> {
     const pkg = await loadPackageJson(fs, path.join(projectPath, "package.json"));
-    return new Registry(pkg.registry, getRequest, logger);
+    return new Registry(pkg.jaculus?.registry, getRequest, logger);
 }
 
 export function createTestDir(prefix: string = "jaculus-test-"): string {
@@ -200,7 +203,7 @@ export function createProjectStructure(
         createPackageJson(
             projectPath,
             packageData.dependencies || {},
-            packageData.registry || [registryBasePath],
+            packageData.jaculus?.registry || [registryBasePath],
             packageData
         );
     } else {

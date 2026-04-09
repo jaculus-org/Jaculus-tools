@@ -32,7 +32,9 @@ describe("Package JSON", () => {
                     core: "0.0.24",
                     "led-strip": "1.2.3",
                 },
-                registry: ["https://registry.example.com", "https://backup.registry.com"],
+                jaculus: {
+                    registry: ["https://registry.example.com", "https://backup.registry.com"],
+                },
             };
 
             const packagePath = path.join(tempDir, "package.json");
@@ -46,7 +48,9 @@ describe("Package JSON", () => {
             expect(loaded.description).to.equal("A test package");
             expect(loaded.dependencies).to.have.property("core", "0.0.24");
             expect(loaded.dependencies).to.have.property("led-strip", "1.2.3");
-            expect(loaded.registry).to.be.an("array").that.includes("https://registry.example.com");
+            expect(loaded.jaculus?.registry)
+                .to.be.an("array")
+                .that.includes("https://registry.example.com");
         });
 
         it("should load minimal valid package.json with only dependencies", async () => {
@@ -68,7 +72,7 @@ describe("Package JSON", () => {
             expect(loaded.name).to.equal("minimal-package");
             expect(loaded.version).to.equal("1.0.0");
             expect(loaded.description).to.be.undefined;
-            expect(loaded.registry).to.be.undefined;
+            expect(loaded.jaculus).to.be.undefined;
         });
 
         it("should load package.json with empty dependencies", async () => {
@@ -87,7 +91,7 @@ describe("Package JSON", () => {
             expect(loaded.dependencies).to.be.an("object").that.is.empty;
         });
 
-        it("should preserve unknown top-level package.json fields", async () => {
+        it("should strip unknown top-level package.json fields", async () => {
             const packageData = {
                 name: "metadata-package",
                 version: "1.0.0",
@@ -108,8 +112,18 @@ describe("Package JSON", () => {
             await savePackageJson(mockFs, packagePath, loaded);
 
             const roundTripped = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
-            expect(loaded).to.deep.equal(packageData);
-            expect(roundTripped).to.deep.equal(packageData);
+            expect(loaded).to.deep.equal({
+                name: "metadata-package",
+                version: "1.0.0",
+                dependencies: {},
+                files: ["dist"],
+            });
+            expect(roundTripped).to.deep.equal({
+                name: "metadata-package",
+                version: "1.0.0",
+                dependencies: {},
+                files: ["dist"],
+            });
         });
 
         it("should throw error for invalid JSON format", async () => {
@@ -263,7 +277,9 @@ describe("Package JSON", () => {
                     core: "0.0.24",
                     "led-strip": "1.2.3",
                 },
-                registry: ["https://registry.example.com"],
+                jaculus: {
+                    registry: ["https://registry.example.com"],
+                },
             };
 
             await savePackageJson(mockFs, path.join(tempDir, "package.json"), packageData);
@@ -384,7 +400,9 @@ describe("Package JSON", () => {
                     core: "0.0.24",
                     "test-lib": "2.1.0-beta",
                 },
-                registry: ["https://test.registry.com", "https://backup.registry.com"],
+                jaculus: {
+                    registry: ["https://test.registry.com", "https://backup.registry.com"],
+                },
             };
 
             await savePackageJson(mockFs, path.join(tempDir, "roundtrip.json"), originalData);

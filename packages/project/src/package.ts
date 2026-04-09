@@ -23,34 +23,34 @@ const DependenciesSchema = z.record(NameSchema, VersionFormat);
 const RegistryUrisSchema = z.array(z.string());
 export const JaculusProjectTypeSchema = z.enum(["code", "jacly"]);
 
-const JaculusSchema = z.object({
-    registry: RegistryUrisSchema.optional(),
-    blocks: z.string().optional(),
-    projectType: JaculusProjectTypeSchema.optional(),
-    template: z.boolean().optional(),
-    projectFormatVersion: z.number().optional(),
-    jaclyVersion: VersionFormat.optional(),
-});
+const JaculusSchema = z
+    .object({
+        registry: RegistryUrisSchema.optional(),
+        blocks: z.string().optional(),
+        projectType: JaculusProjectTypeSchema.optional(),
+        template: z.boolean().optional(),
+        projectFormatVersion: z.number().optional(),
+        jaclyVersion: VersionFormat.optional(),
+    })
+    .catchall(z.unknown());
 
 const ExportKeyValueSchema = z.record(z.string(), z.string());
 
 const ExportsSchema = z.union([z.string(), ExportKeyValueSchema]);
 
-const PackageJsonSchema = z
-    .object({
-        name: NameSchema,
-        version: VersionFormat,
-        description: DescriptionSchema.optional(),
-        dependencies: DependenciesSchema.default({}),
-        files: z.array(z.string()).optional(),
-        type: z.enum(["module"]).optional(),
-        main: z.string().optional(),
-        scripts: z.record(z.string(), z.string()).optional(),
-        exports: ExportsSchema.optional(),
-        types: z.string().optional(),
-        jaculus: JaculusSchema.optional(),
-    })
-    .catchall(z.unknown());
+const PackageJsonSchema = z.object({
+    name: NameSchema,
+    version: VersionFormat,
+    description: DescriptionSchema.optional(),
+    dependencies: DependenciesSchema.default({}),
+    files: z.array(z.string()).optional(),
+    type: z.enum(["module"]).optional(),
+    main: z.string().optional(),
+    scripts: z.record(z.string(), z.string()).optional(),
+    exports: ExportsSchema.optional(),
+    types: z.string().optional(),
+    jaculus: JaculusSchema.optional(),
+});
 
 export type DependencyObject = {
     name: string;
