@@ -91,7 +91,7 @@ describe("Package JSON", () => {
             expect(loaded.dependencies).to.be.an("object").that.is.empty;
         });
 
-        it("should strip unknown top-level package.json fields", async () => {
+        it("should preserve unknown top-level package.json fields", async () => {
             const packageData = {
                 name: "metadata-package",
                 version: "1.0.0",
@@ -112,18 +112,8 @@ describe("Package JSON", () => {
             await savePackageJson(mockFs, packagePath, loaded);
 
             const roundTripped = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
-            expect(loaded).to.deep.equal({
-                name: "metadata-package",
-                version: "1.0.0",
-                dependencies: {},
-                files: ["dist"],
-            });
-            expect(roundTripped).to.deep.equal({
-                name: "metadata-package",
-                version: "1.0.0",
-                dependencies: {},
-                files: ["dist"],
-            });
+            expect(loaded).to.deep.equal(packageData);
+            expect(roundTripped).to.deep.equal(packageData);
         });
 
         it("should throw error for invalid JSON format", async () => {
