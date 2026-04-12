@@ -4,6 +4,7 @@ import { getDevice, readPassword } from "./util.js";
 import { WifiMode, WifiStaMode } from "@jaculus/device";
 
 export const wifiAdd = new Command("Add a WiFi network", {
+    description: "Add a network to the device's known networks list. Password will be prompted.",
     action: async (
         options: Record<string, string | boolean>,
         args: Record<string, string>,
@@ -37,6 +38,7 @@ export const wifiAdd = new Command("Add a WiFi network", {
 });
 
 export const wifiRemove = new Command("Remove a WiFi network", {
+    description: "Remove a network from the device's known networks list.",
     action: async (
         options: Record<string, string | boolean>,
         args: Record<string, string>,
@@ -68,6 +70,7 @@ export const wifiRemove = new Command("Remove a WiFi network", {
 });
 
 export const wifiGet = new Command("Display current WiFi config", {
+    description: "Show WiFi mode, IP address, Station settings, and AP settings.",
     action: async (
         options: Record<string, string | boolean>,
         args: Record<string, string>,
@@ -123,6 +126,7 @@ AP SSID: ${apSsid}
 });
 
 export const wifiDisable = new Command("Disable WiFi", {
+    description: "Turn off WiFi on the device.",
     action: async (
         options: Record<string, string | boolean>,
         args: Record<string, string>,
@@ -151,6 +155,8 @@ export const wifiDisable = new Command("Disable WiFi", {
 });
 
 export const wifiSetAp = new Command("Set WiFi to AP mode (create a hotspot)", {
+    description:
+        "Create a WiFi hotspot. You can optionally set a custom SSID and password (else will be used previously set configuration).",
     action: async (
         options: Record<string, string | boolean>,
         args: Record<string, string>,
@@ -200,6 +206,7 @@ export const wifiSetAp = new Command("Set WiFi to AP mode (create a hotspot)", {
 });
 
 export const wifiSetSta = new Command("Set WiFi to Station mode (connect to a wifi)", {
+    description: "Connect to WiFi networks. Automatically picks best signal or specify a network.",
     action: async (
         options: Record<string, string | boolean>,
         args: Record<string, string>,
