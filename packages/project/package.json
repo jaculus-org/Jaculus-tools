@@ -1,6 +1,6 @@
 {
     "name": "@jaculus/project",
-    "version": "0.0.2",
+    "version": "0.1.0",
     "description": "Library for managing Jaculus projects, including source files, build, and dependencies",
     "repository": {
         "type": "git",
