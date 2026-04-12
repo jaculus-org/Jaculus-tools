@@ -1,6 +1,6 @@
 {
     "name": "@jaculus/common",
-    "version": "0.0.2",
+    "version": "0.1.0",
     "description": "Common utilities and types used across Jaculus packages",
     "repository": {
         "type": "git",
