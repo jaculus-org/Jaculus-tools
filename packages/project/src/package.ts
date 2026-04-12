@@ -25,11 +25,11 @@ export const JaculusProjectTypeSchema = z.enum(["code", "jacly"]);
 
 const JaculusSchema = z
     .object({
-        registry: RegistryUrisSchema.optional(),
+        packageFormat: z.number().optional(),
         blocks: z.string().optional(),
-        projectType: JaculusProjectTypeSchema.optional(),
+        registry: RegistryUrisSchema.optional(),
         template: z.boolean().optional(),
-        projectFormatVersion: z.number().optional(),
+        projectType: JaculusProjectTypeSchema.optional(),
         jaclyVersion: VersionFormat.optional(),
     })
     .catchall(z.unknown());
