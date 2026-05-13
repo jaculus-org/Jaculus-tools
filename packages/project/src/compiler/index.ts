@@ -22,8 +22,8 @@ function printMessage(message: string | ts.DiagnosticMessageChain, logger: Logge
 function buildForcedOptions(outDir: string): Record<string, Array<string | boolean>> {
     return {
         target: ["es2023", "es2020"],
-        module: ["es2022", "es2020"],
-        moduleResolution: ["node"],
+        module: ["nodenext", "es2022", "es2020"],
+        moduleResolution: ["nodenext", "node"],
         resolveJsonModule: [false],
         esModuleInterop: [true],
         outDir: [outDir],
