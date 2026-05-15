@@ -41,6 +41,7 @@ const RegistryListSchema = z.object({
     description: z.string().optional(),
     projectType: JaculusProjectTypeSchema.optional(),
     isTemplate: z.boolean().optional(),
+    templatePriority: z.number().optional(), // lower number means higher priority
 });
 
 const RegistryVersionSchema = z.object({
@@ -49,7 +50,10 @@ const RegistryVersionSchema = z.object({
 
 export type RegistryList = z.infer<typeof RegistryListSchema>;
 export type RegistryListProject = Pick<RegistryList, "id" | "description">;
-export type RegistryListTemplate = Pick<RegistryList, "id" | "description" | "projectType">;
+export type RegistryListTemplate = Pick<
+    RegistryList,
+    "id" | "description" | "projectType" | "templatePriority"
+>;
 
 export type RegistryVersion = z.infer<typeof RegistryVersionSchema>;
 
@@ -104,7 +108,13 @@ export class Registry {
                 id: item.id,
                 description: item.description,
                 projectType: item.projectType,
-            }));
+                templatePriority: item.templatePriority,
+            }))
+            .sort((left, right) => {
+                const leftPriority = left.templatePriority ?? Number.POSITIVE_INFINITY;
+                const rightPriority = right.templatePriority ?? Number.POSITIVE_INFINITY;
+                return leftPriority - rightPriority;
+            });
     }
 
     public static async searchPackages(

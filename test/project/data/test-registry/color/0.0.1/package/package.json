@@ -8,6 +8,7 @@
     "main": "",
     "types": "dist/types/index.d.ts",
     "jaculus": {
+        "packageFormat": 1,
         "blocks": "blocks"
     }
 }
