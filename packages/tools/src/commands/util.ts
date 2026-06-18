@@ -169,41 +169,63 @@ export async function withDevice(
 }
 
 export async function readPassword(prompt: string): Promise<string> {
+    stdout.write(prompt);
+
+    const password = process.stdin.isTTY ? await readPasswordTty() : await readPasswordNonTty();
+
+    if (password.length >= 8 || password.length === 0) {
+        return password;
+    }
+
+    stderr.write("Password too short\n");
+    throw 1;
+}
+
+async function readPasswordTty(): Promise<string> {
     const rl = readline.createInterface({ input: process.stdin });
     readline.emitKeypressEvents(process.stdin, rl);
     process.stdin.setRawMode(true);
 
-    stdout.write(prompt);
-
-    let stringPassword = "";
-    await new Promise((resolve, reject) => {
-        process.stdin.on("keypress", (str, key) => {
-            if (key.ctrl && key.name === "c") {
-                process.stdin.setRawMode(false);
-                rl.close();
-                reject(1);
-                return;
-            }
-            if (key.sequence === "\r") {
-                if (stringPassword.length >= 8 || stringPassword.length === 0) {
-                    stdout.write("\n");
-                    resolve(null);
-                } else {
-                    stdout.write("\n");
-                    stderr.write("Password too short\n");
+    let password = "";
+    try {
+        await new Promise<void>((resolve, reject) => {
+            process.stdin.on("keypress", (str, key) => {
+                if (key.ctrl && key.name === "c") {
                     reject(1);
-                }
-            } else if (key.sequence === "\b" || key.sequence === "\x7f") {
-                if (stringPassword.length === 0) {
                     return;
                 }
-                stdout.write("\b \b");
-                stringPassword = stringPassword.slice(0, -1);
-            } else {
-                stringPassword += key.sequence;
+                if (key.sequence === "\r") {
+                    stdout.write("\n");
+                    resolve();
+                    return;
+                }
+                if (key.sequence === "\b" || key.sequence === "\x7f") {
+                    if (password.length === 0) {
+                        return;
+                    }
+                    stdout.write("\b \b");
+                    password = password.slice(0, -1);
+                    return;
+                }
+                password += key.sequence;
                 stdout.write("*");
-            }
+            });
         });
-    });
-    return stringPassword;
+    } finally {
+        process.stdin.setRawMode(false);
+        rl.close();
+    }
+    return password;
+}
+
+async function readPasswordNonTty(): Promise<string> {
+    const rl = readline.createInterface({ input: process.stdin, terminal: false });
+    try {
+        for await (const line of rl) {
+            return line;
+        }
+    } finally {
+        rl.close();
+    }
+    throw 1;
 }

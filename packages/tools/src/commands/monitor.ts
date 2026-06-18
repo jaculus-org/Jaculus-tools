@@ -12,10 +12,6 @@ const cmd = new Command("Monitor program output", {
     ) => {
         const echo = !(options["no-echo"] as boolean);
 
-        const rl = readline.createInterface({ input: process.stdin });
-        readline.emitKeypressEvents(process.stdin, rl);
-        process.stdin.setRawMode(true);
-
         const port = options["port"] as string;
         const baudrate = options["baudrate"] as string;
         const socket = options["socket"] as string;
@@ -29,30 +25,47 @@ const cmd = new Command("Monitor program output", {
             stdout.write(chalk.red(new TextDecoder().decode(data)));
         });
 
-        await new Promise((resolve) => {
-            process.stdin.on("keypress", (str, key) => {
-                if (key.ctrl && key.name === "c") {
+        if (process.stdin.isTTY) {
+            const rl = readline.createInterface({ input: process.stdin });
+            readline.emitKeypressEvents(process.stdin, rl);
+            process.stdin.setRawMode(true);
+
+            await new Promise((resolve) => {
+                process.stdin.on("keypress", (str, key) => {
+                    if (key.ctrl && key.name === "c") {
+                        device.programOutput.onData(undefined);
+                        device.programError.onData(undefined);
+                        process.stdin.setRawMode(false);
+                        rl.close();
+                        resolve(null);
+                    } else {
+                        if (echo) {
+                            if (key.sequence === "\r") {
+                                stdout.write("\r\n");
+                            } else if (str) {
+                                stdout.write(str);
+                            }
+                        }
+                        let out = key.sequence;
+                        if (out === "\r") {
+                            out = "\n";
+                        }
+                        device.programInput.write(new TextEncoder().encode(out));
+                    }
+                });
+            });
+        } else {
+            process.stdin.on("data", (data) => {
+                device.programInput.write(new Uint8Array(data));
+            });
+            await new Promise((resolve) => {
+                process.once("SIGINT", () => {
                     device.programOutput.onData(undefined);
                     device.programError.onData(undefined);
-                    process.stdin.setRawMode(false);
-                    rl.close();
                     resolve(null);
-                } else {
-                    if (echo) {
-                        if (key.sequence === "\r") {
-                            stdout.write("\r\n");
-                        } else if (str) {
-                            stdout.write(str);
-                        }
-                    }
-                    let out = key.sequence;
-                    if (out === "\r") {
-                        out = "\n";
-                    }
-                    device.programInput.write(new TextEncoder().encode(out));
-                }
+                });
             });
-        });
+        }
     },
     options: {
         "no-echo": new Opt("Echo input", { isFlag: true }),
