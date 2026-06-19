@@ -1,4 +1,4 @@
-import { Program } from "./lib/command.js";
+import { Program, Command } from "./lib/command.js";
 
 import listPorts from "./list-ports.js";
 import serialSocket from "./serial-socket.js";
@@ -54,8 +54,16 @@ export function registerJaculusCommands(jac: Program) {
     jac.addCommand("upload", upload);
     jac.addCommand("format", formatCmd);
 
-    jac.addCommand("project-create", projectCreate);
-    jac.addCommand("project-update", projectUpdate);
+    const projectCommand = new Command("Project management commands", {
+        description: "Manage projects, create and update projects.",
+        chainable: true,
+        subcommands: {
+            create: projectCreate,
+            update: projectUpdate,
+        },
+    });
+    jac.addCommand("project", projectCommand);
+
     jac.addCommand("resources-ls", resourcesLs);
     jac.addCommand("resources-read", resourcesRead);
 
@@ -64,12 +72,20 @@ export function registerJaculusCommands(jac: Program) {
     jac.addCommand("status", status);
     jac.addCommand("monitor", monitor);
 
-    jac.addCommand("wifi-get", wifiGet);
-    jac.addCommand("wifi-ap", wifiSetAp);
-    jac.addCommand("wifi-add", wifiAdd);
-    jac.addCommand("wifi-rm", wifiRemove);
-    jac.addCommand("wifi-sta", wifiSetSta);
-    jac.addCommand("wifi-disable", wifiDisable);
+    const wifiCommand = new Command("WiFi configuration commands", {
+        description:
+            "Manage WiFi settings, configure networks, and switch between AP and Station modes.",
+        chainable: true,
+        subcommands: {
+            get: wifiGet,
+            ap: wifiSetAp,
+            add: wifiAdd,
+            rm: wifiRemove,
+            sta: wifiSetSta,
+            disable: wifiDisable,
+        },
+    });
+    jac.addCommand("wifi", wifiCommand);
 
     jac.addCommand("serial-socket", serialSocket);
 }

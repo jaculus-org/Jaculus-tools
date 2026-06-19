@@ -7,16 +7,11 @@ import { logger } from "./logger.js";
 const jac = new Program("jac", "Tools for controlling devices running Jaculus", {
     globalOptions: {
         "log-level": new Opt("Set log level", { defaultValue: "info" }),
-        help: new Opt("Print this help message", { isFlag: true }),
         port: new Opt("Serial port to use (default: first available)"),
         baudrate: new Opt("Baudrate to use", { defaultValue: "921600" }),
         socket: new Opt("host:port to use"),
     },
     action: async (options: Record<string, string | boolean>) => {
-        if (options["help"]) {
-            stdout.write(jac.help() + "\n");
-            throw 0;
-        }
         logger.level = options["log-level"] as string;
     },
 });
@@ -24,13 +19,23 @@ const jac = new Program("jac", "Tools for controlling devices running Jaculus", 
 // Help command
 jac.addCommand(
     "help",
-    new Command("Print help for given command", {
+    new Command("Print help for given command or subcommand", {
         action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
             const command = args["command"];
+            const subcommand = args["subcommand"];
             if (command) {
                 const cmd = jac.getCommand(command);
                 if (cmd) {
-                    stdout.write(cmd.help(command) + "\n");
+                    if (subcommand) {
+                        const subcmd = cmd.getSubcommand(subcommand);
+                        if (subcmd) {
+                            stdout.write(subcmd.help(`${command} ${subcommand}`) + "\n");
+                        } else {
+                            stdout.write(`Unknown subcommand: ${subcommand}` + "\n");
+                        }
+                    } else {
+                        stdout.write(cmd.help(command) + "\n");
+                    }
                 } else {
                     stdout.write(`Unknown command: ${command}` + "\n");
                 }
@@ -38,7 +43,10 @@ jac.addCommand(
                 stdout.write(jac.help() + "\n");
             }
         },
-        args: [new Arg("command", "The command to get help for", { required: false })],
+        args: [
+            new Arg("command", "The command to get help for", { required: false }),
+            new Arg("subcommand", "The subcommand to get help for", { required: false }),
+        ],
     })
 );
 
@@ -50,8 +58,19 @@ if (args.length === 0) {
 }
 
 jac.run(args)
-    .then(() => {
+    .then((result) => {
         jac.end();
+
+        if (result.type === "help") {
+            stdout.write(result.text + "\n");
+            process.exit(0);
+        }
+
+        if (result.type === "exit") {
+            process.exit(result.code);
+        }
+
+        // type === "continue"
         stderr.write("\nDone\n");
         process.exit(0);
     })

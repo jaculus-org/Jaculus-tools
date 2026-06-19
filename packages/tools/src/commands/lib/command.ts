@@ -59,6 +59,11 @@ function parseArgs(
     const options: Record<string, string | boolean> = { ...base };
     const argsList: string[] = [];
 
+    const allOpts: Record<string, Opt> = {
+        ...expOpts,
+        help: new Opt("Show help for this command", { isFlag: true }),
+    };
+
     for (let i = 0; i < argv.length; i++) {
         let optName = getOptName(argv[i]);
 
@@ -79,12 +84,12 @@ function parseArgs(
             value = v;
         }
 
-        if (optName in expOpts) {
+        if (optName in allOpts) {
             if (optName in options) {
                 throw new Error(`Option --${optName} was specified multiple times`);
             }
 
-            if (expOpts[optName].isFlag) {
+            if (allOpts[optName].isFlag) {
                 if (value !== undefined) {
                     throw new Error(`Option --${optName} is a flag and does not accept a value`);
                 }
@@ -162,6 +167,11 @@ function parseArgs(
 
 export type Env = Record<string, { value: any; onEnd: (value: any) => void }>;
 
+export type CommandResult =
+    | { type: "continue"; remaining: string[] }
+    | { type: "help"; text: string }
+    | { type: "exit"; code: number };
+
 export class Opt {
     public description: string;
     public required: boolean;
@@ -216,6 +226,7 @@ export class Command {
     public description?: string;
     readonly chainable: boolean = false;
     private args: Arg[] = [];
+    private subcommands: Record<string, Command> = {};
     private action?: (
         options: Record<string, string | boolean>,
         args: Record<string, string>,
@@ -227,6 +238,7 @@ export class Command {
         options: {
             options?: Record<string, Opt>;
             args?: Arg[];
+            subcommands?: Record<string, Command>;
             action?: (
                 options: Record<string, string | boolean>,
                 args: Record<string, string>,
@@ -238,6 +250,7 @@ export class Command {
     ) {
         this.options = options.options ?? {};
         this.args = options.args ?? [];
+        this.subcommands = options.subcommands ?? {};
         this.action = options.action;
         this.description = options.description;
         this.chainable = options.chainable ?? false;
@@ -245,8 +258,25 @@ export class Command {
         this.brief = brief;
     }
 
+    public addSubcommand(name: string, command: Command): void {
+        this.subcommands[name] = command;
+    }
+
+    public getSubcommand(name: string): Command | undefined {
+        return this.subcommands[name];
+    }
+
+    public getSubcommands(): Record<string, Command> {
+        return this.subcommands;
+    }
+
     public help(command: string): string {
+        const hasSubcommands = Object.keys(this.subcommands).length > 0;
+
         let args = "";
+        if (hasSubcommands) {
+            args = " <subcommand>";
+        }
         for (const arg of this.args) {
             if (arg.required) {
                 args += ` <${arg.name}>`;
@@ -254,11 +284,21 @@ export class Command {
                 args += ` [${arg.name}]`;
             }
         }
-        let help = `Usage: ${command} [OPTIONS]${args}\n\n`;
+        let help = `Usage: ${command}${args} [OPTIONS]\n\n`;
         help += `${this.brief}\n\n`;
 
         if (this.description) {
             help += `${this.description}\n\n`;
+        }
+
+        if (hasSubcommands) {
+            help += "Subcommands:\n";
+            const table = [];
+            for (const [name, subcommand] of Object.entries(this.subcommands)) {
+                table.push([name, subcommand.brief]);
+            }
+            help += tableToString(table, { padding: 2, indent: 2, minWidths: [12] });
+            help += "\n";
         }
 
         let table = [];
@@ -289,18 +329,74 @@ export class Command {
     public async run(
         argv: string[],
         globals: Record<string, string | boolean>,
-        env: Env
-    ): Promise<string[]> {
+        env: Env,
+        commandName?: string
+    ): Promise<CommandResult> {
+        const hasSubcommands = Object.keys(this.subcommands).length > 0;
+
+        if (hasSubcommands) {
+            const { options, unknown } = parseArgs(argv, globals, this.options, []);
+
+            if (unknown.length === 0) {
+                if (commandName) {
+                    return { type: "help", text: this.help(commandName) };
+                }
+                return { type: "exit", code: 0 };
+            }
+
+            const subcommandName = unknown[0];
+            const subcommand = this.subcommands[subcommandName];
+
+            if (subcommand === undefined) {
+                throw new Error(`Unknown subcommand ${subcommandName}`);
+            }
+
+            const mergedGlobals = { ...globals, ...options };
+            return subcommand.run(
+                unknown.slice(1),
+                mergedGlobals,
+                env,
+                `${commandName} ${subcommandName}`
+            );
+        }
+
         const { options, args, unknown } = parseArgs(argv, globals, this.options, this.args);
+
+        if (options["help"]) {
+            if (commandName) {
+                return { type: "help", text: this.help(commandName) };
+            }
+            return { type: "exit", code: 0 };
+        }
 
         if (this.action) {
             await this.action(options, args, env);
         }
 
-        return unknown;
+        return { type: "continue", remaining: unknown };
     }
 
     public validate(argv: string[], globals: Record<string, string | boolean>): string[] {
+        const hasSubcommands = Object.keys(this.subcommands).length > 0;
+
+        if (hasSubcommands) {
+            const { options, unknown } = parseArgs(argv, globals, this.options, []);
+
+            if (unknown.length === 0) {
+                return [];
+            }
+
+            const subcommandName = unknown[0];
+            const subcommand = this.subcommands[subcommandName];
+
+            if (subcommand === undefined) {
+                throw new Error(`Unknown subcommand ${subcommandName}`);
+            }
+
+            const mergedGlobals = { ...globals, ...options };
+            return subcommand.validate(unknown.slice(1), mergedGlobals);
+        }
+
         const { unknown } = parseArgs(argv, globals, this.options, this.args);
 
         return unknown;
@@ -338,13 +434,16 @@ export class Program {
     }
 
     public help(): string {
-        let out = `Usage: ${this.name} <command>\n\n`;
+        let out = `Usage: ${this.name} <command> [OPTIONS]\n\n`;
         out += `${this.description}\n\n`;
 
         out += "Commands:\n";
         let table: string[][] = [];
         for (const [name, command] of Object.entries(this.commands)) {
             table.push([name, command.brief]);
+            for (const [subname, subcommand] of Object.entries(command.getSubcommands())) {
+                table.push([`  ${name} ${subname}`, subcommand.brief]);
+            }
         }
         out += tableToString(table, { padding: 2, indent: 2, minWidths: [12] });
 
@@ -357,13 +456,15 @@ export class Program {
         }
         out += tableToString(table, { padding: 2, indent: 2, minWidths: [12] });
 
+        out += `\nRun '${this.name} <command> --help' for more information on a command.\n`;
+
         return out;
     }
 
     private async runInternal(
         argv: string[],
         globals: Record<string, string | boolean> = {}
-    ): Promise<string[]> {
+    ): Promise<CommandResult> {
         if (argv.length === 0) {
             throw new Error("No command specified");
         }
@@ -375,13 +476,13 @@ export class Program {
             throw new Error(`Unknown command ${commandName}`);
         }
 
-        return command.run(argv.slice(1), globals, this.env);
+        return command.run(argv.slice(1), globals, this.env, commandName);
     }
 
     private async runSingle(
         argv: string[],
         globals: Record<string, string | boolean> = {}
-    ): Promise<string[]> {
+    ): Promise<CommandResult> {
         this.validateSingle(argv, globals);
 
         if (this.action) {
@@ -415,9 +516,9 @@ export class Program {
     private async runChain(
         argv: string[],
         globals: Record<string, string | boolean> = {}
-    ): Promise<void> {
+    ): Promise<CommandResult> {
         const res = parseArgs(argv, globals, this.globalOptions, []);
-        let unknown = res.unknown;
+        const unknown = res.unknown;
         const options = res.options;
 
         this.validateChain(unknown, options);
@@ -426,11 +527,20 @@ export class Program {
             await this.action(globals);
         }
 
-        unknown = await this.runInternal(unknown, options);
+        let result = await this.runInternal(unknown, options);
 
-        while (unknown.length > 0) {
-            unknown = await this.runInternal(unknown, options);
+        if (result.type !== "continue") {
+            return result;
         }
+
+        while (result.remaining.length > 0) {
+            result = await this.runInternal(result.remaining, options);
+            if (result.type !== "continue") {
+                return result;
+            }
+        }
+
+        return { type: "continue", remaining: [] };
     }
 
     private validateChain(argv: string[], globals: Record<string, string | boolean> = {}): void {
@@ -463,8 +573,12 @@ export class Program {
     public async run(
         argv: string[],
         globals: Record<string, string | boolean> = {}
-    ): Promise<void> {
+    ): Promise<CommandResult> {
         const { options, unknown } = parseArgs(argv, globals, this.globalOptions, []);
+
+        if (options["help"] && unknown.length === 0) {
+            return { type: "help", text: this.help() };
+        }
 
         if (unknown.length === 0) {
             throw new Error("Command not specified");
@@ -478,11 +592,10 @@ export class Program {
         }
 
         if (command.chainable) {
-            await this.runChain(unknown, options);
-            return;
+            return this.runChain(unknown, options);
         }
 
-        await this.runSingle(unknown, options);
+        return this.runSingle(unknown, options);
     }
 
     public end(): void {
