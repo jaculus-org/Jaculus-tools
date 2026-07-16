@@ -20,6 +20,7 @@ export enum ControllerCommand {
     CONFIG_SET = 0x30,
     CONFIG_GET = 0x31,
     CONFIG_ERASE = 0x32,
+    CONFIG_LIST_KEYS = 0x33,
 }
 
 export const ControllerCommandStrings: Record<ControllerCommand, string> = {
@@ -36,6 +37,7 @@ export const ControllerCommandStrings: Record<ControllerCommand, string> = {
     [ControllerCommand.CONFIG_SET]: "CONFIG_SET",
     [ControllerCommand.CONFIG_GET]: "CONFIG_GET",
     [ControllerCommand.CONFIG_ERASE]: "CONFIG_ERASE",
+    [ControllerCommand.CONFIG_LIST_KEYS]: "CONFIG_LIST_KEYS",
 };
 
 enum WifiKvNs {
@@ -335,6 +337,38 @@ export class Controller {
         );
     }
 
+    public configListKeys(namespace: string): Promise<string[]> {
+        this._logger?.verbose(`Listing config keys in ${namespace}`);
+        return new TimeoutPromise(
+            TIMEOUT_MS,
+            (resolve, reject) => {
+                this._onPacket = (cmd: ControllerCommand, data: Uint8Array) => {
+                    if (cmd == ControllerCommand.CONFIG_LIST_KEYS) {
+                        const keys = new TextDecoder()
+                            .decode(data.subarray(1))
+                            .split("\0")
+                            .filter((key) => key.length > 0);
+                        resolve(keys);
+                    } else {
+                        reject(ControllerCommandStrings[cmd]);
+                    }
+                    return true;
+                };
+
+                const packet = this._out.buildPacket();
+                packet.put(ControllerCommand.CONFIG_LIST_KEYS);
+
+                for (const b of encodePath(namespace)) {
+                    packet.put(b);
+                }
+                packet.send();
+            },
+            () => {
+                this.cancel();
+            }
+        );
+    }
+
     public configSetString(namespace: string, name: string, value: string): Promise<void> {
         this._logger?.verbose(`Setting config ${namespace}/${name} = ${value}`);
         return new TimeoutPromise(
@@ -485,6 +519,10 @@ export class Controller {
     public async removeWifiNetwork(ssid: string): Promise<void> {
         this._logger?.verbose(`Removing WiFi network: ${ssid}`);
         return this.configErase(WifiKvNs.Ssids, ssid);
+    }
+
+    public async listWifiNetworks(): Promise<string[]> {
+        return this.configListKeys(WifiKvNs.Ssids);
     }
 
     public getWifiMode(): Promise<WifiMode> {
