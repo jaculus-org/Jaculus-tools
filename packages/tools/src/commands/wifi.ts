@@ -67,6 +67,41 @@ export const wifiRemove = new Command("Remove a WiFi network", {
     chainable: true,
 });
 
+export const wifiList = new Command("List saved WiFi networks", {
+    action: async (
+        options: Record<string, string | boolean>,
+        args: Record<string, string>,
+        env: Env
+    ) => {
+        const port = options["port"] as string;
+        const baudrate = options["baudrate"] as string;
+        const socket = options["socket"] as string;
+
+        const device = await getDevice(port, baudrate, socket, env);
+
+        await device.controller.lock().catch((err) => {
+            stderr.write("Error locking device: " + err + "\n");
+            throw 1;
+        });
+
+        const networks = await device.controller.listWifiNetworks();
+
+        await device.controller.unlock().catch((err) => {
+            stderr.write("Error unlocking device: " + err + "\n");
+            throw 1;
+        });
+
+        if (networks.length === 0) {
+            stdout.write("No saved networks\n");
+        } else {
+            for (const ssid of networks) {
+                stdout.write(ssid + "\n");
+            }
+        }
+    },
+    chainable: true,
+});
+
 export const wifiGet = new Command("Display current WiFi config", {
     action: async (
         options: Record<string, string | boolean>,

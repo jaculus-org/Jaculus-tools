@@ -25,7 +25,15 @@ import pull from "./pull.js";
 import formatCmd from "./format.js";
 import resourcesLs from "./resources-ls.js";
 import resourcesRead from "./resources-read.js";
-import { wifiAdd, wifiRemove, wifiGet, wifiSetAp, wifiSetSta, wifiDisable } from "./wifi.js";
+import {
+    wifiAdd,
+    wifiRemove,
+    wifiGet,
+    wifiList,
+    wifiSetAp,
+    wifiSetSta,
+    wifiDisable,
+} from "./wifi.js";
 import { projectCreate, projectUpdate } from "./project.js";
 import versionCommand from "./version.js";
 
@@ -65,6 +73,7 @@ export function registerJaculusCommands(jac: Program) {
     jac.addCommand("monitor", monitor);
 
     jac.addCommand("wifi-get", wifiGet);
+    jac.addCommand("wifi-ls", wifiList);
     jac.addCommand("wifi-ap", wifiSetAp);
     jac.addCommand("wifi-add", wifiAdd);
     jac.addCommand("wifi-rm", wifiRemove);
