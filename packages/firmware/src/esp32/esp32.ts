@@ -152,7 +152,8 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
         await esploader.main_fn();
 
         stdout.write("Detected chip type: " + esploader.chip.CHIP_NAME + "\n");
-        stdout.write("Flash size: " + (await esploader.get_flash_size()) + "K\n");
+        const flashSizeKB = await esploader.get_flash_size();
+        stdout.write("Flash size: " + flashSizeKB + "K\n");
 
         stdout.write("\n");
 
@@ -166,6 +167,14 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
             );
         }
 
+        if (flashSizeKB !== undefined) {
+            for (const file of fileArray) {
+                if (file.address + file.data.length > flashSizeKB * 1024) {
+                    throw new Error(file.fileName + " doesn't fit in the available flash");
+                }
+            }
+        }
+
         for (const file of skipped) {
             stdout.write("Skipping " + file + " (storage partition)\n");
         }
@@ -175,7 +184,7 @@ export async function flash(Package: Package, path: string, noErase: boolean): P
         reporter.start();
         await esploader.write_flash({
             fileArray: fileArray,
-            flashSize: "4MB",
+            flashSize: "keep",
             flashMode: "keep",
             flashFreq: "keep",
             eraseAll: false,
