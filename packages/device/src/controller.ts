@@ -345,7 +345,7 @@ export class Controller {
                 this._onPacket = (cmd: ControllerCommand, data: Uint8Array) => {
                     if (cmd == ControllerCommand.CONFIG_LIST_KEYS) {
                         const keys = new TextDecoder()
-                            .decode(data.subarray(1))
+                            .decode(data)
                             .split("\0")
                             .filter((key) => key.length > 0);
                         resolve(keys);
