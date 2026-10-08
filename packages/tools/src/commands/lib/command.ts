@@ -307,8 +307,10 @@ export class Command {
     }
 }
 
+export type CommandLoader = () => Promise<Command>;
+
 export class Program {
-    private commands: Record<string, Command> = {};
+    private commands: Record<string, Command | CommandLoader> = {};
     private name: string;
     private description: string;
     private globalOptions: Record<string, Opt> = {};
@@ -329,21 +331,23 @@ export class Program {
         this.action = options.action;
     }
 
-    public addCommand(name: string, command: Command): void {
+    public addCommand(name: string, command: Command | CommandLoader): void {
         this.commands[name] = command;
     }
 
-    public getCommand(name: string): Command | undefined {
-        return this.commands[name];
+    public async getCommand(name: string): Promise<Command | undefined> {
+        const entry = this.commands[name];
+        return entry instanceof Command ? entry : entry?.();
     }
 
-    public help(): string {
+    public async help(): Promise<string> {
         let out = `Usage: ${this.name} <command>\n\n`;
         out += `${this.description}\n\n`;
 
         out += "Commands:\n";
         let table: string[][] = [];
-        for (const [name, command] of Object.entries(this.commands)) {
+        for (const name of Object.keys(this.commands)) {
+            const command = (await this.getCommand(name))!;
             table.push([name, command.brief]);
         }
         out += tableToString(table, { padding: 2, indent: 2, minWidths: [12] });
@@ -369,7 +373,7 @@ export class Program {
         }
 
         const commandName = argv[0];
-        const command = this.commands[commandName];
+        const command = await this.getCommand(commandName);
 
         if (command === undefined) {
             throw new Error(`Unknown command ${commandName}`);
@@ -382,7 +386,7 @@ export class Program {
         argv: string[],
         globals: Record<string, string | boolean> = {}
     ): Promise<string[]> {
-        this.validateSingle(argv, globals);
+        await this.validateSingle(argv, globals);
 
         if (this.action) {
             await this.action(globals);
@@ -391,7 +395,10 @@ export class Program {
         return this.runInternal(argv, globals);
     }
 
-    private validateSingle(argv: string[], globals: Record<string, string | boolean> = {}): void {
+    private async validateSingle(
+        argv: string[],
+        globals: Record<string, string | boolean> = {}
+    ): Promise<void> {
         const { unknown } = parseArgs(argv, globals, this.globalOptions, []);
 
         if (unknown.length === 0) {
@@ -399,7 +406,7 @@ export class Program {
         }
 
         const commandName = unknown[0];
-        const command = this.commands[commandName];
+        const command = await this.getCommand(commandName);
 
         if (command === undefined) {
             throw new Error(`Unknown command ${commandName}`);
@@ -420,7 +427,7 @@ export class Program {
         let unknown = res.unknown;
         const options = res.options;
 
-        this.validateChain(unknown, options);
+        await this.validateChain(unknown, options);
 
         if (this.action) {
             await this.action(globals);
@@ -433,7 +440,10 @@ export class Program {
         }
     }
 
-    private validateChain(argv: string[], globals: Record<string, string | boolean> = {}): void {
+    private async validateChain(
+        argv: string[],
+        globals: Record<string, string | boolean> = {}
+    ): Promise<void> {
         let { unknown } = parseArgs(argv, globals, this.globalOptions, []);
 
         if (unknown.length === 0) {
@@ -442,7 +452,7 @@ export class Program {
 
         while (unknown.length > 0) {
             const commandName = unknown[0];
-            const command = this.commands[commandName];
+            const command = await this.getCommand(commandName);
 
             if (command === undefined) {
                 if (commandName.startsWith("-")) {
@@ -471,7 +481,7 @@ export class Program {
         }
 
         const commandName = unknown[0];
-        const command = this.commands[commandName];
+        const command = await this.getCommand(commandName);
 
         if (command === undefined) {
             throw new Error(`Unknown command ${commandName}`);

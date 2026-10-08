@@ -14,28 +14,27 @@ const jac = new Program("jac", "Tools for controlling devices running Jaculus", 
     },
     action: async (options: Record<string, string | boolean>) => {
         if (options["help"]) {
-            stdout.write(jac.help() + "\n");
+            stdout.write((await jac.help()) + "\n");
             throw 0;
         }
         logger.level = options["log-level"] as string;
     },
 });
 
-// Help command
 jac.addCommand(
     "help",
     new Command("Print help for given command", {
         action: async (options: Record<string, string | boolean>, args: Record<string, string>) => {
             const command = args["command"];
             if (command) {
-                const cmd = jac.getCommand(command);
+                const cmd = await jac.getCommand(command);
                 if (cmd) {
                     stdout.write(cmd.help(command) + "\n");
                 } else {
                     stdout.write(`Unknown command: ${command}` + "\n");
                 }
             } else {
-                stdout.write(jac.help() + "\n");
+                stdout.write((await jac.help()) + "\n");
             }
         },
         args: [new Arg("command", "The command to get help for", { required: false })],

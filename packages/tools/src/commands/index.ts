@@ -1,84 +1,51 @@
-import { Program } from "./lib/command.js";
+import { CommandLoader, Program } from "./lib/command.js";
 
-import listPorts from "./list-ports.js";
-import serialSocket from "./serial-socket.js";
-import install from "./install.js";
-import build from "./build.js";
-import flash from "./flash.js";
-import libBuild from "./lib-build.js";
-import libInstall from "./lib-install.js";
-import libList from "./lib-list.js";
-import libRemove from "./lib-remove.js";
-import libSearch from "./lib-search.js";
-import ls from "./ls.js";
-import read from "./read.js";
-import write from "./write.js";
-import rm from "./rm.js";
-import mkdir from "./mkdir.js";
-import rmdir from "./rmdir.js";
-import upload from "./upload.js";
-import start from "./start.js";
-import stop from "./stop.js";
-import status from "./status.js";
-import monitor from "./monitor.js";
-import pull from "./pull.js";
-import formatCmd from "./format.js";
-import resourcesLs from "./resources-ls.js";
-import resourcesRead from "./resources-read.js";
-import {
-    wifiAdd,
-    wifiRemove,
-    wifiGet,
-    wifiList,
-    wifiSetAp,
-    wifiSetSta,
-    wifiDisable,
-} from "./wifi.js";
-import { projectCreate, projectUpdate } from "./project.js";
-import versionCommand from "./version.js";
+function lazy(path: string, exportName = "default"): CommandLoader {
+    return async () => (await import(path))[exportName];
+}
 
 export function registerJaculusCommands(jac: Program) {
-    jac.addCommand("version", versionCommand);
-    jac.addCommand("list-ports", listPorts);
-    jac.addCommand("install", install);
+    jac.addCommand("version", lazy("./version.js"));
+    jac.addCommand("list-ports", lazy("./list-ports.js"));
+    jac.addCommand("install", lazy("./install.js"));
 
-    jac.addCommand("build", build);
+    jac.addCommand("build", lazy("./build.js"));
 
-    jac.addCommand("flash", flash);
+    jac.addCommand("flash", lazy("./flash.js"));
 
-    jac.addCommand("lib-build", libBuild);
-    jac.addCommand("lib-install", libInstall);
-    jac.addCommand("lib-list", libList);
-    jac.addCommand("lib-remove", libRemove);
-    jac.addCommand("lib-search", libSearch);
+    jac.addCommand("lib-build", lazy("./lib-build.js"));
+    jac.addCommand("lib-install", lazy("./lib-install.js"));
+    jac.addCommand("lib-list", lazy("./lib-list.js"));
+    jac.addCommand("lib-remove", lazy("./lib-remove.js"));
+    jac.addCommand("lib-search", lazy("./lib-search.js"));
 
-    jac.addCommand("pull", pull);
-    jac.addCommand("ls", ls);
-    jac.addCommand("read", read);
-    jac.addCommand("write", write);
-    jac.addCommand("rm", rm);
-    jac.addCommand("mkdir", mkdir);
-    jac.addCommand("rmdir", rmdir);
-    jac.addCommand("upload", upload);
-    jac.addCommand("format", formatCmd);
+    jac.addCommand("pull", lazy("./pull.js"));
+    jac.addCommand("ls", lazy("./ls.js"));
+    jac.addCommand("read", lazy("./read.js"));
+    jac.addCommand("write", lazy("./write.js"));
+    jac.addCommand("rm", lazy("./rm.js"));
+    jac.addCommand("mkdir", lazy("./mkdir.js"));
+    jac.addCommand("rmdir", lazy("./rmdir.js"));
+    jac.addCommand("upload", lazy("./upload.js"));
+    jac.addCommand("format", lazy("./format.js"));
 
-    jac.addCommand("project-create", projectCreate);
-    jac.addCommand("project-update", projectUpdate);
-    jac.addCommand("resources-ls", resourcesLs);
-    jac.addCommand("resources-read", resourcesRead);
+    jac.addCommand("project-create", lazy("./project.js", "projectCreate"));
+    jac.addCommand("project-update", lazy("./project.js", "projectUpdate"));
+    jac.addCommand("resources-ls", lazy("./resources-ls.js"));
+    jac.addCommand("resources-read", lazy("./resources-read.js"));
 
-    jac.addCommand("start", start);
-    jac.addCommand("stop", stop);
-    jac.addCommand("status", status);
-    jac.addCommand("monitor", monitor);
+    jac.addCommand("start", lazy("./start.js"));
+    jac.addCommand("stop", lazy("./stop.js"));
+    jac.addCommand("status", lazy("./status.js"));
+    jac.addCommand("monitor", lazy("./monitor.js"));
 
-    jac.addCommand("wifi-get", wifiGet);
-    jac.addCommand("wifi-ls", wifiList);
-    jac.addCommand("wifi-ap", wifiSetAp);
-    jac.addCommand("wifi-add", wifiAdd);
-    jac.addCommand("wifi-rm", wifiRemove);
-    jac.addCommand("wifi-sta", wifiSetSta);
-    jac.addCommand("wifi-disable", wifiDisable);
+    jac.addCommand("wifi-get", lazy("./wifi.js", "wifiGet"));
+    jac.addCommand("wifi-ls", lazy("./wifi.js", "wifiList"));
+    jac.addCommand("wifi-ap", lazy("./wifi.js", "wifiSetAp"));
+    jac.addCommand("wifi-add", lazy("./wifi.js", "wifiAdd"));
+    jac.addCommand("wifi-rm", lazy("./wifi.js", "wifiRemove"));
+    jac.addCommand("wifi-sta", lazy("./wifi.js", "wifiSetSta"));
+    jac.addCommand("wifi-disable", lazy("./wifi.js", "wifiDisable"));
 
-    jac.addCommand("serial-socket", serialSocket);
+    jac.addCommand("serial-socket", lazy("./serial-socket.js"));
 }
