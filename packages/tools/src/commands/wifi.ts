@@ -245,7 +245,7 @@ export const wifiSetSta = new Command("Set WiFi to Station mode (connect to a wi
         const socket = options["socket"] as string;
 
         const specificSsid = options["specific"] as string | undefined;
-        const noApFallback = options["no-ap-fallback"] as boolean;
+        const apFallback = options["ap-fallback"] as boolean;
 
         if (specificSsid && specificSsid.length >= 31) {
             stderr.write("SSID is too long\n");
@@ -267,7 +267,7 @@ export const wifiSetSta = new Command("Set WiFi to Station mode (connect to a wi
             await device.controller.setWifiStaSpecific(specificSsid);
         }
 
-        await device.controller.setWifiStaApFallback(!noApFallback);
+        await device.controller.setWifiStaApFallback(apFallback);
 
         await device.controller.unlock().catch((err) => {
             stderr.write("Error unlocking device: " + err + "\n");
@@ -280,7 +280,7 @@ export const wifiSetSta = new Command("Set WiFi to Station mode (connect to a wi
         specific: new Opt(
             "SSID (name) of a wifi network to connect to. It must be added using wifi-add first. If specified, this network will be used exclusively, without scanning."
         ),
-        "no-ap-fallback": new Opt("Disable AP fallback when no known network is found.", {
+        "ap-fallback": new Opt("Enable AP fallback when no known network is found.", {
             isFlag: true,
         }),
     },
